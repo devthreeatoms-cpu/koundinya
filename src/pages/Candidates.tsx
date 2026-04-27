@@ -302,7 +302,100 @@ export default function CandidatesPage() {
           )}
         </div>
 
-        <div className="overflow-auto max-h-[calc(100vh-360px)] relative">
+        {/* Mobile: stacked card list */}
+        <div className="md:hidden">
+          {loading ? (
+            <div className="p-4 space-y-3">
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : paginated.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 text-muted-foreground py-16 px-4 text-center">
+              <div className="h-12 w-12 rounded-full bg-muted grid place-items-center">
+                <UsersIcon className="h-5 w-5" />
+              </div>
+              <p className="text-sm font-medium">No candidates found</p>
+              <p className="text-xs">Try adjusting your filters or add a new candidate.</p>
+            </div>
+          ) : (
+            <ul className="p-3 space-y-3">
+              {paginated.map((c) => {
+                const isAvail = !activeAssignedIds.has(c.id);
+                return (
+                  <li key={c.id} className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <Link to={`/candidates/${c.id}`} className="flex items-start gap-3 min-w-0 flex-1">
+                        <div className="h-10 w-10 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold shadow-sm shrink-0">
+                          {initials(c.name)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm break-words">{c.name}</p>
+                          <p className="text-xs text-muted-foreground tabular-nums break-all">{c.phone}</p>
+                          <p className="text-xs text-muted-foreground inline-flex items-center gap-1 mt-0.5">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            <span className="break-words">{c.location}</span>
+                          </p>
+                        </div>
+                      </Link>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEdit(c)}>
+                            <Edit className="h-4 w-4 mr-2" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => setDeleting(c)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <div className="flex items-center flex-wrap gap-1.5 pt-3 mt-3 border-t border-border/50">
+                      <Badge
+                        className={cn(
+                          "font-medium gap-1.5 px-2 py-0.5 text-[11px]",
+                          statusStyles[c.status]
+                        )}
+                      >
+                        <span className={cn("h-1.5 w-1.5 rounded-full", statusDot[c.status])} />
+                        {c.status}
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-[11px]",
+                          isAvail
+                            ? "border-primary/40 text-primary bg-primary-soft"
+                            : "border-muted-foreground/30 text-muted-foreground"
+                        )}
+                      >
+                        {isAvail ? "Available" : "Assigned"}
+                      </Badge>
+                      <Badge variant="outline" className="text-[11px] border-border text-muted-foreground">
+                        {c.source}
+                      </Badge>
+                      {c.has_bike && (
+                        <Badge variant="outline" className="text-[11px] border-border text-muted-foreground inline-flex items-center gap-1">
+                          <Bike className="h-3 w-3" /> Bike
+                        </Badge>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        {/* Desktop: table */}
+        <div className="hidden md:block overflow-auto max-h-[calc(100vh-360px)] relative">
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur">
               <TableRow className="hover:bg-transparent border-b border-border">
