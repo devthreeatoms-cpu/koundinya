@@ -16,6 +16,7 @@ import { Search, Loader2, X, Sparkles, MapPin, Bike } from "lucide-react";
 import { useCandidates } from "@/hooks/useCandidates";
 import { useAssignments, assignCandidates } from "@/hooks/useAssignments";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 import { initials } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId }:
   const { candidates } = useCandidates();
   const { assignments } = useAssignments();
   const { toast } = useToast();
+  const { agencyId } = useAuth();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
@@ -76,7 +78,7 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId }:
     if (selected.size === 0) return;
     setSubmitting(true);
     try {
-      await assignCandidates(projectId, Array.from(selected));
+      await assignCandidates(projectId, Array.from(selected), { agency_id: agencyId });
       toast({ title: `${selected.size} candidate${selected.size > 1 ? "s" : ""} assigned` });
       setSelected(new Set());
       onOpenChange(false);

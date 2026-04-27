@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { createCandidate, updateCandidate } from "@/hooks/useCandidates";
+import { useAuth } from "@/context/AuthContext";
 import type { Candidate, CandidateStatus } from "@/types";
 import { Loader2, UserPlus, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -60,6 +61,7 @@ function FieldError({ message }: { message?: string }) {
 
 export default function CandidateFormModal({ open, onOpenChange, candidate }: Props) {
   const { toast } = useToast();
+  const { agencyId } = useAuth();
   const isEdit = !!candidate;
 
   const {
@@ -102,7 +104,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
         await updateCandidate(candidate.id, values);
         toast({ title: "Candidate updated" });
       } else {
-        await createCandidate(values);
+        await createCandidate(values, { agency_id: agencyId });
         toast({ title: "Candidate added" });
       }
       onOpenChange(false);
