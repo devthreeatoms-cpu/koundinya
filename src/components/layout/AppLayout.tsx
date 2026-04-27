@@ -81,7 +81,7 @@ function SidebarContent({
             Workspace
           </p>
         )}
-        {navItems.map((item) => {
+        {items.map((item) => {
           const Icon = item.icon;
           return (
             <NavLink
