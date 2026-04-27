@@ -48,6 +48,32 @@ export function useProjects() {
   return { projects, loading };
 }
 
+/**
+ * Live single-project fetch by ID, bypassing list-level agency filters.
+ * Used by detail pages so admins can drill into agency-owned projects
+ * via /agencies/:id without being blocked by the strict admin filter.
+ */
+export function useProjectById(id: string | undefined) {
+  const [project, setProject] = useState<Project | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) { setProject(null); setLoading(false); return; }
+    setLoading(true);
+    const unsub = onSnapshot(
+      doc(db, COL, id),
+      (snap) => {
+        setProject(snap.exists() ? ({ id: snap.id, ...(snap.data() as any) } as Project) : null);
+        setLoading(false);
+      },
+      () => setLoading(false)
+    );
+    return () => unsub();
+  }, [id]);
+
+  return { project, loading };
+}
+
 export async function createProject(
   data: {
     name: string;

@@ -98,6 +98,32 @@ export function useAllCandidates() {
   return { candidates, loading };
 }
 
+/**
+ * Live single-candidate fetch by ID, bypassing list-level agency filters.
+ * Useful for detail pages so admins can drill into agency-owned candidates
+ * via /agencies/:id without being blocked by the strict admin filter.
+ */
+export function useCandidateById(id: string | undefined) {
+  const [candidate, setCandidate] = useState<Candidate | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) { setCandidate(null); setLoading(false); return; }
+    setLoading(true);
+    const unsub = onSnapshot(
+      doc(db, COL, id),
+      (snap) => {
+        setCandidate(snap.exists() ? ({ id: snap.id, ...(snap.data() as any) } as Candidate) : null);
+        setLoading(false);
+      },
+      () => setLoading(false)
+    );
+    return () => unsub();
+  }, [id]);
+
+  return { candidate, loading };
+}
+
 export async function createCandidate(
   data: Omit<Candidate, "id" | "created_at" | "is_deleted" | "agency_id">,
   ctx: { agency_id: string | null }

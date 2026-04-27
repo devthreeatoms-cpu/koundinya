@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, MapPin, Calendar, Briefcase, Edit, Plus, UserMinus, Users, Eye } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Briefcase, Edit, Plus, UserMinus, Users, Eye, Loader2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { useProjects } from "@/hooks/useProjects";
+import { useProjectById } from "@/hooks/useProjects";
 import { useAllCandidates } from "@/hooks/useCandidates";
 import { useAssignments, removeAssignment } from "@/hooks/useAssignments";
 import ProjectFormModal from "@/components/projects/ProjectFormModal";
@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
-  const { projects } = useProjects();
+  const { project, loading: pLoading } = useProjectById(id);
   const { candidates: allCandidates } = useAllCandidates();
   const { assignments } = useAssignments({ project_id: id });
   const { toast } = useToast();
@@ -27,7 +27,6 @@ export default function ProjectDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
 
-  const project = projects.find((p) => p.id === id);
   // Use the full candidate list (incl. soft-deleted) so historical
   // assignments still show the candidate's name with a "(Deleted)" tag.
   const candidateMap = useMemo(() => new Map(allCandidates.map((c) => [c.id, c])), [allCandidates]);
@@ -42,6 +41,14 @@ export default function ProjectDetail() {
     } catch (err: any) {
       toast({ title: "Error", description: err?.message, variant: "destructive" });
     }
+  }
+
+  if (pLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
   }
 
   if (!project) {
