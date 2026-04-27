@@ -9,25 +9,32 @@ import { useAuth } from "@/context/AuthContext";
 
 const COL = "projects";
 
-export function useProjects() {
+export function useProjects(opts?: { bypassOwnerFilter?: boolean }) {
   const { isAdmin, agencyId, loading: authLoading } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const bypass = !!opts?.bypassOwnerFilter;
 
   useEffect(() => {
     if (authLoading) return;
-    if (!isAdmin && !agencyId) {
+    if (!bypass && !isAdmin && !agencyId) {
       setProjects([]);
       setLoading(false);
       return;
     }
     // Strict separation: admin sees ONLY admin-owned data (agency_id == null).
-    const constraints: QueryConstraint[] = [
-      isAdmin
-        ? where("agency_id", "==", null)
-        : where("agency_id", "==", agencyId),
-    ];
-    const q = query(collection(db, COL), ...constraints);
+    // bypass=true is used only on detail screens that already access-check a
+    // specific agency-owned record.
+    const constraints: QueryConstraint[] = bypass
+      ? []
+      : [
+          isAdmin
+            ? where("agency_id", "==", null)
+            : where("agency_id", "==", agencyId),
+        ];
+    const q = constraints.length
+      ? query(collection(db, COL), ...constraints)
+      : query(collection(db, COL));
     const unsub = onSnapshot(
       q,
       (snap) => {
@@ -43,7 +50,7 @@ export function useProjects() {
       () => setLoading(false)
     );
     return () => unsub();
-  }, [isAdmin, agencyId, authLoading]);
+  }, [isAdmin, agencyId, authLoading, bypass]);
 
   return { projects, loading };
 }
