@@ -1,8 +1,15 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import type { AppUser, UserRole } from "@/types";
+
+/**
+ * Hard-coded admin emails. Any user signing in with one of these emails
+ * is auto-bootstrapped into the `users` collection with role: "admin"
+ * (only if no profile doc exists for them yet).
+ */
+const ADMIN_EMAILS = ["admin@gmail.com"];
 
 interface AuthContextValue {
   user: User | null;
@@ -42,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const ref = doc(db, "users", user.uid);
     const unsub = onSnapshot(
       ref,
-      (snap) => {
+      async (snap) => {
         if (snap.exists()) {
           const data = snap.data() as any;
           setProfile({
@@ -52,15 +59,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             agency_id: data.agency_id ?? null,
             created_at: data.created_at ?? null,
           });
-        } else {
-          // No profile doc yet — treat as agency with no agency_id (will see no data).
-          setProfile({
-            id: user.uid,
-            email: user.email ?? "",
-            role: "agency",
-            agency_id: null,
-          });
+          setProfileLoading(false);
+          return;
         }
+
+        // No profile doc yet.
+        // 1. If this user's email is in the admin allow-list, auto-create
+        //    an admin profile so they get full access immediately.
+        const email = (user.email ?? "").toLowerCase();
+        if (email && ADMIN_EMAILS.includes(email)) {
+          try {
+            await setDoc(ref, {
+              email,
+              role: "admin",
+              agency_id: null,
+              created_at: serverTimestamp(),
+            });
+            // The onSnapshot above will fire again with the new doc.
+            return;
+          } catch {
+            // fall through to default below
+          }
+        }
+
+        // 2. Otherwise treat as an agency user with no agency_id (sees nothing
+        //    until an admin assigns them via the Agencies page).
+        setProfile({
+          id: user.uid,
+          email: user.email ?? "",
+          role: "agency",
+          agency_id: null,
+        });
         setProfileLoading(false);
       },
       () => setProfileLoading(false)
