@@ -124,7 +124,7 @@ export default function AgenciesPage() {
         title="Agencies"
         description="Create agencies and invite their users. Each agency only sees its own data."
         actions={
-          <div className="flex gap-2">
+          <>
             <Button
               variant="outline"
               onClick={() => {
@@ -133,20 +133,20 @@ export default function AgenciesPage() {
               }}
               disabled={activeAgencies.length === 0}
             >
-              <UserPlus className="h-4 w-4" /> Invite user
+              <UserPlus className="h-4 w-4" /> <span className="truncate">Invite user</span>
             </Button>
             <Button variant="premium" onClick={() => setAgencyOpen(true)}>
-              <Plus className="h-4 w-4" /> New agency
+              <Plus className="h-4 w-4" /> <span className="truncate">New agency</span>
             </Button>
-          </div>
+          </>
         }
       />
 
       {/* Filter toggle */}
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
-        <div className="min-w-0">
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 px-3 sm:px-4 py-3">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-medium">Show inactive agencies</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
+          <p className="text-[11px] text-muted-foreground mt-0.5 hidden sm:block">
             Deactivated agencies stay in the database with all their data preserved.
           </p>
         </div>
@@ -154,6 +154,7 @@ export default function AgenciesPage() {
           checked={showInactive}
           onCheckedChange={setShowInactive}
           aria-label="Show inactive agencies"
+          className="shrink-0"
         />
       </div>
 
