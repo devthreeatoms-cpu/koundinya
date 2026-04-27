@@ -9,7 +9,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { useProjects } from "@/hooks/useProjects";
-import { useCandidates } from "@/hooks/useCandidates";
+import { useCandidates, useAllCandidates } from "@/hooks/useCandidates";
 import { useAssignments, removeAssignment } from "@/hooks/useAssignments";
 import ProjectFormModal from "@/components/projects/ProjectFormModal";
 import AssignCandidatesModal from "@/components/projects/AssignCandidatesModal";
@@ -21,6 +21,7 @@ export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const { projects } = useProjects();
   const { candidates } = useCandidates();
+  const { candidates: allCandidates } = useAllCandidates();
   const { assignments } = useAssignments({ project_id: id });
   const { toast } = useToast();
 
@@ -28,7 +29,9 @@ export default function ProjectDetail() {
   const [assignOpen, setAssignOpen] = useState(false);
 
   const project = projects.find((p) => p.id === id);
-  const candidateMap = useMemo(() => new Map(candidates.map((c) => [c.id, c])), [candidates]);
+  // Use the full candidate list (incl. soft-deleted) so historical
+  // assignments still show the candidate's name with a "(Deleted)" tag.
+  const candidateMap = useMemo(() => new Map(allCandidates.map((c) => [c.id, c])), [allCandidates]);
 
   const active = assignments.filter((a) => a.status === "Active");
   const past = assignments.filter((a) => a.status !== "Active");
