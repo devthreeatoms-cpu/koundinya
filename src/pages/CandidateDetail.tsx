@@ -173,7 +173,7 @@ export default function CandidateDetail() {
           </div>
         </Card>
 
-        <Card className="glass-card p-6 hover-lift lg:col-span-2">
+        <Card className="glass-card p-4 sm:p-6 hover-lift lg:col-span-2">
           <h3 className="font-semibold inline-flex items-center gap-2 mb-3">
             <div className="h-7 w-7 rounded-lg bg-primary-soft text-primary grid place-items-center">
               <FileText className="h-3.5 w-3.5" />
@@ -186,7 +186,7 @@ export default function CandidateDetail() {
         </Card>
       </div>
 
-      <Card className="glass-card p-6 hover-lift">
+      <Card className="glass-card p-4 sm:p-6 hover-lift">
         <h3 className="font-semibold inline-flex items-center gap-2 mb-4">
           <div className="h-7 w-7 rounded-lg bg-primary-soft text-primary grid place-items-center">
             <Briefcase className="h-3.5 w-3.5" />

@@ -109,7 +109,7 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg p-0 overflow-hidden gap-0">
-        <DialogHeader className="p-6 pb-4 border-b border-border bg-gradient-soft">
+        <DialogHeader className="p-4 sm:p-6 pb-4 border-b border-border bg-gradient-soft">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-gradient-brand text-white grid place-items-center shadow-brand">
               <Briefcase className="h-5 w-5" />
@@ -125,7 +125,7 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 space-y-4">
           <div>
             <Label htmlFor="name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Project name
@@ -137,7 +137,7 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
             />
             <FieldError message={errors.name?.message} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="client_name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Client
@@ -180,11 +180,11 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
             </div>
           </div>
 
-          <DialogFooter className="pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogFooter className="pt-2 gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button type="submit" variant="premium" disabled={isSubmitting}>
+            <Button type="submit" variant="premium" disabled={isSubmitting} className="w-full sm:w-auto">
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {isEdit ? "Save changes" : "Create project"}
             </Button>

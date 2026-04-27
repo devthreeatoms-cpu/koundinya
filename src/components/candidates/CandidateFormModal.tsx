@@ -118,7 +118,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg p-0 overflow-hidden gap-0">
-        <DialogHeader className="p-6 pb-4 border-b border-border bg-gradient-soft">
+        <DialogHeader className="p-4 sm:p-6 pb-4 border-b border-border bg-gradient-soft">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-gradient-brand text-white grid place-items-center shadow-brand">
               <UserPlus className="h-5 w-5" />
@@ -136,9 +136,9 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2 sm:col-span-1">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-1">
               <Label htmlFor="name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Name
               </Label>
@@ -149,7 +149,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
               />
               <FieldError message={errors.name?.message} />
             </div>
-            <div className="col-span-2 sm:col-span-1">
+            <div className="sm:col-span-1">
               <Label htmlFor="phone" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Phone
               </Label>
@@ -161,7 +161,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
               />
               <FieldError message={errors.phone?.message} />
             </div>
-            <div className="col-span-2 sm:col-span-1">
+            <div className="sm:col-span-1">
               <Label htmlFor="location" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Location
               </Label>
@@ -172,7 +172,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
               />
               <FieldError message={errors.location?.message} />
             </div>
-            <div className="col-span-2 sm:col-span-1">
+            <div className="sm:col-span-1">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Source
               </Label>
@@ -189,7 +189,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-2 sm:col-span-1">
+            <div className="sm:col-span-1">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Status
               </Label>
@@ -209,7 +209,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 col-span-2 sm:col-span-1 mt-[22px]">
+            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 sm:col-span-1 mt-[22px]">
               <div>
                 <p className="text-sm font-medium">Has bike</p>
                 <p className="text-[11px] text-muted-foreground">Owns own transport</p>
@@ -233,11 +233,11 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
             />
           </div>
 
-          <DialogFooter className="pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogFooter className="pt-2 gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button type="submit" variant="premium" disabled={isSubmitting}>
+            <Button type="submit" variant="premium" disabled={isSubmitting} className="w-full sm:w-auto">
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {isEdit ? "Save changes" : "Add candidate"}
             </Button>
