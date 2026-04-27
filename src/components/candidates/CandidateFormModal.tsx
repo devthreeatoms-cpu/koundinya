@@ -118,7 +118,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg p-0 overflow-hidden gap-0">
-        <DialogHeader className="p-6 pb-4 border-b border-border bg-gradient-soft">
+        <DialogHeader className="p-4 sm:p-6 pb-4 border-b border-border bg-gradient-soft">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-gradient-brand text-white grid place-items-center shadow-brand">
               <UserPlus className="h-5 w-5" />
