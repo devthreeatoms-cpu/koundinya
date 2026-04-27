@@ -3,18 +3,28 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { createProject, updateProject } from "@/hooks/useProjects";
 import type { Project, ProjectStatus } from "@/types";
-import { Loader2 } from "lucide-react";
+import { Loader2, Briefcase, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Project name is required").max(100),
@@ -32,12 +42,26 @@ interface Props {
   project?: Project | null;
 }
 
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <p className="text-xs text-destructive flex items-center gap-1 mt-1 animate-fade-in">
+      <AlertCircle className="h-3 w-3" /> {message}
+    </p>
+  );
+}
+
 export default function ProjectFormModal({ open, onOpenChange, project }: Props) {
   const { toast } = useToast();
   const isEdit = !!project;
 
   const {
-    register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting },
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { name: "", client_name: "", location: "", start_date: "", status: "Active" },
@@ -74,44 +98,80 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
       }
       onOpenChange(false);
     } catch (err: any) {
-      toast({ title: "Error", description: err?.message ?? "Something went wrong", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err?.message ?? "Something went wrong",
+        variant: "destructive",
+      });
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit project" : "New project"}</DialogTitle>
-          <DialogDescription>
-            {isEdit ? "Update project details." : "Add a new project to your workspace."}
-          </DialogDescription>
+      <DialogContent className="max-w-lg p-0 overflow-hidden gap-0">
+        <DialogHeader className="p-6 pb-4 border-b border-border bg-gradient-soft">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-gradient-brand text-white grid place-items-center shadow-brand">
+              <Briefcase className="h-5 w-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-lg">
+                {isEdit ? "Edit project" : "New project"}
+              </DialogTitle>
+              <DialogDescription className="text-xs mt-0.5">
+                {isEdit ? "Update project details." : "Add a new project to your workspace."}
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Project name</Label>
-            <Input id="name" {...register("name")} />
-            {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+          <div>
+            <Label htmlFor="name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Project name
+            </Label>
+            <Input
+              id="name"
+              className={cn("mt-1.5", errors.name && "border-destructive focus-visible:ring-destructive/20")}
+              {...register("name")}
+            />
+            <FieldError message={errors.name?.message} />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="client_name">Client</Label>
-              <Input id="client_name" {...register("client_name")} />
+            <div>
+              <Label htmlFor="client_name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Client
+              </Label>
+              <Input id="client_name" className="mt-1.5" {...register("client_name")} />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input id="location" {...register("location")} />
-              {errors.location && <p className="text-xs text-destructive">{errors.location.message}</p>}
+            <div>
+              <Label htmlFor="location" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Location
+              </Label>
+              <Input
+                id="location"
+                className={cn("mt-1.5", errors.location && "border-destructive focus-visible:ring-destructive/20")}
+                {...register("location")}
+              />
+              <FieldError message={errors.location?.message} />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="start_date">Start date</Label>
-              <Input id="start_date" type="date" {...register("start_date")} />
+            <div>
+              <Label htmlFor="start_date" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Start date
+              </Label>
+              <Input id="start_date" type="date" className="mt-1.5" {...register("start_date")} />
             </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={watch("status")} onValueChange={(v) => setValue("status", v as ProjectStatus)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+            <div>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Status
+              </Label>
+              <Select
+                value={watch("status")}
+                onValueChange={(v) => setValue("status", v as ProjectStatus)}
+              >
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Active">Active</SelectItem>
                   <SelectItem value="Completed">Completed</SelectItem>
@@ -120,10 +180,12 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
             </div>
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="premium" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {isEdit ? "Save changes" : "Create project"}
             </Button>
           </DialogFooter>
