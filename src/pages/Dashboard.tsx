@@ -156,45 +156,51 @@ export default function Dashboard() {
                 role="button"
                 tabIndex={-1}
                 className={cn(
-                  "relative overflow-hidden p-5 border-border/60 shadow-card cursor-pointer",
-                  "transition-all duration-300 ease-out animate-fade-in-up",
-                  "hover:-translate-y-1 hover:scale-[1.02] hover:shadow-elevated",
+                  "glass-card relative overflow-hidden p-6 cursor-pointer rounded-2xl",
+                  "transition-all duration-500 ease-out animate-fade-in-up",
+                  "hover:-translate-y-1.5 hover:scale-[1.02]",
                   "active:scale-[0.99] active:translate-y-0",
                   s.hoverGlow
                 )}
-                style={{ animationDelay: `${idx * 60}ms` }}
+                style={{ animationDelay: `${idx * 80}ms` }}
               >
-                {/* Decorative blur */}
+                {/* Aurora blob inside card */}
                 <div
                   className={cn(
-                    "absolute -top-10 -right-10 h-32 w-32 rounded-full opacity-20 blur-2xl transition-opacity duration-300 group-hover:opacity-40",
+                    "absolute -top-14 -right-14 h-40 w-40 rounded-full opacity-25 blur-3xl transition-all duration-500 group-hover:opacity-50 group-hover:scale-110",
                     s.gradient
                   )}
                 />
+                {/* Sweeping shine */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
                 <div className="relative flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">{s.label}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{s.label}</p>
                     {loading ? (
-                      <Skeleton className="h-9 w-20 mt-2" />
+                      <Skeleton className="h-12 w-24 mt-3" />
                     ) : (
-                      <p className="text-4xl font-bold mt-2 tracking-tight tabular-nums">
-                        {s.value}
+                      <p className="text-5xl font-bold mt-3 tracking-tight tabular-nums leading-none">
+                        <span className="text-gradient-brand">{s.value}</span>
                       </p>
                     )}
                   </div>
                   <div
                     className={cn(
-                      "h-12 w-12 rounded-2xl grid place-items-center text-white shadow-lg ring-4 transition-transform duration-300 group-hover:scale-110",
-                      s.gradient,
-                      s.ring
+                      "relative h-14 w-14 rounded-2xl grid place-items-center text-white shadow-lg transition-all duration-500 group-hover:scale-110 group-hover:rotate-3",
+                      s.gradient
                     )}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon className="h-6 w-6 relative z-10 drop-shadow-[0_2px_8px_rgba(255,255,255,0.4)]" />
+                    <div className={cn("absolute inset-0 rounded-2xl blur-xl opacity-60", s.gradient)} />
                   </div>
                 </div>
-                <div className="relative flex items-center gap-1.5 text-xs text-muted-foreground mt-4 pt-4 border-t border-border/60">
-                  <TrendingUp className="h-3.5 w-3.5 text-primary" />
-                  <span className="font-medium text-foreground">{s.hint}</span>
+                <div className="relative flex items-center justify-between gap-1.5 text-xs text-muted-foreground mt-5 pt-4 border-t border-border/40">
+                  <span className="inline-flex items-center gap-1.5">
+                    <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                    <span className="font-medium text-foreground">{s.hint}</span>
+                  </span>
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-all group-hover:translate-x-1 group-hover:text-primary" />
                 </div>
               </Card>
             </Link>
