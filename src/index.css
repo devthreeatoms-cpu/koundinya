@@ -63,9 +63,17 @@
     /* Gradients & shadows */
     --gradient-brand: linear-gradient(135deg, hsl(122 39% 49%) 0%, hsl(207 90% 54%) 100%);
     --gradient-soft: linear-gradient(135deg, hsl(122 39% 96%) 0%, hsl(207 90% 96%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(122 39% 52%) 0%, hsl(122 50% 38%) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(207 90% 58%) 0%, hsl(210 79% 45%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(210 79% 56%) 0%, hsl(220 70% 38%) 100%);
+    --gradient-mesh: radial-gradient(at 20% 0%, hsl(122 60% 90% / 0.6) 0px, transparent 50%),
+                     radial-gradient(at 80% 0%, hsl(207 90% 88% / 0.55) 0px, transparent 50%),
+                     radial-gradient(at 50% 100%, hsl(210 79% 90% / 0.4) 0px, transparent 50%);
     --shadow-card: 0 1px 2px 0 hsl(215 25% 18% / 0.04), 0 4px 12px -2px hsl(215 25% 18% / 0.06);
     --shadow-elevated: 0 4px 6px -1px hsl(215 25% 18% / 0.08), 0 10px 30px -5px hsl(215 25% 18% / 0.1);
     --shadow-brand: 0 8px 24px -8px hsl(122 39% 49% / 0.45);
+    --shadow-glow: 0 0 0 4px hsl(122 39% 49% / 0.12);
+    --shadow-glow-secondary: 0 0 0 4px hsl(207 90% 54% / 0.12);
   }
 
   .dark {
