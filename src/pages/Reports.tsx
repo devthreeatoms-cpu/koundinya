@@ -405,7 +405,17 @@ export default function Reports() {
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={projectData} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <defs>
+                  <linearGradient id="projBarActive" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--primary-glow))" stopOpacity={1} />
+                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.7} />
+                  </linearGradient>
+                  <linearGradient id="projBarCompleted" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--muted-foreground) / 0.7)" stopOpacity={1} />
+                    <stop offset="100%" stopColor="hsl(var(--muted-foreground) / 0.3)" stopOpacity={0.6} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.5} />
                 <XAxis
                   dataKey="name"
                   tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
@@ -419,17 +429,19 @@ export default function Reports() {
                   allowDecimals={false}
                 />
                 <Tooltip
-                  cursor={{ fill: "hsl(var(--muted) / 0.5)" }}
+                  cursor={{ fill: "hsl(var(--primary) / 0.08)", radius: 12 }}
                   contentStyle={{
-                    background: "hsl(var(--popover))",
+                    background: "hsl(var(--popover) / 0.95)",
+                    backdropFilter: "blur(12px)",
                     border: "1px solid hsl(var(--border))",
                     borderRadius: 12,
                     fontSize: 12,
+                    boxShadow: "var(--shadow-elevated)",
                   }}
                 />
-                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                <Bar dataKey="value" radius={[12, 12, 4, 4]} animationDuration={900}>
                   {projectData.map((_, i) => (
-                    <Cell key={i} fill={PROJECT_COLORS[i % PROJECT_COLORS.length]} />
+                    <Cell key={i} fill={i === 0 ? "url(#projBarActive)" : "url(#projBarCompleted)"} />
                   ))}
                 </Bar>
               </BarChart>
