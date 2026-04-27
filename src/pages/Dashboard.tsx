@@ -26,7 +26,7 @@ import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCandidates } from "@/hooks/useCandidates";
+import { useCandidates, useAllCandidates } from "@/hooks/useCandidates";
 import { useProjects } from "@/hooks/useProjects";
 import { useAssignments } from "@/hooks/useAssignments";
 import { formatDate, initials } from "@/lib/utils-format";
@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
   const { candidates, loading: cLoading } = useCandidates();
+  const { candidates: allCandidates } = useAllCandidates();
   const { projects, loading: pLoading } = useProjects();
   const { assignments, loading: aLoading } = useAssignments();
 
@@ -117,9 +118,10 @@ export default function Dashboard() {
       })
       .slice(0, 6);
   }, [assignments]);
+  // Include soft-deleted candidates so historic activity still resolves names.
   const candidateMap = useMemo(
-    () => new Map(candidates.map((c) => [c.id, c])),
-    [candidates]
+    () => new Map(allCandidates.map((c) => [c.id, c])),
+    [allCandidates]
   );
   const projectMap = useMemo(
     () => new Map(projects.map((p) => [p.id, p])),
@@ -301,22 +303,41 @@ export default function Dashboard() {
               {recentActivity.map((a) => {
                 const c = candidateMap.get(a.candidate_id);
                 const p = projectMap.get(a.project_id);
+                const isDeleted = !!c?.is_deleted;
                 return (
                   <li
                     key={a.id}
                     className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
                   >
-                    <div className="h-9 w-9 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold shrink-0">
+                    <div className={cn(
+                      "h-9 w-9 rounded-full grid place-items-center text-xs font-semibold shrink-0 text-white",
+                      isDeleted ? "bg-muted-foreground/60" : "bg-gradient-brand"
+                    )}>
                       {c ? initials(c.name) : "?"}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm">
-                        <Link
-                          to={`/candidates/${c?.id ?? ""}`}
-                          className="font-medium hover:text-primary"
-                        >
-                          {c?.name ?? "Unknown"}
-                        </Link>
+                        {c ? (
+                          isDeleted ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="font-medium text-muted-foreground line-through decoration-muted-foreground/40">
+                                {c.name}
+                              </span>
+                              <Badge variant="outline" className="text-[10px] uppercase tracking-wide border-muted-foreground/30 text-muted-foreground bg-muted/40">
+                                Deleted
+                              </Badge>
+                            </span>
+                          ) : (
+                            <Link
+                              to={`/candidates/${c.id}`}
+                              className="font-medium hover:text-primary"
+                            >
+                              {c.name}
+                            </Link>
+                          )
+                        ) : (
+                          <span className="font-medium text-muted-foreground italic">Unknown</span>
+                        )}
                         <span className="text-muted-foreground"> {a.status === "Active" ? "assigned to" : "removed from"} </span>
                         <Link
                           to={`/projects/${p?.id ?? ""}`}
