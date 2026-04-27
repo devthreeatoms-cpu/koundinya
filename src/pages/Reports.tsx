@@ -530,96 +530,163 @@ export default function Reports() {
             No assignments yet.
           </p>
         ) : (
-          <Table>
-            <TableHeader className="bg-muted/40">
-              <TableRow>
-                <TableHead>Candidate</TableHead>
-                <TableHead>Project</TableHead>
-                <TableHead>Assigned</TableHead>
-                <TableHead>Removed</TableHead>
-                <TableHead className="text-right">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentAssignments.map((a, idx) => {
+          <>
+            {/* Mobile: stacked cards */}
+            <ul className="md:hidden p-3 space-y-3">
+              {recentAssignments.map((a) => {
                 const c = candidateMap.get(a.candidate_id);
                 const p = projectMap.get(a.project_id);
                 const isDeleted = !!c?.is_deleted;
                 return (
-                  <TableRow
-                    key={a.id}
-                    className={cn(
-                      "transition-colors",
-                      idx % 2 === 1 && "bg-muted/20"
-                    )}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-2.5">
-                        <div className={cn(
-                          "h-8 w-8 rounded-full grid place-items-center text-[10px] font-semibold text-white",
-                          isDeleted ? "bg-muted-foreground/60" : "bg-gradient-brand"
-                        )}>
-                          {c ? initials(c.name) : "?"}
-                        </div>
+                  <li key={a.id} className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-2">
+                    <div className="flex items-start gap-2.5">
+                      <div className={cn(
+                        "h-9 w-9 rounded-full grid place-items-center text-[11px] font-semibold text-white shrink-0",
+                        isDeleted ? "bg-muted-foreground/60" : "bg-gradient-brand"
+                      )}>
+                        {c ? initials(c.name) : "?"}
+                      </div>
+                      <div className="min-w-0 flex-1">
                         {c ? (
                           isDeleted ? (
-                            <span className="inline-flex items-center gap-1.5">
-                              <span className="font-medium text-sm text-muted-foreground line-through decoration-muted-foreground/40">
-                                {c.name}
-                              </span>
-                              <Badge variant="outline" className="text-[10px] uppercase tracking-wide border-muted-foreground/30 text-muted-foreground bg-muted/40">
-                                Deleted
-                              </Badge>
-                            </span>
+                            <p className="font-medium text-sm text-muted-foreground line-through break-words">
+                              {c.name}
+                            </p>
                           ) : (
-                            <Link
-                              to={`/candidates/${c.id}`}
-                              className="font-medium text-sm hover:text-primary"
-                            >
+                            <Link to={`/candidates/${c.id}`} className="font-medium text-sm hover:text-primary break-words block">
                               {c.name}
                             </Link>
                           )
                         ) : (
-                          <span className="font-medium text-sm text-muted-foreground italic">Unknown</span>
+                          <p className="font-medium text-sm text-muted-foreground italic">Unknown</p>
                         )}
+                        <Link to={`/projects/${p?.id ?? ""}`} className="text-xs text-muted-foreground hover:text-primary break-words block">
+                          {p?.name ?? "Unknown project"}
+                        </Link>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Link
-                        to={`/projects/${p?.id ?? ""}`}
-                        className="text-sm hover:text-primary"
-                      >
-                        {p?.name ?? "Unknown project"}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDate((a.assigned_at as any)?.toDate?.())}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {a.removed_at
-                        ? formatDate((a.removed_at as any)?.toDate?.())
-                        : "—"}
-                    </TableCell>
-                    <TableCell className="text-right">
                       <Badge
                         variant="outline"
                         className={cn(
-                          a.status === "Active" &&
-                            "border-primary/40 text-primary bg-primary-soft",
-                          a.status === "Completed" &&
-                            "border-muted-foreground/30 text-muted-foreground",
-                          a.status === "Dropped" &&
-                            "border-destructive/40 text-destructive bg-destructive/10"
+                          "shrink-0 text-[10px]",
+                          a.status === "Active" && "border-primary/40 text-primary bg-primary-soft",
+                          a.status === "Completed" && "border-muted-foreground/30 text-muted-foreground",
+                          a.status === "Dropped" && "border-destructive/40 text-destructive bg-destructive/10"
                         )}
                       >
                         {a.status}
                       </Badge>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50 text-[11px]">
+                      <div>
+                        <p className="text-muted-foreground uppercase tracking-wide">Assigned</p>
+                        <p className="font-medium mt-0.5">{formatDate((a.assigned_at as any)?.toDate?.())}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground uppercase tracking-wide">Removed</p>
+                        <p className="font-medium mt-0.5">
+                          {a.removed_at ? formatDate((a.removed_at as any)?.toDate?.()) : "—"}
+                        </p>
+                      </div>
+                    </div>
+                  </li>
                 );
               })}
-            </TableBody>
-          </Table>
+            </ul>
+
+            {/* Desktop: table */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader className="bg-muted/40">
+                  <TableRow>
+                    <TableHead>Candidate</TableHead>
+                    <TableHead>Project</TableHead>
+                    <TableHead>Assigned</TableHead>
+                    <TableHead>Removed</TableHead>
+                    <TableHead className="text-right">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentAssignments.map((a, idx) => {
+                    const c = candidateMap.get(a.candidate_id);
+                    const p = projectMap.get(a.project_id);
+                    const isDeleted = !!c?.is_deleted;
+                    return (
+                      <TableRow
+                        key={a.id}
+                        className={cn(
+                          "transition-colors",
+                          idx % 2 === 1 && "bg-muted/20"
+                        )}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-2.5">
+                            <div className={cn(
+                              "h-8 w-8 rounded-full grid place-items-center text-[10px] font-semibold text-white",
+                              isDeleted ? "bg-muted-foreground/60" : "bg-gradient-brand"
+                            )}>
+                              {c ? initials(c.name) : "?"}
+                            </div>
+                            {c ? (
+                              isDeleted ? (
+                                <span className="inline-flex items-center gap-1.5">
+                                  <span className="font-medium text-sm text-muted-foreground line-through decoration-muted-foreground/40">
+                                    {c.name}
+                                  </span>
+                                  <Badge variant="outline" className="text-[10px] uppercase tracking-wide border-muted-foreground/30 text-muted-foreground bg-muted/40">
+                                    Deleted
+                                  </Badge>
+                                </span>
+                              ) : (
+                                <Link
+                                  to={`/candidates/${c.id}`}
+                                  className="font-medium text-sm hover:text-primary"
+                                >
+                                  {c.name}
+                                </Link>
+                              )
+                            ) : (
+                              <span className="font-medium text-sm text-muted-foreground italic">Unknown</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Link
+                            to={`/projects/${p?.id ?? ""}`}
+                            className="text-sm hover:text-primary"
+                          >
+                            {p?.name ?? "Unknown project"}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {formatDate((a.assigned_at as any)?.toDate?.())}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {a.removed_at
+                            ? formatDate((a.removed_at as any)?.toDate?.())
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              a.status === "Active" &&
+                                "border-primary/40 text-primary bg-primary-soft",
+                              a.status === "Completed" &&
+                                "border-muted-foreground/30 text-muted-foreground",
+                              a.status === "Dropped" &&
+                                "border-destructive/40 text-destructive bg-destructive/10"
+                            )}
+                          >
+                            {a.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </Card>
     </div>
