@@ -174,24 +174,24 @@ export default function Dashboard() {
                 {/* Sweeping shine */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-                <div className="relative flex items-start justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{s.label}</p>
+                <div className="relative flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground truncate">{s.label}</p>
                     {loading ? (
-                      <Skeleton className="h-12 w-24 mt-3" />
+                      <Skeleton className="h-10 w-20 mt-3" />
                     ) : (
-                      <p className="text-5xl font-bold mt-3 tracking-tight tabular-nums leading-none">
+                      <p className="text-4xl sm:text-5xl font-bold mt-3 tracking-tight tabular-nums leading-none">
                         <span className="text-gradient-brand">{s.value}</span>
                       </p>
                     )}
                   </div>
                   <div
                     className={cn(
-                      "relative h-14 w-14 rounded-2xl grid place-items-center text-white shadow-lg transition-all duration-500 group-hover:scale-110 group-hover:rotate-3",
+                      "relative h-12 w-12 sm:h-14 sm:w-14 rounded-2xl grid place-items-center text-white shadow-lg transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 shrink-0",
                       s.gradient
                     )}
                   >
-                    <Icon className="h-6 w-6 relative z-10 drop-shadow-[0_2px_8px_rgba(255,255,255,0.4)]" />
+                    <Icon className="h-5 w-5 sm:h-6 sm:w-6 relative z-10 drop-shadow-[0_2px_8px_rgba(255,255,255,0.4)]" />
                     <div className={cn("absolute inset-0 rounded-2xl blur-xl opacity-60", s.gradient)} />
                   </div>
                 </div>
