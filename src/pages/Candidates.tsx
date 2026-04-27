@@ -1,23 +1,53 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Search, Edit, Trash2, MoreVertical, Bike, MapPin } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  MoreVertical,
+  Bike,
+  MapPin,
+  Filter,
+  X,
+  Users as UsersIcon,
+} from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCandidates, softDeleteCandidate } from "@/hooks/useCandidates";
 import { useAssignments } from "@/hooks/useAssignments";
@@ -25,15 +55,23 @@ import CandidateFormModal from "@/components/candidates/CandidateFormModal";
 import type { Candidate, CandidateStatus } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { initials } from "@/lib/utils-format";
+import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
 const STATUSES: (CandidateStatus | "all")[] = ["all", "New", "Contacted", "Assigned", "Rejected"];
 
 const statusStyles: Record<CandidateStatus, string> = {
-  New: "bg-secondary-soft text-secondary border-0",
-  Contacted: "bg-accent/10 text-accent border-0",
-  Assigned: "bg-primary text-primary-foreground border-0",
-  Rejected: "bg-destructive/10 text-destructive border-0",
+  New: "bg-secondary/15 text-secondary border border-secondary/30",
+  Contacted: "bg-warning/15 text-warning border border-warning/30",
+  Assigned: "bg-primary/15 text-primary border border-primary/30",
+  Rejected: "bg-destructive/15 text-destructive border border-destructive/30",
+};
+
+const statusDot: Record<CandidateStatus, string> = {
+  New: "bg-secondary",
+  Contacted: "bg-warning",
+  Assigned: "bg-primary",
+  Rejected: "bg-destructive",
 };
 
 export default function CandidatesPage() {
@@ -81,8 +119,14 @@ export default function CandidatesPage() {
   const safePage = Math.min(page, pageCount);
   const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  function openAdd() { setEditing(null); setModalOpen(true); }
-  function openEdit(c: Candidate) { setEditing(c); setModalOpen(true); }
+  function openAdd() {
+    setEditing(null);
+    setModalOpen(true);
+  }
+  function openEdit(c: Candidate) {
+    setEditing(c);
+    setModalOpen(true);
+  }
 
   async function confirmDelete() {
     if (!deleting) return;
@@ -96,139 +140,301 @@ export default function CandidatesPage() {
     }
   }
 
+  const activeFilterCount =
+    (statusFilter !== "all" ? 1 : 0) +
+    (sourceFilter !== "all" ? 1 : 0) +
+    (availFilter !== "all" ? 1 : 0);
+
+  function clearFilters() {
+    setStatusFilter("all");
+    setSourceFilter("all");
+    setAvailFilter("all");
+    setPage(1);
+  }
+
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         title="Candidates"
         description="Manage your candidate database, statuses, and availability."
         actions={
-          <Button onClick={openAdd} className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-brand">
-            <Plus className="h-4 w-4 mr-1.5" /> Add candidate
+          <Button onClick={openAdd} variant="premium">
+            <Plus className="h-4 w-4" /> Add candidate
           </Button>
         }
       />
 
-      <Card className="p-4 shadow-card">
-        <div className="flex flex-col lg:flex-row gap-3 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name or phone…"
-              className="pl-9"
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            />
+      <Card className="shadow-card border-border/60 overflow-hidden">
+        <div className="p-4 border-b border-border/60 space-y-3">
+          <div className="flex flex-col lg:flex-row gap-3">
+            <div className="relative flex-1 group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
+              <Input
+                placeholder="Search by name or phone…"
+                className="pl-9"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => {
+                  setStatusFilter(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s === "all" ? "All statuses" : s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={sourceFilter}
+                onValueChange={(v) => {
+                  setSourceFilter(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="Source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All sources</SelectItem>
+                  {sources.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={availFilter}
+                onValueChange={(v) => {
+                  setAvailFilter(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Availability" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="available">Available</SelectItem>
+                  <SelectItem value="assigned">Assigned</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>
-              <SelectContent>
-                {STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>{s === "all" ? "All statuses" : s}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={sourceFilter} onValueChange={(v) => { setSourceFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-36"><SelectValue placeholder="Source" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All sources</SelectItem>
-                {sources.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={availFilter} onValueChange={(v) => { setAvailFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-40"><SelectValue placeholder="Availability" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="available">Available</SelectItem>
-                <SelectItem value="assigned">Assigned</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+
+          {activeFilterCount > 0 && (
+            <div className="flex items-center gap-2 flex-wrap pt-1">
+              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Filter className="h-3 w-3" /> Active filters:
+              </span>
+              {statusFilter !== "all" && (
+                <button
+                  onClick={() => {
+                    setStatusFilter("all");
+                    setPage(1);
+                  }}
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-primary-soft text-primary hover:bg-primary/20 transition-colors"
+                >
+                  Status: {statusFilter} <X className="h-3 w-3" />
+                </button>
+              )}
+              {sourceFilter !== "all" && (
+                <button
+                  onClick={() => {
+                    setSourceFilter("all");
+                    setPage(1);
+                  }}
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-secondary-soft text-secondary hover:bg-secondary/20 transition-colors"
+                >
+                  Source: {sourceFilter} <X className="h-3 w-3" />
+                </button>
+              )}
+              {availFilter !== "all" && (
+                <button
+                  onClick={() => {
+                    setAvailFilter("all");
+                    setPage(1);
+                  }}
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-accent/15 text-accent hover:bg-accent/25 transition-colors"
+                >
+                  {availFilter === "available" ? "Available" : "Assigned"} <X className="h-3 w-3" />
+                </button>
+              )}
+              <button
+                onClick={clearFilters}
+                className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="rounded-lg border border-border overflow-hidden">
+        <div className="overflow-auto max-h-[calc(100vh-360px)] relative">
           <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/40">
-                <TableHead>Candidate</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Availability</TableHead>
+            <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur">
+              <TableRow className="hover:bg-transparent border-b border-border">
+                <TableHead className="font-semibold text-foreground">Candidate</TableHead>
+                <TableHead className="font-semibold text-foreground">Phone</TableHead>
+                <TableHead className="font-semibold text-foreground">Location</TableHead>
+                <TableHead className="font-semibold text-foreground">Source</TableHead>
+                <TableHead className="font-semibold text-foreground">Status</TableHead>
+                <TableHead className="font-semibold text-foreground">Availability</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-12 text-sm text-muted-foreground">Loading…</TableCell></TableRow>
-              ) : paginated.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-12 text-sm text-muted-foreground">No candidates found.</TableCell></TableRow>
-              ) : paginated.map((c) => {
-                const isAvail = !activeAssignedIds.has(c.id);
-                return (
-                  <TableRow key={c.id} className="hover:bg-muted/30">
-                    <TableCell>
-                      <Link to={`/candidates/${c.id}`} className="flex items-center gap-3 group">
-                        <div className="h-9 w-9 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold">
-                          {initials(c.name)}
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm group-hover:text-primary">{c.name}</p>
-                          {c.has_bike && (
-                            <p className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
-                              <Bike className="h-3 w-3" /> Has bike
-                            </p>
-                          )}
-                        </div>
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-sm">{c.phone}</TableCell>
-                    <TableCell className="text-sm">
-                      <span className="inline-flex items-center gap-1 text-muted-foreground">
-                        <MapPin className="h-3 w-3" /> {c.location}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-sm">{c.source}</TableCell>
-                    <TableCell>
-                      <Badge className={statusStyles[c.status]}>{c.status}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={isAvail ? "border-primary/40 text-primary" : "border-muted-foreground/30 text-muted-foreground"}>
-                        {isAvail ? "Available" : "Assigned"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEdit(c)}>
-                            <Edit className="h-4 w-4 mr-2" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive" onClick={() => setDeleting(c)}>
-                            <Trash2 className="h-4 w-4 mr-2" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                [...Array(6)].map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell colSpan={7}>
+                      <Skeleton className="h-10 w-full" />
                     </TableCell>
                   </TableRow>
-                );
-              })}
+                ))
+              ) : paginated.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-16">
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <div className="h-12 w-12 rounded-full bg-muted grid place-items-center">
+                        <UsersIcon className="h-5 w-5" />
+                      </div>
+                      <p className="text-sm font-medium">No candidates found</p>
+                      <p className="text-xs">Try adjusting your filters or add a new candidate.</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginated.map((c, idx) => {
+                  const isAvail = !activeAssignedIds.has(c.id);
+                  return (
+                    <TableRow
+                      key={c.id}
+                      className={cn(
+                        "group transition-colors border-b border-border/60",
+                        idx % 2 === 1 && "bg-muted/20",
+                        "hover:bg-primary-soft/40"
+                      )}
+                    >
+                      <TableCell>
+                        <Link to={`/candidates/${c.id}`} className="flex items-center gap-3 group/link">
+                          <div className="h-9 w-9 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold shadow-sm group-hover/link:shadow-brand transition-shadow">
+                            {initials(c.name)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm group-hover/link:text-primary transition-colors">
+                              {c.name}
+                            </p>
+                            {c.has_bike && (
+                              <p className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
+                                <Bike className="h-3 w-3" /> Has bike
+                              </p>
+                            )}
+                          </div>
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-sm tabular-nums">{c.phone}</TableCell>
+                      <TableCell className="text-sm">
+                        <span className="inline-flex items-center gap-1 text-muted-foreground">
+                          <MapPin className="h-3 w-3" /> {c.location}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-sm">{c.source}</TableCell>
+                      <TableCell>
+                        <Badge
+                          className={cn(
+                            "font-medium gap-1.5 px-2.5 py-0.5",
+                            statusStyles[c.status]
+                          )}
+                        >
+                          <span className={cn("h-1.5 w-1.5 rounded-full", statusDot[c.status])} />
+                          {c.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={
+                            isAvail
+                              ? "border-primary/40 text-primary bg-primary-soft"
+                              : "border-muted-foreground/30 text-muted-foreground"
+                          }
+                        >
+                          {isAvail ? "Available" : "Assigned"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="opacity-60 group-hover:opacity-100 transition-opacity"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEdit(c)}>
+                              <Edit className="h-4 w-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setDeleting(c)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-between p-4 border-t border-border/60 bg-muted/20">
           <p className="text-xs text-muted-foreground">
-            Showing {paginated.length} of {filtered.length} candidates
+            Showing <span className="font-semibold text-foreground">{paginated.length}</span> of{" "}
+            <span className="font-semibold text-foreground">{filtered.length}</span> candidates
           </p>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" disabled={safePage <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-            <span className="text-xs text-muted-foreground">Page {safePage} of {pageCount}</span>
-            <Button variant="outline" size="sm" disabled={safePage >= pageCount} onClick={() => setPage((p) => p + 1)}>Next</Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={safePage <= 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              Previous
+            </Button>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              Page {safePage} of {pageCount}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={safePage >= pageCount}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </Button>
           </div>
         </div>
       </Card>
@@ -240,12 +446,16 @@ export default function CandidatesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete candidate?</AlertDialogTitle>
             <AlertDialogDescription>
-              {deleting?.name} will be soft-deleted and hidden from lists. This can be reversed by an administrator.
+              {deleting?.name} will be soft-deleted and hidden from lists. This can be reversed by
+              an administrator.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
