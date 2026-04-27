@@ -197,7 +197,7 @@ export default function CandidatesPage() {
                 }}
               />
             </div>
-            <div className="flex gap-2 flex-wrap">
+            <div className="grid grid-cols-2 sm:flex gap-2 sm:flex-wrap">
               <Select
                 value={statusFilter}
                 onValueChange={(v) => {
@@ -205,7 +205,7 @@ export default function CandidatesPage() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="w-36">
+                <SelectTrigger className="w-full sm:w-36">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -223,7 +223,7 @@ export default function CandidatesPage() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="w-36">
+                <SelectTrigger className="w-full sm:w-36">
                   <SelectValue placeholder="Source" />
                 </SelectTrigger>
                 <SelectContent>
@@ -242,7 +242,7 @@ export default function CandidatesPage() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="col-span-2 w-full sm:w-40">
                   <SelectValue placeholder="Availability" />
                 </SelectTrigger>
                 <SelectContent>
