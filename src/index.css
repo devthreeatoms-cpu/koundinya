@@ -159,11 +159,17 @@
 
   html, body, #root {
     @apply h-full;
+    max-width: 100%;
   }
 
   html {
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
+    overflow-x: hidden;
+  }
+
+  #root {
+    overflow-x: hidden;
   }
 
   body {
