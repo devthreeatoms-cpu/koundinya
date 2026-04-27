@@ -25,8 +25,10 @@ export function useAssignments(filter?: { project_id?: string; candidate_id?: st
     const constraints: QueryConstraint[] = [];
     if (filter?.project_id) constraints.push(where("project_id", "==", filter.project_id));
     if (filter?.candidate_id) constraints.push(where("candidate_id", "==", filter.candidate_id));
-    if (!isAdmin) constraints.push(where("agency_id", "==", agencyId));
-    const q = constraints.length ? query(base, ...constraints) : query(base);
+    // Strict separation: admin sees ONLY admin-owned (agency_id == null) assignments.
+    if (isAdmin) constraints.push(where("agency_id", "==", null));
+    else constraints.push(where("agency_id", "==", agencyId));
+    const q = query(base, ...constraints);
 
     const unsub = onSnapshot(
       q,
