@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -10,6 +10,7 @@ import {
   MapPin,
   Filter,
   X,
+  Eye,
   Users as UsersIcon,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
@@ -78,6 +79,7 @@ export default function CandidatesPage() {
   const { candidates, loading } = useCandidates();
   const { assignments } = useAssignments();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const initialAvail = (() => {
@@ -345,6 +347,9 @@ export default function CandidatesPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => navigate(`/candidates/${c.id}`)}>
+                            <Eye className="h-4 w-4 mr-2" /> View
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openEdit(c)}>
                             <Edit className="h-4 w-4 mr-2" /> Edit
                           </DropdownMenuItem>
@@ -500,6 +505,9 @@ export default function CandidatesPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => navigate(`/candidates/${c.id}`)}>
+                              <Eye className="h-4 w-4 mr-2" /> View
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openEdit(c)}>
                               <Edit className="h-4 w-4 mr-2" /> Edit
                             </DropdownMenuItem>
