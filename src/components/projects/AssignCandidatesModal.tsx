@@ -199,19 +199,20 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId }:
           )}
         </ScrollArea>
 
-        <DialogFooter className="items-center sm:justify-between p-6 pt-4 border-t border-border bg-muted/20">
-          <p className="text-xs text-muted-foreground">
+        <DialogFooter className="flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 p-4 sm:p-6 pt-4 border-t border-border bg-muted/20">
+          <p className="text-xs text-muted-foreground text-center sm:text-left">
             <span className="font-semibold text-foreground tabular-nums">{selected.size}</span> of{" "}
             <span className="tabular-nums">{available.length}</span> selected
           </p>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-none">
               Cancel
             </Button>
             <Button
               variant="premium"
               disabled={submitting || selected.size === 0}
               onClick={handleAssign}
+              className="flex-1 sm:flex-none"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               Assign{selected.size > 0 ? ` ${selected.size}` : ""}
