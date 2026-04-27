@@ -29,8 +29,12 @@ export function useCandidates() {
       setLoading(false);
       return;
     }
-    const constraints: QueryConstraint[] = [where("is_deleted", "==", false)];
-    if (!isAdmin) constraints.push(where("agency_id", "==", agencyId));
+    // Admin only sees admin-owned (agency_id == null) candidates here.
+    // Agency-owned data is viewable from the per-agency drill-down page.
+    const constraints: QueryConstraint[] = [
+      where("is_deleted", "==", false),
+      where("agency_id", "==", isAdmin ? null : agencyId),
+    ];
     const q = query(collection(db, COL), ...constraints);
     const unsub = onSnapshot(
       q,
@@ -68,11 +72,11 @@ export function useAllCandidates() {
       setLoading(false);
       return;
     }
-    const constraints: QueryConstraint[] = [];
-    if (!isAdmin) constraints.push(where("agency_id", "==", agencyId));
-    const q = constraints.length
-      ? query(collection(db, COL), ...constraints)
-      : query(collection(db, COL));
+    // Same isolation rule: admin only sees admin-owned records here.
+    const constraints: QueryConstraint[] = [
+      where("agency_id", "==", isAdmin ? null : agencyId),
+    ];
+    const q = query(collection(db, COL), ...constraints);
     const unsub = onSnapshot(
       q,
       (snap) => {

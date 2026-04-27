@@ -21,11 +21,12 @@ export function useProjects() {
       setLoading(false);
       return;
     }
-    const constraints: QueryConstraint[] = [];
-    if (!isAdmin) constraints.push(where("agency_id", "==", agencyId));
-    const q = constraints.length
-      ? query(collection(db, COL), ...constraints)
-      : query(collection(db, COL));
+    // Admin only sees admin-owned (agency_id == null) projects here.
+    // To view a specific agency's projects, admin uses the Agencies drill-down page.
+    const constraints: QueryConstraint[] = [
+      where("agency_id", "==", isAdmin ? null : agencyId),
+    ];
+    const q = query(collection(db, COL), ...constraints);
     const unsub = onSnapshot(
       q,
       (snap) => {
