@@ -7,8 +7,6 @@ import {
   BarChart3,
   Settings,
   LogOut,
-  Search,
-  Bell,
   PanelLeftClose,
   PanelLeftOpen,
   Sparkles,
@@ -20,7 +18,6 @@ import logo from "@/assets/koundinya-logo.jpeg";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { initials } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
 import {
@@ -246,19 +243,6 @@ export default function AppLayout() {
               <span className="font-semibold tracking-tight truncate">Koundinya</span>
             </div>
 
-            <div className="flex-1 max-w-md hidden md:block">
-              <div className="relative group">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
-                <Input
-                  placeholder="Search candidates, projects…"
-                  className="pl-9 bg-background/50 border-border/60 backdrop-blur-sm focus:bg-background/80 transition-colors"
-                />
-                <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted/60 px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-                  ⌘K
-                </kbd>
-              </div>
-            </div>
-
             <div className="ml-auto flex items-center gap-1 sm:gap-2 shrink-0">
               <Button
                 variant="ghost"
@@ -272,15 +256,6 @@ export default function AppLayout() {
                 ) : (
                   <Moon className="h-4 w-4" />
                 )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Notifications"
-                className="relative h-10 w-10 sm:h-9 sm:w-9"
-              >
-                <Bell className="h-4 w-4" />
-                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-background" />
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -305,17 +280,6 @@ export default function AppLayout() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
-          </div>
-
-          {/* Mobile search row */}
-          <div className="md:hidden px-3 pb-3 -mt-1">
-            <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search candidates, projects…"
-                className="pl-9 h-11 bg-background/50 border-border/60 backdrop-blur-sm"
-              />
             </div>
           </div>
         </header>
