@@ -46,7 +46,10 @@ export async function createProject(data: {
   });
 }
 
-export async function updateProject(id: string, data: Partial<Project> & { start_date?: Date | null }) {
+export async function updateProject(
+  id: string,
+  data: Partial<Omit<Project, "start_date">> & { start_date?: Date | null }
+) {
   const payload: any = { ...data };
   if (data.start_date instanceof Date) payload.start_date = Timestamp.fromDate(data.start_date);
   await updateDoc(doc(db, COL, id), payload);
