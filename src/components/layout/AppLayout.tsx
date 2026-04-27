@@ -137,17 +137,17 @@ export default function AppLayout() {
   const email = user?.email ?? "";
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Desktop Sidebar */}
+    <div className="min-h-screen bg-background">
+      {/* Desktop Sidebar — fixed full-height */}
       <aside
         className={cn(
-          "hidden md:flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-[width] duration-300 ease-out",
+          "hidden md:flex flex-col fixed inset-y-0 left-0 z-30 bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-[width] duration-300 ease-out overflow-y-auto",
           collapsed ? "w-[76px]" : "w-64"
         )}
       >
         <SidebarContent collapsed={collapsed} />
 
-        <div className="p-3 border-t border-sidebar-border space-y-1">
+        <div className="mt-auto p-3 border-t border-sidebar-border space-y-1">
           <button
             onClick={() => setCollapsed((c) => !c)}
             className={cn(
@@ -181,7 +181,7 @@ export default function AppLayout() {
         >
           <div className="flex flex-col h-full">
             <SidebarContent collapsed={false} onItemClick={() => setMobileOpen(false)} />
-            <div className="p-3 border-t border-sidebar-border">
+            <div className="mt-auto p-3 border-t border-sidebar-border">
               <button
                 onClick={handleLogout}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 hover:bg-destructive/20 hover:text-white transition-colors"
@@ -194,8 +194,13 @@ export default function AppLayout() {
         </SheetContent>
       </Sheet>
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main — offset by sidebar width on desktop */}
+      <div
+        className={cn(
+          "flex flex-col min-h-screen min-w-0 transition-[margin] duration-300 ease-out",
+          collapsed ? "md:ml-[76px]" : "md:ml-64"
+        )}
+      >
         <header className="sticky top-0 z-20 glass border-b border-border">
           <div className="flex items-center gap-4 px-4 md:px-8 h-16">
             <Button
