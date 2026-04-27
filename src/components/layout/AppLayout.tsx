@@ -13,9 +13,12 @@ import {
   PanelLeftOpen,
   Sparkles,
   Menu,
+  Sun,
+  Moon,
 } from "lucide-react";
 import logo from "@/assets/koundinya-logo.jpeg";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { initials } from "@/lib/utils-format";
