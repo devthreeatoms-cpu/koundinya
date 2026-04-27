@@ -428,21 +428,22 @@ export default function CandidatesPage() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between p-4 border-t border-border/60 bg-muted/20">
-          <p className="text-xs text-muted-foreground">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 border-t border-border/60 bg-muted/20">
+          <p className="text-xs text-muted-foreground text-center sm:text-left">
             Showing <span className="font-semibold text-foreground">{paginated.length}</span> of{" "}
             <span className="font-semibold text-foreground">{filtered.length}</span> candidates
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center sm:justify-end gap-2">
             <Button
               variant="outline"
               size="sm"
               disabled={safePage <= 1}
               onClick={() => setPage((p) => p - 1)}
+              className="flex-1 sm:flex-none"
             >
               Previous
             </Button>
-            <span className="text-xs text-muted-foreground tabular-nums">
+            <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
               Page {safePage} of {pageCount}
             </span>
             <Button
@@ -450,6 +451,7 @@ export default function CandidatesPage() {
               size="sm"
               disabled={safePage >= pageCount}
               onClick={() => setPage((p) => p + 1)}
+              className="flex-1 sm:flex-none"
             >
               Next
             </Button>
