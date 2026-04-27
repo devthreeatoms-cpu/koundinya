@@ -93,7 +93,7 @@ export default function CandidateDetail() {
       />
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="relative overflow-hidden p-0 shadow-card border-border/60 lg:col-span-1">
+        <Card className="glass-card relative overflow-hidden p-0 hover-lift lg:col-span-1">
           <div className="h-20 bg-gradient-brand" />
           <div className="px-6 pb-6 -mt-10">
             <div className="h-20 w-20 rounded-2xl bg-white p-1 shadow-elevated">

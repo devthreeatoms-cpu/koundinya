@@ -182,7 +182,7 @@ export default function CandidatesPage() {
         }
       />
 
-      <Card className="shadow-card border-border/60 overflow-hidden">
+      <Card className="glass-card hover-lift overflow-hidden">
         <div className="p-4 border-b border-border/60 space-y-3">
           <div className="flex flex-col lg:flex-row gap-3">
             <div className="relative flex-1 group">

@@ -480,7 +480,7 @@ export default function Reports() {
       </Card>
 
       {/* Recent assignments table */}
-      <Card className="shadow-card border-border/60 animate-fade-in-up overflow-hidden">
+      <Card className="glass-card hover-lift animate-fade-in-up overflow-hidden">
         <div className="p-5 border-b border-border/60">
           <h3 className="font-semibold tracking-tight">Recent assignments activity</h3>
           <p className="text-xs text-muted-foreground">Latest 10 assignments</p>
