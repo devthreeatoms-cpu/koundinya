@@ -149,7 +149,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
               />
               <FieldError message={errors.name?.message} />
             </div>
-            <div className="col-span-2 sm:col-span-1">
+            <div className="sm:col-span-1">
               <Label htmlFor="phone" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Phone
               </Label>
@@ -161,7 +161,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
               />
               <FieldError message={errors.phone?.message} />
             </div>
-            <div className="col-span-2 sm:col-span-1">
+            <div className="sm:col-span-1">
               <Label htmlFor="location" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Location
               </Label>
@@ -172,7 +172,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
               />
               <FieldError message={errors.location?.message} />
             </div>
-            <div className="col-span-2 sm:col-span-1">
+            <div className="sm:col-span-1">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Source
               </Label>
@@ -189,7 +189,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-2 sm:col-span-1">
+            <div className="sm:col-span-1">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Status
               </Label>
@@ -209,7 +209,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 col-span-2 sm:col-span-1 mt-[22px]">
+            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 sm:col-span-1 mt-[22px]">
               <div>
                 <p className="text-sm font-medium">Has bike</p>
                 <p className="text-[11px] text-muted-foreground">Owns own transport</p>
