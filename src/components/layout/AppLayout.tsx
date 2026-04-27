@@ -48,9 +48,11 @@ const STORAGE_KEY = "koundinya-sidebar-collapsed";
 function SidebarContent({
   collapsed,
   onItemClick,
+  items,
 }: {
   collapsed: boolean;
   onItemClick?: () => void;
+  items: NavItem[];
 }) {
   return (
     <>
