@@ -21,16 +21,20 @@ export function useProjects() {
       setLoading(false);
       return;
     }
-    // Admin only sees admin-owned (agency_id == null) projects here.
-    // To view a specific agency's projects, admin uses the Agencies drill-down page.
-    const constraints: QueryConstraint[] = [
-      where("agency_id", "==", isAdmin ? null : agencyId),
-    ];
-    const q = query(collection(db, COL), ...constraints);
+    // Admin: fetch all and filter client-side (treats legacy records with no
+    // agency_id field as admin-owned). Agency: strict server-side filter.
+    const constraints: QueryConstraint[] = [];
+    if (!isAdmin) constraints.push(where("agency_id", "==", agencyId));
+    const q = constraints.length
+      ? query(collection(db, COL), ...constraints)
+      : query(collection(db, COL));
     const unsub = onSnapshot(
       q,
       (snap) => {
-        const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Project[];
+        let list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Project[];
+        if (isAdmin) {
+          list = list.filter((p) => !(p as any).agency_id);
+        }
         list.sort((a, b) => {
           const ta = (a.created_at as any)?.toMillis?.() ?? 0;
           const tb = (b.created_at as any)?.toMillis?.() ?? 0;

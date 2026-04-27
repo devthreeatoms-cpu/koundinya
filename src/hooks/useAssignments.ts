@@ -25,15 +25,19 @@ export function useAssignments(filter?: { project_id?: string; candidate_id?: st
     const constraints: QueryConstraint[] = [];
     if (filter?.project_id) constraints.push(where("project_id", "==", filter.project_id));
     if (filter?.candidate_id) constraints.push(where("candidate_id", "==", filter.candidate_id));
-    // Admin's own dashboard/list pages only see admin-owned (agency_id == null)
-    // assignments. Agency-scoped data is shown in the per-agency drill-down.
-    constraints.push(where("agency_id", "==", isAdmin ? null : agencyId));
-    const q = query(base, ...constraints);
+    // Admin: no agency_id constraint server-side; filter client-side so legacy
+    // assignments without an agency_id field still appear on admin dashboards.
+    // Agency: strict server-side isolation by their agency_id.
+    if (!isAdmin) constraints.push(where("agency_id", "==", agencyId));
+    const q = constraints.length ? query(base, ...constraints) : query(base);
 
     const unsub = onSnapshot(
       q,
       (snap) => {
-        const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Assignment[];
+        let list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Assignment[];
+        if (isAdmin) {
+          list = list.filter((a) => !(a as any).agency_id);
+        }
         list.sort((a, b) => {
           const ta = (a.assigned_at as any)?.toMillis?.() ?? 0;
           const tb = (b.assigned_at as any)?.toMillis?.() ?? 0;
