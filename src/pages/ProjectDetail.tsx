@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, MapPin, Calendar, Briefcase, Edit, Plus, UserMinus, Users } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Briefcase, Edit, Plus, UserMinus, Users, Eye } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -179,9 +179,18 @@ export default function ProjectDetail() {
                       <p className="text-[11px] text-muted-foreground">
                         Assigned <span className="font-medium text-foreground">{formatDate((a.assigned_at as any)?.toDate?.())}</span>
                       </p>
-                      <Button variant="ghost" size="sm" onClick={() => handleRemove(a.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-9">
-                        <UserMinus className="h-4 w-4" /> Remove
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        {c && !isDeleted && (
+                          <Button asChild variant="ghost" size="sm" className="h-9 text-primary hover:text-primary hover:bg-primary-soft">
+                            <Link to={`/candidates/${c.id}`}>
+                              <Eye className="h-4 w-4" /> View
+                            </Link>
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={() => handleRemove(a.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-9">
+                          <UserMinus className="h-4 w-4" /> Remove
+                        </Button>
+                      </div>
                     </div>
                   </li>
                 );
@@ -232,9 +241,18 @@ export default function ProjectDetail() {
                         <TableCell className={cn("text-sm tabular-nums", isDeleted && "text-muted-foreground")}>{c?.phone ?? "—"}</TableCell>
                         <TableCell className="text-sm">{formatDate((a.assigned_at as any)?.toDate?.())}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" onClick={() => handleRemove(a.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                            <UserMinus className="h-4 w-4" /> Remove
-                          </Button>
+                          <div className="inline-flex items-center gap-1">
+                            {c && !isDeleted && (
+                              <Button asChild variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary-soft">
+                                <Link to={`/candidates/${c.id}`}>
+                                  <Eye className="h-4 w-4" /> View
+                                </Link>
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="sm" onClick={() => handleRemove(a.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                              <UserMinus className="h-4 w-4" /> Remove
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
