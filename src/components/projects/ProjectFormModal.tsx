@@ -180,11 +180,11 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
             </div>
           </div>
 
-          <DialogFooter className="pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogFooter className="pt-2 gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button type="submit" variant="premium" disabled={isSubmitting}>
+            <Button type="submit" variant="premium" disabled={isSubmitting} className="w-full sm:w-auto">
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {isEdit ? "Save changes" : "Create project"}
             </Button>
