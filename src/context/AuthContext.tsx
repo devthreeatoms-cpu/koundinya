@@ -97,6 +97,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsub();
   }, [user]);
 
+  // If the signed-in agency user's agency gets soft-deleted while logged in,
+  // immediately sign them out. Admins are unaffected.
+  useEffect(() => {
+    if (!user || !profile) return;
+    if (profile.role === "admin") return;
+    if (!profile.agency_id) return;
+    const unsub = onSnapshot(
+      doc(db, "agencies", profile.agency_id),
+      (snap) => {
+        if (snap.exists() && (snap.data() as any).is_deleted) {
+          signOut(auth).catch(() => {/* noop */});
+        }
+      }
+    );
+    return () => unsub();
+  }, [user, profile]);
+
   async function login(email: string, password: string) {
     const cred = await signInWithEmailAndPassword(auth, email, password);
     // Block deactivated-agency users immediately. Admins are always allowed.
