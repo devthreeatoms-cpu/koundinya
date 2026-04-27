@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -79,11 +79,29 @@ export default function CandidatesPage() {
   const { assignments } = useAssignments();
   const { toast } = useToast();
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialAvail = (() => {
+    const v = searchParams.get("availability");
+    return v === "available" || v === "assigned" ? v : "all";
+  })();
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
-  const [availFilter, setAvailFilter] = useState<string>("all");
+  const [availFilter, setAvailFilter] = useState<string>(initialAvail);
   const [page, setPage] = useState(1);
+
+  // Keep URL in sync with availability filter (so Dashboard deep-links work
+  // and the user can share the filtered view).
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    if (availFilter === "all") next.delete("availability");
+    else next.set("availability", availFilter);
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availFilter]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Candidate | null>(null);
