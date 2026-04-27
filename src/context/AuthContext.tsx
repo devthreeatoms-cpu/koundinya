@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
-import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import type { AppUser, UserRole } from "@/types";
 
@@ -98,7 +98,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   async function login(email: string, password: string) {
-    await signInWithEmailAndPassword(auth, email, password);
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    // Block deactivated-agency users immediately. Admins are always allowed.
+    try {
+      const profileSnap = await getDoc(doc(db, "users", cred.user.uid));
+      const data = profileSnap.exists() ? (profileSnap.data() as any) : null;
+      const role: UserRole = data?.role ?? "agency";
+      const agencyId: string | null = data?.agency_id ?? null;
+      if (role !== "admin" && agencyId) {
+        const agSnap = await getDoc(doc(db, "agencies", agencyId));
+        const ag = agSnap.exists() ? (agSnap.data() as any) : null;
+        if (ag?.is_deleted) {
+          await signOut(auth);
+          throw new Error(
+            "Your account is deactivated. Contact admin."
+          );
+        }
+      }
+    } catch (err: any) {
+      if (err?.message === "Your account is deactivated. Contact admin.") {
+        throw err;
+      }
+      // Non-fatal lookup failure: allow sign-in to proceed.
+    }
   }
   async function logout() {
     await signOut(auth);
