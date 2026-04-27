@@ -125,7 +125,7 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 space-y-4">
           <div>
             <Label htmlFor="name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Project name
@@ -137,7 +137,7 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
             />
             <FieldError message={errors.name?.message} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="client_name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Client
