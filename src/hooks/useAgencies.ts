@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import {
-  collection, onSnapshot, addDoc, serverTimestamp, query, orderBy,
-  doc, setDoc,
+  collection, onSnapshot, addDoc, serverTimestamp, query, orderBy, where,
+  doc, setDoc, getDoc,
 } from "firebase/firestore";
 import { initializeApp, getApp, deleteApp, getApps } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import { db } from "@/lib/firebase";
-import type { Agency, AppUser } from "@/types";
+import type { Agency, AppUser, Candidate, Project, Assignment } from "@/types";
 
 const COL = "agencies";
 
@@ -102,4 +102,92 @@ export async function createAgencyUser(params: {
       /* noop */
     }
   }
+}
+
+/** Admin-only: load a single agency by id. */
+export function useAgency(agencyId: string | undefined) {
+  const [agency, setAgency] = useState<Agency | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!agencyId) {
+      setAgency(null);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    getDoc(doc(db, COL, agencyId))
+      .then((snap) => {
+        if (cancelled) return;
+        setAgency(snap.exists() ? ({ id: snap.id, ...(snap.data() as any) } as Agency) : null);
+      })
+      .finally(() => !cancelled && setLoading(false));
+    return () => { cancelled = true; };
+  }, [agencyId]);
+
+  return { agency, loading };
+}
+
+/** Admin-only: live data for ONE agency (projects, candidates, assignments, users). */
+export function useAgencyData(agencyId: string | undefined) {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!agencyId) {
+      setProjects([]); setCandidates([]); setAssignments([]); setUsers([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    let p = false, c = false, a = false, u = false;
+    const done = () => { if (p && c && a && u) setLoading(false); };
+
+    const unsubP = onSnapshot(
+      query(collection(db, "projects"), where("agency_id", "==", agencyId)),
+      (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Project[];
+        list.sort((x, y) => ((y.created_at as any)?.toMillis?.() ?? 0) - ((x.created_at as any)?.toMillis?.() ?? 0));
+        setProjects(list);
+        p = true; done();
+      },
+      () => { p = true; done(); }
+    );
+    const unsubC = onSnapshot(
+      query(collection(db, "candidates"), where("agency_id", "==", agencyId)),
+      (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Candidate[];
+        list.sort((x, y) => ((y.created_at as any)?.toMillis?.() ?? 0) - ((x.created_at as any)?.toMillis?.() ?? 0));
+        setCandidates(list);
+        c = true; done();
+      },
+      () => { c = true; done(); }
+    );
+    const unsubA = onSnapshot(
+      query(collection(db, "assignments"), where("agency_id", "==", agencyId)),
+      (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Assignment[];
+        list.sort((x, y) => ((y.assigned_at as any)?.toMillis?.() ?? 0) - ((x.assigned_at as any)?.toMillis?.() ?? 0));
+        setAssignments(list);
+        a = true; done();
+      },
+      () => { a = true; done(); }
+    );
+    const unsubU = onSnapshot(
+      query(collection(db, "users"), where("agency_id", "==", agencyId)),
+      (snap) => {
+        setUsers(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as AppUser[]);
+        u = true; done();
+      },
+      () => { u = true; done(); }
+    );
+
+    return () => { unsubP(); unsubC(); unsubA(); unsubU(); };
+  }, [agencyId]);
+
+  return { projects, candidates, assignments, users, loading };
 }
