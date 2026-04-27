@@ -24,7 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useCandidateById } from "@/hooks/useCandidates";
-import { useProjects, useProjectById } from "@/hooks/useProjects";
+import { useProjects } from "@/hooks/useProjects";
 import { useAssignments } from "@/hooks/useAssignments";
 import CandidateFormModal from "@/components/candidates/CandidateFormModal";
 import { formatDate, initials } from "@/lib/utils-format";
