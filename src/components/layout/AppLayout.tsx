@@ -276,14 +276,14 @@ export default function AppLayout() {
                     </div>
                     <div className="hidden sm:block text-left max-w-[140px]">
                       <p className="text-xs font-semibold leading-tight truncate">{email || "Admin"}</p>
-                      <p className="text-[10px] text-muted-foreground leading-tight">Administrator</p>
+                      <p className="text-[10px] text-muted-foreground leading-tight">{roleLabel}</p>
                     </div>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>
                     <p className="text-xs font-medium truncate">{email || "Admin"}</p>
-                    <p className="text-[10px] text-muted-foreground font-normal">Administrator</p>
+                    <p className="text-[10px] text-muted-foreground font-normal">{roleLabel}</p>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="text-destructive">
