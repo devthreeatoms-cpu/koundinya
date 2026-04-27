@@ -136,9 +136,9 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2 sm:col-span-1">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-1">
               <Label htmlFor="name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Name
               </Label>
