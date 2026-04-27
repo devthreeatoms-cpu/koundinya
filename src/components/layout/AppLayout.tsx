@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -13,6 +13,7 @@ import {
   Menu,
   Sun,
   Moon,
+  Building2,
 } from "lucide-react";
 import logo from "@/assets/koundinya-logo.jpeg";
 import { useAuth } from "@/context/AuthContext";
@@ -30,10 +31,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
-const navItems = [
+type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; adminOnly?: boolean };
+
+const navItems: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/candidates", label: "Candidates", icon: Users },
   { to: "/projects", label: "Projects", icon: Briefcase },
+  { to: "/agencies", label: "Agencies", icon: Building2, adminOnly: true },
   // Reports and Settings temporarily hidden from navigation
   // { to: "/reports", label: "Reports", icon: BarChart3 },
   // { to: "/settings", label: "Settings", icon: Settings },
