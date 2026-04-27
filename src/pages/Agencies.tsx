@@ -82,7 +82,7 @@ type UserForm = z.infer<typeof userSchema>;
 
 export default function AgenciesPage() {
   const { isAdmin, loading: authLoading } = useAuth();
-  const [showInactive, setShowInactive] = useState(false);
+  const [showInactive, setShowInactive] = useState(true);
   const { agencies, loading: aLoading } = useAgencies({ includeDeleted: showInactive });
   const { users, loading: uLoading } = useAllUsers();
 
