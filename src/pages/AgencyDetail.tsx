@@ -571,19 +571,19 @@ function StatCard({
       ? "bg-secondary-soft text-secondary"
       : "bg-accent/10 text-accent";
   return (
-    <Card className="glass-card p-4 sm:p-5 hover-lift">
-      <div className="flex items-center gap-3">
-        <div className={cn("h-10 w-10 rounded-xl grid place-items-center shadow-sm", toneCls)}>
+    <Card className="glass-card p-3 sm:p-5 hover-lift">
+      <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className={cn("h-9 w-9 sm:h-10 sm:w-10 rounded-xl grid place-items-center shadow-sm shrink-0", toneCls)}>
           {icon}
         </div>
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="min-w-0">
+          <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
             {label}
           </p>
           {loading ? (
             <Skeleton className="h-6 w-10 mt-1" />
           ) : (
-            <p className="text-xl font-bold mt-0.5 tabular-nums">{value}</p>
+            <p className="text-lg sm:text-xl font-bold mt-0.5 tabular-nums">{value}</p>
           )}
         </div>
       </div>
