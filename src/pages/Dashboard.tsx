@@ -210,7 +210,7 @@ export default function Dashboard() {
 
       {/* Charts */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="p-5 shadow-card border-border/60 lg:col-span-2 animate-fade-in-up">
+        <Card className="glass-card p-6 hover-lift lg:col-span-2 animate-fade-in-up">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold tracking-tight">Candidate status breakdown</h3>
@@ -289,7 +289,7 @@ export default function Dashboard() {
           )}
         </Card>
 
-        <Card className="p-5 shadow-card border-border/60 animate-fade-in-up">
+        <Card className="glass-card p-6 hover-lift animate-fade-in-up">
           <div className="mb-4">
             <h3 className="font-semibold tracking-tight">Projects</h3>
             <p className="text-xs text-muted-foreground">Active vs completed</p>
@@ -348,7 +348,7 @@ export default function Dashboard() {
 
       {/* Recent activity + Recent lists */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="p-5 shadow-card border-border/60 lg:col-span-2 animate-fade-in-up">
+        <Card className="glass-card p-6 hover-lift lg:col-span-2 animate-fade-in-up">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-lg bg-primary-soft text-primary grid place-items-center">
@@ -439,7 +439,7 @@ export default function Dashboard() {
           )}
         </Card>
 
-        <Card className="p-5 shadow-card border-border/60 animate-fade-in-up">
+        <Card className="glass-card p-6 hover-lift animate-fade-in-up">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold tracking-tight">Recent candidates</h3>
             <Link
@@ -483,7 +483,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <Card className="p-5 shadow-card border-border/60 animate-fade-in-up">
+      <Card className="glass-card p-6 hover-lift animate-fade-in-up">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold tracking-tight">Recent projects</h3>
           <Link
