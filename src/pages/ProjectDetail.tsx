@@ -136,30 +136,26 @@ export default function ProjectDetail() {
             <p className="text-xs text-muted-foreground mt-1">Assign available candidates to get started.</p>
           </div>
         ) : (
-          <div className="rounded-lg border border-border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="font-semibold text-foreground">Candidate</TableHead>
-                  <TableHead className="font-semibold text-foreground">Phone</TableHead>
-                  <TableHead className="font-semibold text-foreground">Assigned</TableHead>
-                  <TableHead className="font-semibold text-foreground text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {active.map((a, idx) => {
-                  const c = candidateMap.get(a.candidate_id);
-                  const isDeleted = !!c?.is_deleted;
-                  return (
-                    <TableRow key={a.id} className={cn("group border-b border-border/60", idx % 2 === 1 && "bg-muted/20", "hover:bg-primary-soft/40")}>
-                      <TableCell>
+          <>
+            {/* Mobile: stacked cards */}
+            <ul className="md:hidden space-y-3">
+              {active.map((a) => {
+                const c = candidateMap.get(a.candidate_id);
+                const isDeleted = !!c?.is_deleted;
+                return (
+                  <li key={a.id} className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className={cn(
+                        "h-10 w-10 rounded-full grid place-items-center text-xs font-semibold shrink-0 text-white",
+                        isDeleted ? "bg-muted text-muted-foreground" : "bg-gradient-brand"
+                      )}>
+                        {c ? initials(c.name) : "?"}
+                      </div>
+                      <div className="flex-1 min-w-0">
                         {c ? (
                           isDeleted ? (
-                            <div className="flex items-center gap-3">
-                              <div className="h-8 w-8 rounded-full bg-muted text-muted-foreground grid place-items-center text-xs font-semibold">
-                                {initials(c.name)}
-                              </div>
-                              <span className="text-sm font-medium text-muted-foreground line-through decoration-muted-foreground/40">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-sm font-medium text-muted-foreground line-through decoration-muted-foreground/40 break-words">
                                 {c.name}
                               </span>
                               <Badge variant="outline" className="text-[10px] uppercase tracking-wide border-muted-foreground/30 text-muted-foreground bg-muted/40">
@@ -167,35 +163,133 @@ export default function ProjectDetail() {
                               </Badge>
                             </div>
                           ) : (
-                            <Link to={`/candidates/${c.id}`} className="flex items-center gap-3 group/link">
-                              <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold">
-                                {initials(c.name)}
-                              </div>
-                              <span className="text-sm font-medium group-hover/link:text-primary transition-colors">{c.name}</span>
+                            <Link to={`/candidates/${c.id}`} className="text-sm font-semibold hover:text-primary break-words block">
+                              {c.name}
                             </Link>
                           )
-                        ) : <span className="text-sm text-muted-foreground italic">Unknown candidate</span>}
-                      </TableCell>
-                      <TableCell className={cn("text-sm tabular-nums", isDeleted && "text-muted-foreground")}>{c?.phone ?? "—"}</TableCell>
-                      <TableCell className="text-sm">{formatDate((a.assigned_at as any)?.toDate?.())}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => handleRemove(a.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                          <UserMinus className="h-4 w-4" /> Remove
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground italic">Unknown candidate</span>
+                        )}
+                        <p className={cn("text-xs tabular-nums mt-0.5", isDeleted ? "text-muted-foreground" : "text-muted-foreground")}>
+                          {c?.phone ?? "—"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50">
+                      <p className="text-[11px] text-muted-foreground">
+                        Assigned <span className="font-medium text-foreground">{formatDate((a.assigned_at as any)?.toDate?.())}</span>
+                      </p>
+                      <Button variant="ghost" size="sm" onClick={() => handleRemove(a.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-9">
+                        <UserMinus className="h-4 w-4" /> Remove
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* Desktop: table */}
+            <div className="hidden md:block rounded-lg border border-border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="font-semibold text-foreground">Candidate</TableHead>
+                    <TableHead className="font-semibold text-foreground">Phone</TableHead>
+                    <TableHead className="font-semibold text-foreground">Assigned</TableHead>
+                    <TableHead className="font-semibold text-foreground text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {active.map((a, idx) => {
+                    const c = candidateMap.get(a.candidate_id);
+                    const isDeleted = !!c?.is_deleted;
+                    return (
+                      <TableRow key={a.id} className={cn("group border-b border-border/60", idx % 2 === 1 && "bg-muted/20", "hover:bg-primary-soft/40")}>
+                        <TableCell>
+                          {c ? (
+                            isDeleted ? (
+                              <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 rounded-full bg-muted text-muted-foreground grid place-items-center text-xs font-semibold">
+                                  {initials(c.name)}
+                                </div>
+                                <span className="text-sm font-medium text-muted-foreground line-through decoration-muted-foreground/40">
+                                  {c.name}
+                                </span>
+                                <Badge variant="outline" className="text-[10px] uppercase tracking-wide border-muted-foreground/30 text-muted-foreground bg-muted/40">
+                                  Deleted
+                                </Badge>
+                              </div>
+                            ) : (
+                              <Link to={`/candidates/${c.id}`} className="flex items-center gap-3 group/link">
+                                <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold">
+                                  {initials(c.name)}
+                                </div>
+                                <span className="text-sm font-medium group-hover/link:text-primary transition-colors">{c.name}</span>
+                              </Link>
+                            )
+                          ) : <span className="text-sm text-muted-foreground italic">Unknown candidate</span>}
+                        </TableCell>
+                        <TableCell className={cn("text-sm tabular-nums", isDeleted && "text-muted-foreground")}>{c?.phone ?? "—"}</TableCell>
+                        <TableCell className="text-sm">{formatDate((a.assigned_at as any)?.toDate?.())}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" onClick={() => handleRemove(a.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                            <UserMinus className="h-4 w-4" /> Remove
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </Card>
 
       {past.length > 0 && (
         <Card className="glass-card p-4 sm:p-6 hover-lift">
           <h3 className="font-semibold mb-4">History</h3>
-          <div className="rounded-lg border border-border overflow-hidden">
+          {/* Mobile: stacked cards */}
+          <ul className="md:hidden space-y-3">
+            {past.map((a) => {
+              const c = candidateMap.get(a.candidate_id);
+              const isDeleted = !!c?.is_deleted;
+              return (
+                <li key={a.id} className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex flex-wrap items-center gap-1.5">
+                      {c ? (
+                        <>
+                          <span className={cn("text-sm font-medium break-words", isDeleted && "text-muted-foreground line-through decoration-muted-foreground/40")}>
+                            {c.name}
+                          </span>
+                          {isDeleted && (
+                            <Badge variant="outline" className="text-[10px] uppercase tracking-wide border-muted-foreground/30 text-muted-foreground bg-muted/40">
+                              Deleted
+                            </Badge>
+                          )}
+                        </>
+                      ) : <span className="text-sm text-muted-foreground">—</span>}
+                    </div>
+                    <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground shrink-0">{a.status}</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground pt-2 border-t border-border/50">
+                    <div>
+                      <p className="uppercase tracking-wider text-[10px]">Assigned</p>
+                      <p className="text-foreground font-medium">{formatDate((a.assigned_at as any)?.toDate?.())}</p>
+                    </div>
+                    <div>
+                      <p className="uppercase tracking-wider text-[10px]">Removed</p>
+                      <p className="text-foreground font-medium">{formatDate((a.removed_at as any)?.toDate?.())}</p>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Desktop: table */}
+          <div className="hidden md:block rounded-lg border border-border overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">

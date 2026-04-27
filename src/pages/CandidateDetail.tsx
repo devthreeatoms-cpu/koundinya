@@ -201,63 +201,109 @@ export default function CandidateDetail() {
             <p className="text-sm text-muted-foreground">No assignments yet.</p>
           </div>
         ) : (
-          <div className="rounded-lg border border-border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="font-semibold text-foreground">Project</TableHead>
-                  <TableHead className="font-semibold text-foreground">Status</TableHead>
-                  <TableHead className="font-semibold text-foreground">Assigned</TableHead>
-                  <TableHead className="font-semibold text-foreground">Removed</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {assignments.map((a, idx) => {
-                  const p = projectMap.get(a.project_id);
-                  return (
-                    <TableRow
-                      key={a.id}
-                      className={cn(
-                        "border-b border-border/60",
-                        idx % 2 === 1 && "bg-muted/20"
-                      )}
-                    >
-                      <TableCell>
+          <>
+            {/* Mobile: stacked cards */}
+            <ul className="md:hidden space-y-3">
+              {assignments.map((a) => {
+                const p = projectMap.get(a.project_id);
+                return (
+                  <li key={a.id} className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
                         {p ? (
-                          <Link
-                            to={`/projects/${p.id}`}
-                            className="text-sm font-medium hover:text-primary transition-colors"
-                          >
+                          <Link to={`/projects/${p.id}`} className="text-sm font-semibold hover:text-primary break-words">
                             {p.name}
                           </Link>
                         ) : (
                           <span className="text-sm text-muted-foreground">Unknown</span>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={
-                            a.status === "Active"
-                              ? "border-primary/40 text-primary bg-primary-soft"
-                              : "border-muted-foreground/30 text-muted-foreground"
-                          }
-                        >
-                          {a.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {formatDate((a.assigned_at as any)?.toDate?.())}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {formatDate((a.removed_at as any)?.toDate?.())}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "shrink-0",
+                          a.status === "Active"
+                            ? "border-primary/40 text-primary bg-primary-soft"
+                            : "border-muted-foreground/30 text-muted-foreground"
+                        )}
+                      >
+                        {a.status}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground pt-2 border-t border-border/50">
+                      <div>
+                        <p className="uppercase tracking-wider text-[10px]">Assigned</p>
+                        <p className="text-foreground font-medium">{formatDate((a.assigned_at as any)?.toDate?.())}</p>
+                      </div>
+                      <div>
+                        <p className="uppercase tracking-wider text-[10px]">Removed</p>
+                        <p className="text-foreground font-medium">{formatDate((a.removed_at as any)?.toDate?.())}</p>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* Desktop: table */}
+            <div className="hidden md:block rounded-lg border border-border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="font-semibold text-foreground">Project</TableHead>
+                    <TableHead className="font-semibold text-foreground">Status</TableHead>
+                    <TableHead className="font-semibold text-foreground">Assigned</TableHead>
+                    <TableHead className="font-semibold text-foreground">Removed</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {assignments.map((a, idx) => {
+                    const p = projectMap.get(a.project_id);
+                    return (
+                      <TableRow
+                        key={a.id}
+                        className={cn(
+                          "border-b border-border/60",
+                          idx % 2 === 1 && "bg-muted/20"
+                        )}
+                      >
+                        <TableCell>
+                          {p ? (
+                            <Link
+                              to={`/projects/${p.id}`}
+                              className="text-sm font-medium hover:text-primary transition-colors"
+                            >
+                              {p.name}
+                            </Link>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">Unknown</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={
+                              a.status === "Active"
+                                ? "border-primary/40 text-primary bg-primary-soft"
+                                : "border-muted-foreground/30 text-muted-foreground"
+                            }
+                          >
+                            {a.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {formatDate((a.assigned_at as any)?.toDate?.())}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {formatDate((a.removed_at as any)?.toDate?.())}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </Card>
 
