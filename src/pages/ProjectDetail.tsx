@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { useProjects } from "@/hooks/useProjects";
+import { useProjectById } from "@/hooks/useProjects";
 import { useAllCandidates } from "@/hooks/useCandidates";
 import { useAssignments, removeAssignment } from "@/hooks/useAssignments";
 import ProjectFormModal from "@/components/projects/ProjectFormModal";
