@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import {
-  collection, onSnapshot, addDoc, serverTimestamp, query, orderBy,
-  doc, setDoc,
+  collection, onSnapshot, addDoc, serverTimestamp, query, orderBy, where,
+  doc, setDoc, getDoc,
 } from "firebase/firestore";
 import { initializeApp, getApp, deleteApp, getApps } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import { db } from "@/lib/firebase";
-import type { Agency, AppUser } from "@/types";
+import type { Agency, AppUser, Candidate, Project, Assignment } from "@/types";
 
 const COL = "agencies";
 
