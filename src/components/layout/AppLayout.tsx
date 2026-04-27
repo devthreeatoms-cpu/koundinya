@@ -141,7 +141,7 @@ function SidebarContent({
 }
 
 export default function AppLayout() {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -160,6 +160,11 @@ export default function AppLayout() {
   }
 
   const email = user?.email ?? "";
+  const visibleNavItems = useMemo(
+    () => navItems.filter((i) => !i.adminOnly || isAdmin),
+    [isAdmin]
+  );
+  const roleLabel = isAdmin ? "Administrator" : "Agency user";
 
   return (
     <div className="relative min-h-screen bg-background overflow-x-hidden">
@@ -175,7 +180,7 @@ export default function AppLayout() {
           collapsed ? "w-[76px]" : "w-64"
         )}
       >
-        <SidebarContent collapsed={collapsed} />
+        <SidebarContent collapsed={collapsed} items={visibleNavItems} />
 
         <div className="mt-auto p-3 border-t border-white/5 space-y-1">
           <button
@@ -210,7 +215,7 @@ export default function AppLayout() {
           className="p-0 w-72 glass-sidebar text-white border-0"
         >
           <div className="flex flex-col h-full">
-            <SidebarContent collapsed={false} onItemClick={() => setMobileOpen(false)} />
+            <SidebarContent collapsed={false} items={visibleNavItems} onItemClick={() => setMobileOpen(false)} />
             <div className="mt-auto p-3 border-t border-white/5">
               <button
                 onClick={handleLogout}
