@@ -356,25 +356,37 @@ export default function Reports() {
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
+                <defs>
+                  {statusData.map((entry, i) => (
+                    <linearGradient key={`pg-${entry.name}`} id={`pieStatus-${i}`} x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor={STATUS_COLORS[entry.name]} stopOpacity={1} />
+                      <stop offset="100%" stopColor={STATUS_COLORS[entry.name]} stopOpacity={0.55} />
+                    </linearGradient>
+                  ))}
+                </defs>
                 <Pie
                   data={statusData}
-                  innerRadius={50}
-                  outerRadius={90}
-                  paddingAngle={4}
+                  innerRadius={55}
+                  outerRadius={92}
+                  paddingAngle={6}
                   dataKey="value"
                   stroke="hsl(var(--background))"
                   strokeWidth={3}
+                  animationDuration={900}
+                  animationEasing="ease-out"
                 >
-                  {statusData.map((entry) => (
-                    <Cell key={entry.name} fill={STATUS_COLORS[entry.name]} />
+                  {statusData.map((entry, i) => (
+                    <Cell key={entry.name} fill={`url(#pieStatus-${i})`} />
                   ))}
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    background: "hsl(var(--popover))",
+                    background: "hsl(var(--popover) / 0.95)",
+                    backdropFilter: "blur(12px)",
                     border: "1px solid hsl(var(--border))",
                     borderRadius: 12,
                     fontSize: 12,
+                    boxShadow: "var(--shadow-elevated)",
                   }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
