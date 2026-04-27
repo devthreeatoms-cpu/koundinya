@@ -90,7 +90,7 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId }:
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl p-0 overflow-hidden gap-0">
-        <DialogHeader className="p-6 pb-4 border-b border-border bg-gradient-soft">
+        <DialogHeader className="p-4 sm:p-6 pb-4 border-b border-border bg-gradient-soft">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-gradient-brand text-white grid place-items-center shadow-brand">
               <Sparkles className="h-5 w-5" />
@@ -104,7 +104,7 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId }:
           </div>
         </DialogHeader>
 
-        <div className="p-6 pb-3 space-y-3">
+        <div className="p-4 sm:p-6 pb-3 space-y-3">
           <div className="relative group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input
