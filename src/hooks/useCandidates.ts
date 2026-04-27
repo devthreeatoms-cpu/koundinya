@@ -35,6 +35,37 @@ export function useCandidates() {
   return { candidates, loading };
 }
 
+/**
+ * Returns ALL candidates including soft-deleted ones.
+ * Use this for assignment history lookups so deleted candidates still
+ * render with their original name + a "(Deleted)" label.
+ */
+export function useAllCandidates() {
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(collection(db, COL));
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Candidate[];
+        list.sort((a, b) => {
+          const ta = (a.created_at as any)?.toMillis?.() ?? 0;
+          const tb = (b.created_at as any)?.toMillis?.() ?? 0;
+          return tb - ta;
+        });
+        setCandidates(list);
+        setLoading(false);
+      },
+      () => setLoading(false)
+    );
+    return () => unsub();
+  }, []);
+
+  return { candidates, loading };
+}
+
 export async function createCandidate(data: Omit<Candidate, "id" | "created_at" | "is_deleted">) {
   const phone = normalizePhone(data.phone);
   // uniqueness check (client-side; Firestore rules should enforce as well)
