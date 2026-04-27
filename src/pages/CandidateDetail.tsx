@@ -23,13 +23,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useCandidates } from "@/hooks/useCandidates";
-import { useProjects } from "@/hooks/useProjects";
+import { useCandidateById } from "@/hooks/useCandidates";
+import { useProjects, useProjectById } from "@/hooks/useProjects";
 import { useAssignments } from "@/hooks/useAssignments";
 import CandidateFormModal from "@/components/candidates/CandidateFormModal";
 import { formatDate, initials } from "@/lib/utils-format";
 import type { CandidateStatus } from "@/types";
 import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 
 const statusStyles: Record<CandidateStatus, string> = {
   New: "bg-secondary/15 text-secondary border border-secondary/30",
@@ -47,13 +48,20 @@ const statusDot: Record<CandidateStatus, string> = {
 
 export default function CandidateDetail() {
   const { id } = useParams<{ id: string }>();
-  const { candidates } = useCandidates();
+  const { candidate, loading: cLoading } = useCandidateById(id);
   const { projects } = useProjects();
   const { assignments } = useAssignments({ candidate_id: id });
   const [editOpen, setEditOpen] = useState(false);
 
-  const candidate = candidates.find((c) => c.id === id);
   const projectMap = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
+
+  if (cLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!candidate) {
     return (
