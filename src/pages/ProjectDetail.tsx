@@ -249,7 +249,47 @@ export default function ProjectDetail() {
       {past.length > 0 && (
         <Card className="glass-card p-4 sm:p-6 hover-lift">
           <h3 className="font-semibold mb-4">History</h3>
-          <div className="rounded-lg border border-border overflow-hidden">
+          {/* Mobile: stacked cards */}
+          <ul className="md:hidden space-y-3">
+            {past.map((a) => {
+              const c = candidateMap.get(a.candidate_id);
+              const isDeleted = !!c?.is_deleted;
+              return (
+                <li key={a.id} className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex flex-wrap items-center gap-1.5">
+                      {c ? (
+                        <>
+                          <span className={cn("text-sm font-medium break-words", isDeleted && "text-muted-foreground line-through decoration-muted-foreground/40")}>
+                            {c.name}
+                          </span>
+                          {isDeleted && (
+                            <Badge variant="outline" className="text-[10px] uppercase tracking-wide border-muted-foreground/30 text-muted-foreground bg-muted/40">
+                              Deleted
+                            </Badge>
+                          )}
+                        </>
+                      ) : <span className="text-sm text-muted-foreground">—</span>}
+                    </div>
+                    <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground shrink-0">{a.status}</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground pt-2 border-t border-border/50">
+                    <div>
+                      <p className="uppercase tracking-wider text-[10px]">Assigned</p>
+                      <p className="text-foreground font-medium">{formatDate((a.assigned_at as any)?.toDate?.())}</p>
+                    </div>
+                    <div>
+                      <p className="uppercase tracking-wider text-[10px]">Removed</p>
+                      <p className="text-foreground font-medium">{formatDate((a.removed_at as any)?.toDate?.())}</p>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Desktop: table */}
+          <div className="hidden md:block rounded-lg border border-border overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
