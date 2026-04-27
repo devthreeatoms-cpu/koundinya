@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, MapPin, Calendar, Briefcase, Edit, Plus, UserMinus } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Briefcase, Edit, Plus, UserMinus, Users } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import ProjectFormModal from "@/components/projects/ProjectFormModal";
 import AssignCandidatesModal from "@/components/projects/AssignCandidatesModal";
 import { formatDate, initials } from "@/lib/utils-format";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -43,8 +44,8 @@ export default function ProjectDetail() {
 
   if (!project) {
     return (
-      <div>
-        <Link to="/projects" className="text-sm text-muted-foreground inline-flex items-center gap-1 mb-4 hover:text-foreground">
+      <div className="space-y-4">
+        <Link to="/projects" className="text-sm text-muted-foreground inline-flex items-center gap-1 hover:text-foreground transition-colors">
           <ArrowLeft className="h-3.5 w-3.5" /> Back to projects
         </Link>
         <Card className="p-12 text-center"><p className="text-sm text-muted-foreground">Project not found.</p></Card>
@@ -52,9 +53,11 @@ export default function ProjectDetail() {
     );
   }
 
+  const isActive = project.status === "Active";
+
   return (
-    <div>
-      <Link to="/projects" className="text-sm text-muted-foreground inline-flex items-center gap-1 mb-4 hover:text-foreground">
+    <div className="space-y-6">
+      <Link to="/projects" className="text-sm text-muted-foreground inline-flex items-center gap-1 hover:text-foreground transition-colors w-fit">
         <ArrowLeft className="h-3.5 w-3.5" /> Back to projects
       </Link>
 
@@ -64,110 +67,142 @@ export default function ProjectDetail() {
         actions={
           <>
             <Button variant="outline" onClick={() => setEditOpen(true)}>
-              <Edit className="h-4 w-4 mr-1.5" /> Edit
+              <Edit className="h-4 w-4" /> Edit
             </Button>
-            <Button
-              onClick={() => setAssignOpen(true)}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-brand"
-            >
-              <Plus className="h-4 w-4 mr-1.5" /> Assign candidates
+            <Button onClick={() => setAssignOpen(true)} variant="premium">
+              <Plus className="h-4 w-4" /> Assign candidates
             </Button>
           </>
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-3 mb-6">
-        <Card className="p-5 shadow-card">
-          <p className="text-xs text-muted-foreground">Status</p>
-          <Badge className={project.status === "Active" ? "bg-primary text-primary-foreground mt-2 border-0" : "bg-muted text-muted-foreground mt-2 border-0"}>
-            {project.status}
-          </Badge>
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="p-5 shadow-card border-border/60">
+          <div className="flex items-center gap-3">
+            <div className={cn("h-10 w-10 rounded-xl grid place-items-center text-white shadow-sm", isActive ? "bg-gradient-brand" : "bg-muted-foreground/60")}>
+              <Briefcase className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Status</p>
+              <Badge className={cn("mt-1 font-medium", isActive ? "bg-primary/15 text-primary border border-primary/30" : "bg-muted text-muted-foreground border border-border")}>
+                <span className={cn("h-1.5 w-1.5 rounded-full mr-1.5", isActive ? "bg-primary animate-pulse" : "bg-muted-foreground/60")} />
+                {project.status}
+              </Badge>
+            </div>
+          </div>
         </Card>
-        <Card className="p-5 shadow-card">
-          <p className="text-xs text-muted-foreground">Location</p>
-          <p className="text-sm font-medium mt-2 inline-flex items-center gap-1.5"><MapPin className="h-4 w-4 text-muted-foreground" /> {project.location}</p>
+        <Card className="p-5 shadow-card border-border/60">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-secondary-soft text-secondary grid place-items-center">
+              <MapPin className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Location</p>
+              <p className="text-sm font-semibold mt-0.5">{project.location}</p>
+            </div>
+          </div>
         </Card>
-        <Card className="p-5 shadow-card">
-          <p className="text-xs text-muted-foreground">Start date</p>
-          <p className="text-sm font-medium mt-2 inline-flex items-center gap-1.5"><Calendar className="h-4 w-4 text-muted-foreground" /> {formatDate((project.start_date as any)?.toDate?.())}</p>
+        <Card className="p-5 shadow-card border-border/60">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-accent/10 text-accent grid place-items-center">
+              <Calendar className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Start date</p>
+              <p className="text-sm font-semibold mt-0.5">{formatDate((project.start_date as any)?.toDate?.())}</p>
+            </div>
+          </div>
         </Card>
       </div>
 
-      <Card className="p-5 shadow-card mb-6">
+      <Card className="p-5 shadow-card border-border/60">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold inline-flex items-center gap-2">
-            <Briefcase className="h-4 w-4 text-primary" /> Active assignments
+            <div className="h-7 w-7 rounded-lg bg-primary-soft text-primary grid place-items-center">
+              <Briefcase className="h-3.5 w-3.5" />
+            </div>
+            Active assignments
           </h3>
-          <Badge variant="secondary" className="bg-primary-soft text-primary border-0">{active.length}</Badge>
+          <Badge variant="secondary" className="bg-primary-soft text-primary border-0 font-semibold">{active.length}</Badge>
         </div>
         {active.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">No active assignments yet.</p>
+          <div className="flex flex-col items-center py-12 text-center">
+            <div className="h-12 w-12 rounded-full bg-muted grid place-items-center mb-3">
+              <Users className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <p className="text-sm font-medium">No active assignments</p>
+            <p className="text-xs text-muted-foreground mt-1">Assign available candidates to get started.</p>
+          </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/40">
-                <TableHead>Candidate</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Assigned</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {active.map((a) => {
-                const c = candidateMap.get(a.candidate_id);
-                return (
-                  <TableRow key={a.id}>
-                    <TableCell>
-                      {c ? (
-                        <Link to={`/candidates/${c.id}`} className="flex items-center gap-3 hover:text-primary">
-                          <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold">
-                            {initials(c.name)}
-                          </div>
-                          <span className="text-sm font-medium">{c.name}</span>
-                        </Link>
-                      ) : <span className="text-sm text-muted-foreground">Unknown candidate</span>}
-                    </TableCell>
-                    <TableCell className="text-sm">{c?.phone ?? "—"}</TableCell>
-                    <TableCell className="text-sm">{formatDate((a.assigned_at as any)?.toDate?.())}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => handleRemove(a.id)} className="text-destructive hover:text-destructive">
-                        <UserMinus className="h-4 w-4 mr-1" /> Remove
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <div className="rounded-lg border border-border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead className="font-semibold text-foreground">Candidate</TableHead>
+                  <TableHead className="font-semibold text-foreground">Phone</TableHead>
+                  <TableHead className="font-semibold text-foreground">Assigned</TableHead>
+                  <TableHead className="font-semibold text-foreground text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {active.map((a, idx) => {
+                  const c = candidateMap.get(a.candidate_id);
+                  return (
+                    <TableRow key={a.id} className={cn("group border-b border-border/60", idx % 2 === 1 && "bg-muted/20", "hover:bg-primary-soft/40")}>
+                      <TableCell>
+                        {c ? (
+                          <Link to={`/candidates/${c.id}`} className="flex items-center gap-3 group/link">
+                            <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold">
+                              {initials(c.name)}
+                            </div>
+                            <span className="text-sm font-medium group-hover/link:text-primary transition-colors">{c.name}</span>
+                          </Link>
+                        ) : <span className="text-sm text-muted-foreground">Unknown candidate</span>}
+                      </TableCell>
+                      <TableCell className="text-sm tabular-nums">{c?.phone ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{formatDate((a.assigned_at as any)?.toDate?.())}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" onClick={() => handleRemove(a.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                          <UserMinus className="h-4 w-4" /> Remove
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </Card>
 
       {past.length > 0 && (
-        <Card className="p-5 shadow-card">
+        <Card className="p-5 shadow-card border-border/60">
           <h3 className="font-semibold mb-4">History</h3>
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/40">
-                <TableHead>Candidate</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Assigned</TableHead>
-                <TableHead>Removed</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {past.map((a) => {
-                const c = candidateMap.get(a.candidate_id);
-                return (
-                  <TableRow key={a.id}>
-                    <TableCell className="text-sm">{c?.name ?? "—"}</TableCell>
-                    <TableCell><Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground">{a.status}</Badge></TableCell>
-                    <TableCell className="text-sm">{formatDate((a.assigned_at as any)?.toDate?.())}</TableCell>
-                    <TableCell className="text-sm">{formatDate((a.removed_at as any)?.toDate?.())}</TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <div className="rounded-lg border border-border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead className="font-semibold text-foreground">Candidate</TableHead>
+                  <TableHead className="font-semibold text-foreground">Status</TableHead>
+                  <TableHead className="font-semibold text-foreground">Assigned</TableHead>
+                  <TableHead className="font-semibold text-foreground">Removed</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {past.map((a, idx) => {
+                  const c = candidateMap.get(a.candidate_id);
+                  return (
+                    <TableRow key={a.id} className={cn("border-b border-border/60", idx % 2 === 1 && "bg-muted/20")}>
+                      <TableCell className="text-sm">{c?.name ?? "—"}</TableCell>
+                      <TableCell><Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground">{a.status}</Badge></TableCell>
+                      <TableCell className="text-sm">{formatDate((a.assigned_at as any)?.toDate?.())}</TableCell>
+                      <TableCell className="text-sm">{formatDate((a.removed_at as any)?.toDate?.())}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </Card>
       )}
 
