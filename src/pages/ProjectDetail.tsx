@@ -79,7 +79,7 @@ export default function ProjectDetail() {
       />
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="glass-card p-6 hover-lift">
+        <Card className="glass-card p-4 sm:p-6 hover-lift">
           <div className="flex items-center gap-3">
             <div className={cn("h-10 w-10 rounded-xl grid place-items-center text-white shadow-sm", isActive ? "bg-gradient-brand" : "bg-muted-foreground/60")}>
               <Briefcase className="h-5 w-5" />
@@ -93,7 +93,7 @@ export default function ProjectDetail() {
             </div>
           </div>
         </Card>
-        <Card className="glass-card p-6 hover-lift">
+        <Card className="glass-card p-4 sm:p-6 hover-lift">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-secondary-soft text-secondary grid place-items-center">
               <MapPin className="h-5 w-5" />
@@ -104,7 +104,7 @@ export default function ProjectDetail() {
             </div>
           </div>
         </Card>
-        <Card className="glass-card p-6 hover-lift">
+        <Card className="glass-card p-4 sm:p-6 hover-lift">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-accent/10 text-accent grid place-items-center">
               <Calendar className="h-5 w-5" />
@@ -117,7 +117,7 @@ export default function ProjectDetail() {
         </Card>
       </div>
 
-      <Card className="glass-card p-6 hover-lift">
+      <Card className="glass-card p-4 sm:p-6 hover-lift">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold inline-flex items-center gap-2">
             <div className="h-7 w-7 rounded-lg bg-primary-soft text-primary grid place-items-center">
@@ -193,7 +193,7 @@ export default function ProjectDetail() {
       </Card>
 
       {past.length > 0 && (
-        <Card className="glass-card p-6 hover-lift">
+        <Card className="glass-card p-4 sm:p-6 hover-lift">
           <h3 className="font-semibold mb-4">History</h3>
           <div className="rounded-lg border border-border overflow-hidden">
             <Table>

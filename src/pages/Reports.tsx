@@ -339,7 +339,7 @@ export default function Reports() {
 
       {/* Charts */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="glass-card p-6 hover-lift animate-fade-in-up">
+        <Card className="glass-card p-4 sm:p-6 hover-lift animate-fade-in-up">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold tracking-tight">Candidates by status</h3>
@@ -395,7 +395,7 @@ export default function Reports() {
           )}
         </Card>
 
-        <Card className="glass-card p-6 hover-lift animate-fade-in-up">
+        <Card className="glass-card p-4 sm:p-6 hover-lift animate-fade-in-up">
           <div className="mb-4">
             <h3 className="font-semibold tracking-tight">Projects by status</h3>
             <p className="text-xs text-muted-foreground">Active vs completed</p>
@@ -450,7 +450,7 @@ export default function Reports() {
         </Card>
       </div>
 
-      <Card className="glass-card p-6 hover-lift animate-fade-in-up">
+      <Card className="glass-card p-4 sm:p-6 hover-lift animate-fade-in-up">
         <div className="mb-4">
           <h3 className="font-semibold tracking-tight">Source distribution</h3>
           <p className="text-xs text-muted-foreground">Top recruitment sources</p>
