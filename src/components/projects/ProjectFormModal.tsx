@@ -115,10 +115,10 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
               <Briefcase className="h-5 w-5" />
             </div>
             <div>
-              <DialogTitle className="text-lg">
+              <DialogTitle className="text-lg text-foreground">
                 {isEdit ? "Edit project" : "New project"}
               </DialogTitle>
-              <DialogDescription className="text-xs mt-0.5">
+              <DialogDescription className="text-xs mt-0.5 text-muted-foreground">
                 {isEdit ? "Update project details." : "Add a new project to your workspace."}
               </DialogDescription>
             </div>

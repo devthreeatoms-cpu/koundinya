@@ -134,6 +134,9 @@
     --sidebar-border: 216 25% 14%;
     --sidebar-ring: 122 50% 60%;
 
+    /* Soft gradient — dark mode (subtle tinted dark surface for modal headers) */
+    --gradient-soft: linear-gradient(135deg, hsl(122 40% 12% / 0.6) 0%, hsl(207 60% 14% / 0.6) 100%);
+
     /* Aurora mesh — dark mode */
     --aurora-1: 122 80% 35%;
     --aurora-2: 207 90% 40%;
@@ -177,6 +180,34 @@
   h1, h2, h3, h4, h5, h6 {
     @apply tracking-tight;
     letter-spacing: -0.02em;
+  }
+
+  /* Make native date/time pickers readable in dark mode */
+  .dark input[type="date"],
+  .dark input[type="time"],
+  .dark input[type="datetime-local"],
+  .dark input[type="month"],
+  .dark input[type="week"] {
+    color-scheme: dark;
+  }
+  .dark input[type="date"]::-webkit-calendar-picker-indicator,
+  .dark input[type="time"]::-webkit-calendar-picker-indicator,
+  .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(1.4);
+    opacity: 0.7;
+    cursor: pointer;
+  }
+
+  /* Kill Chrome's yellow/red autofill background that breaks dark themes */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    -webkit-text-fill-color: hsl(var(--foreground));
+    -webkit-box-shadow: 0 0 0px 1000px hsl(var(--background)) inset;
+    transition: background-color 5000s ease-in-out 0s;
+    caret-color: hsl(var(--foreground));
   }
 }
 

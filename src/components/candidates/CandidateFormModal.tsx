@@ -124,10 +124,10 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
               <UserPlus className="h-5 w-5" />
             </div>
             <div>
-              <DialogTitle className="text-lg">
+              <DialogTitle className="text-lg text-foreground">
                 {isEdit ? "Edit candidate" : "Add candidate"}
               </DialogTitle>
-              <DialogDescription className="text-xs mt-0.5">
+              <DialogDescription className="text-xs mt-0.5 text-muted-foreground">
                 {isEdit
                   ? "Update candidate details."
                   : "Create a new candidate record. Phone numbers must be unique."}
