@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
-  const { projects } = useProjects();
+  const { project, loading: pLoading } = useProjectById(id);
   const { candidates: allCandidates } = useAllCandidates();
   const { assignments } = useAssignments({ project_id: id });
   const { toast } = useToast();
@@ -27,7 +27,6 @@ export default function ProjectDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
 
-  const project = projects.find((p) => p.id === id);
   // Use the full candidate list (incl. soft-deleted) so historical
   // assignments still show the candidate's name with a "(Deleted)" tag.
   const candidateMap = useMemo(() => new Map(allCandidates.map((c) => [c.id, c])), [allCandidates]);
