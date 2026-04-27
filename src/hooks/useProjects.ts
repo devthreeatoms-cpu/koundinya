@@ -1,20 +1,33 @@
 import { useEffect, useState } from "react";
 import {
   collection, onSnapshot, addDoc, updateDoc, doc, serverTimestamp, Timestamp,
-  getDoc, getDocs, query, where,
+  getDoc, getDocs, query, where, QueryConstraint,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Project } from "@/types";
+import { useAuth } from "@/context/AuthContext";
 
 const COL = "projects";
 
 export function useProjects() {
+  const { isAdmin, agencyId, loading: authLoading } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!isAdmin && !agencyId) {
+      setProjects([]);
+      setLoading(false);
+      return;
+    }
+    const constraints: QueryConstraint[] = [];
+    if (!isAdmin) constraints.push(where("agency_id", "==", agencyId));
+    const q = constraints.length
+      ? query(collection(db, COL), ...constraints)
+      : query(collection(db, COL));
     const unsub = onSnapshot(
-      collection(db, COL),
+      q,
       (snap) => {
         const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Project[];
         list.sort((a, b) => {
@@ -28,21 +41,25 @@ export function useProjects() {
       () => setLoading(false)
     );
     return () => unsub();
-  }, []);
+  }, [isAdmin, agencyId, authLoading]);
 
   return { projects, loading };
 }
 
-export async function createProject(data: {
-  name: string;
-  client_name?: string;
-  location: string;
-  start_date?: Date | null;
-  status: "Active" | "Completed";
-}) {
+export async function createProject(
+  data: {
+    name: string;
+    client_name?: string;
+    location: string;
+    start_date?: Date | null;
+    status: "Active" | "Completed";
+  },
+  ctx: { agency_id: string | null }
+) {
   const ref = await addDoc(collection(db, COL), {
     ...data,
     start_date: data.start_date ? Timestamp.fromDate(data.start_date) : null,
+    agency_id: ctx.agency_id ?? null,
     created_at: serverTimestamp(),
   });
   // If created already in Completed state, make sure no stray active assignments linger.
