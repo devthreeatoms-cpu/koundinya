@@ -360,7 +360,12 @@ export default function ProjectDetail() {
       )}
 
       <ProjectFormModal open={editOpen} onOpenChange={setEditOpen} project={project} />
-      <AssignCandidatesModal open={assignOpen} onOpenChange={setAssignOpen} projectId={project.id} />
+      <AssignCandidatesModal
+        open={assignOpen}
+        onOpenChange={setAssignOpen}
+        projectId={project.id}
+        projectAgencyId={project.agency_id ?? null}
+      />
     </div>
   );
 }
