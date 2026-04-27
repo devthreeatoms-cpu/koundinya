@@ -70,7 +70,7 @@ export default function ProjectsPage() {
         }
       />
 
-      <Card className="p-4 shadow-card border-border/60">
+      <Card className="glass-card p-5 hover-lift">
         <div className="flex flex-col lg:flex-row gap-3">
           <div className="relative flex-1 group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />

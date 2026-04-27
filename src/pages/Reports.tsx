@@ -210,7 +210,7 @@ export default function Reports() {
       />
 
       {/* Filters */}
-      <Card className="p-4 shadow-card border-border/60 animate-fade-in-up">
+      <Card className="glass-card p-5 hover-lift animate-fade-in-up">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Filter className="h-4 w-4" />
@@ -339,7 +339,7 @@ export default function Reports() {
 
       {/* Charts */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="p-5 shadow-card border-border/60 animate-fade-in-up">
+        <Card className="glass-card p-6 hover-lift animate-fade-in-up">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold tracking-tight">Candidates by status</h3>
@@ -383,7 +383,7 @@ export default function Reports() {
           )}
         </Card>
 
-        <Card className="p-5 shadow-card border-border/60 animate-fade-in-up">
+        <Card className="glass-card p-6 hover-lift animate-fade-in-up">
           <div className="mb-4">
             <h3 className="font-semibold tracking-tight">Projects by status</h3>
             <p className="text-xs text-muted-foreground">Active vs completed</p>
@@ -426,7 +426,7 @@ export default function Reports() {
         </Card>
       </div>
 
-      <Card className="p-5 shadow-card border-border/60 animate-fade-in-up">
+      <Card className="glass-card p-6 hover-lift animate-fade-in-up">
         <div className="mb-4">
           <h3 className="font-semibold tracking-tight">Source distribution</h3>
           <p className="text-xs text-muted-foreground">Top recruitment sources</p>
