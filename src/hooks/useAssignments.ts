@@ -9,7 +9,17 @@ import { useAuth } from "@/context/AuthContext";
 
 const COL = "assignments";
 
-export function useAssignments(filter?: { project_id?: string; candidate_id?: string }) {
+export function useAssignments(filter?: {
+  project_id?: string;
+  candidate_id?: string;
+  /**
+   * When true, skip the admin/agency ownership filter. Use ONLY when the
+   * caller is already scoped by a specific project_id or candidate_id that
+   * the user has legitimate access to (e.g. admin drilling into an
+   * agency-owned project from /agencies/:id → /projects/:id).
+   */
+  bypassOwnerFilter?: boolean;
+}) {
   const { isAdmin, agencyId, loading: authLoading } = useAuth();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,9 +35,11 @@ export function useAssignments(filter?: { project_id?: string; candidate_id?: st
     const constraints: QueryConstraint[] = [];
     if (filter?.project_id) constraints.push(where("project_id", "==", filter.project_id));
     if (filter?.candidate_id) constraints.push(where("candidate_id", "==", filter.candidate_id));
-    // Strict separation: admin sees ONLY admin-owned (agency_id == null) assignments.
-    if (isAdmin) constraints.push(where("agency_id", "==", null));
-    else constraints.push(where("agency_id", "==", agencyId));
+    if (!filter?.bypassOwnerFilter) {
+      // Strict separation: admin sees ONLY admin-owned (agency_id == null) assignments.
+      if (isAdmin) constraints.push(where("agency_id", "==", null));
+      else constraints.push(where("agency_id", "==", agencyId));
+    }
     const q = query(base, ...constraints);
 
     const unsub = onSnapshot(
