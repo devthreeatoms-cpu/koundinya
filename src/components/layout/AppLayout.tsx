@@ -37,8 +37,9 @@ const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/candidates", label: "Candidates", icon: Users },
   { to: "/projects", label: "Projects", icon: Briefcase },
-  { to: "/reports", label: "Reports", icon: BarChart3 },
-  { to: "/settings", label: "Settings", icon: Settings },
+  // Reports and Settings temporarily hidden from navigation
+  // { to: "/reports", label: "Reports", icon: BarChart3 },
+  // { to: "/settings", label: "Settings", icon: Settings },
 ];
 
 const STORAGE_KEY = "koundinya-sidebar-collapsed";
