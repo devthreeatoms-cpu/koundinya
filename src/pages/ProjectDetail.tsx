@@ -149,19 +149,34 @@ export default function ProjectDetail() {
               <TableBody>
                 {active.map((a, idx) => {
                   const c = candidateMap.get(a.candidate_id);
+                  const isDeleted = !!c?.is_deleted;
                   return (
                     <TableRow key={a.id} className={cn("group border-b border-border/60", idx % 2 === 1 && "bg-muted/20", "hover:bg-primary-soft/40")}>
                       <TableCell>
                         {c ? (
-                          <Link to={`/candidates/${c.id}`} className="flex items-center gap-3 group/link">
-                            <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold">
-                              {initials(c.name)}
+                          isDeleted ? (
+                            <div className="flex items-center gap-3">
+                              <div className="h-8 w-8 rounded-full bg-muted text-muted-foreground grid place-items-center text-xs font-semibold">
+                                {initials(c.name)}
+                              </div>
+                              <span className="text-sm font-medium text-muted-foreground line-through decoration-muted-foreground/40">
+                                {c.name}
+                              </span>
+                              <Badge variant="outline" className="text-[10px] uppercase tracking-wide border-muted-foreground/30 text-muted-foreground bg-muted/40">
+                                Deleted
+                              </Badge>
                             </div>
-                            <span className="text-sm font-medium group-hover/link:text-primary transition-colors">{c.name}</span>
-                          </Link>
-                        ) : <span className="text-sm text-muted-foreground">Unknown candidate</span>}
+                          ) : (
+                            <Link to={`/candidates/${c.id}`} className="flex items-center gap-3 group/link">
+                              <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold">
+                                {initials(c.name)}
+                              </div>
+                              <span className="text-sm font-medium group-hover/link:text-primary transition-colors">{c.name}</span>
+                            </Link>
+                          )
+                        ) : <span className="text-sm text-muted-foreground italic">Unknown candidate</span>}
                       </TableCell>
-                      <TableCell className="text-sm tabular-nums">{c?.phone ?? "—"}</TableCell>
+                      <TableCell className={cn("text-sm tabular-nums", isDeleted && "text-muted-foreground")}>{c?.phone ?? "—"}</TableCell>
                       <TableCell className="text-sm">{formatDate((a.assigned_at as any)?.toDate?.())}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" onClick={() => handleRemove(a.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
@@ -193,9 +208,21 @@ export default function ProjectDetail() {
               <TableBody>
                 {past.map((a, idx) => {
                   const c = candidateMap.get(a.candidate_id);
+                  const isDeleted = !!c?.is_deleted;
                   return (
                     <TableRow key={a.id} className={cn("border-b border-border/60", idx % 2 === 1 && "bg-muted/20")}>
-                      <TableCell className="text-sm">{c?.name ?? "—"}</TableCell>
+                      <TableCell className={cn("text-sm", isDeleted && "text-muted-foreground")}>
+                        {c ? (
+                          <span className="inline-flex items-center gap-2">
+                            <span className={cn(isDeleted && "line-through decoration-muted-foreground/40")}>{c.name}</span>
+                            {isDeleted && (
+                              <Badge variant="outline" className="text-[10px] uppercase tracking-wide border-muted-foreground/30 text-muted-foreground bg-muted/40">
+                                Deleted
+                              </Badge>
+                            )}
+                          </span>
+                        ) : "—"}
+                      </TableCell>
                       <TableCell><Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground">{a.status}</Badge></TableCell>
                       <TableCell className="text-sm">{formatDate((a.assigned_at as any)?.toDate?.())}</TableCell>
                       <TableCell className="text-sm">{formatDate((a.removed_at as any)?.toDate?.())}</TableCell>
