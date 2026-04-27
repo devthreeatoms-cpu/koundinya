@@ -157,69 +157,122 @@ export default function AgencyDetail() {
         ) : projects.length === 0 ? (
           <EmptyState text="No projects in this agency yet." />
         ) : (
-          <div className="rounded-lg border border-border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="font-semibold text-foreground">Name</TableHead>
-                  <TableHead className="font-semibold text-foreground">Client</TableHead>
-                  <TableHead className="font-semibold text-foreground">Location</TableHead>
-                  <TableHead className="font-semibold text-foreground">Status</TableHead>
-                  <TableHead className="font-semibold text-foreground text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {projects.map((p, idx) => {
-                  const isActive = p.status === "Active";
-                  return (
-                    <TableRow
-                      key={p.id}
-                      className={cn(
-                        "border-b border-border/60",
-                        idx % 2 === 1 && "bg-muted/20",
-                        "hover:bg-primary-soft/40"
-                      )}
-                    >
-                      <TableCell className="font-medium">{p.name}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {p.client_name || "—"}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        <span className="inline-flex items-center gap-1.5">
-                          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                          {p.location}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={cn(
-                            "font-medium",
-                            isActive
-                              ? "bg-primary/15 text-primary border border-primary/30"
-                              : "bg-muted text-muted-foreground border border-border"
-                          )}
-                        >
-                          {p.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          asChild
-                          variant="ghost"
-                          size="sm"
-                          className="text-primary hover:text-primary hover:bg-primary-soft"
-                        >
-                          <Link to={`/projects/${p.id}`}>
-                            <Eye className="h-4 w-4" /> View
-                          </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+          <>
+            {/* Mobile: stacked cards */}
+            <ul className="md:hidden space-y-3">
+              {projects.map((p) => {
+                const isActive = p.status === "Active";
+                return (
+                  <li
+                    key={p.id}
+                    className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-2"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold break-words">{p.name}</p>
+                        {p.client_name && (
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">
+                            {p.client_name}
+                          </p>
+                        )}
+                      </div>
+                      <Badge
+                        className={cn(
+                          "shrink-0 font-medium",
+                          isActive
+                            ? "bg-primary/15 text-primary border border-primary/30"
+                            : "bg-muted text-muted-foreground border border-border"
+                        )}
+                      >
+                        {p.status}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50">
+                      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+                        <MapPin className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{p.location}</span>
+                      </span>
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 text-primary hover:text-primary hover:bg-primary-soft shrink-0"
+                      >
+                        <Link to={`/projects/${p.id}`}>
+                          <Eye className="h-4 w-4" /> View
+                        </Link>
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* Desktop: table */}
+            <div className="hidden md:block rounded-lg border border-border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="font-semibold text-foreground">Name</TableHead>
+                    <TableHead className="font-semibold text-foreground">Client</TableHead>
+                    <TableHead className="font-semibold text-foreground">Location</TableHead>
+                    <TableHead className="font-semibold text-foreground">Status</TableHead>
+                    <TableHead className="font-semibold text-foreground text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {projects.map((p, idx) => {
+                    const isActive = p.status === "Active";
+                    return (
+                      <TableRow
+                        key={p.id}
+                        className={cn(
+                          "border-b border-border/60",
+                          idx % 2 === 1 && "bg-muted/20",
+                          "hover:bg-primary-soft/40"
+                        )}
+                      >
+                        <TableCell className="font-medium">{p.name}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {p.client_name || "—"}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          <span className="inline-flex items-center gap-1.5">
+                            <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                            {p.location}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={cn(
+                              "font-medium",
+                              isActive
+                                ? "bg-primary/15 text-primary border border-primary/30"
+                                : "bg-muted text-muted-foreground border border-border"
+                            )}
+                          >
+                            {p.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            asChild
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary hover:text-primary hover:bg-primary-soft"
+                          >
+                            <Link to={`/projects/${p.id}`}>
+                              <Eye className="h-4 w-4" /> View
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </Card>
 
@@ -235,59 +288,106 @@ export default function AgencyDetail() {
         ) : visibleCandidates.length === 0 ? (
           <EmptyState text="No candidates in this agency yet." />
         ) : (
-          <div className="rounded-lg border border-border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="font-semibold text-foreground">Name</TableHead>
-                  <TableHead className="font-semibold text-foreground">Phone</TableHead>
-                  <TableHead className="font-semibold text-foreground">Location</TableHead>
-                  <TableHead className="font-semibold text-foreground">Status</TableHead>
-                  <TableHead className="font-semibold text-foreground text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleCandidates.map((c, idx) => (
-                  <TableRow
-                    key={c.id}
-                    className={cn(
-                      "border-b border-border/60",
-                      idx % 2 === 1 && "bg-muted/20",
-                      "hover:bg-primary-soft/40"
-                    )}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold">
-                          {initials(c.name)}
-                        </div>
-                        <span className="text-sm font-medium">{c.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm tabular-nums">{c.phone}</TableCell>
-                    <TableCell className="text-sm">{c.location}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground">
-                        {c.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        asChild
-                        variant="ghost"
-                        size="sm"
-                        className="text-primary hover:text-primary hover:bg-primary-soft"
-                      >
-                        <Link to={`/candidates/${c.id}`}>
-                          <Eye className="h-4 w-4" /> View
-                        </Link>
-                      </Button>
-                    </TableCell>
+          <>
+            {/* Mobile: stacked cards */}
+            <ul className="md:hidden space-y-3">
+              {visibleCandidates.map((c) => (
+                <li
+                  key={c.id}
+                  className="rounded-xl border border-border/60 bg-muted/20 p-3"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="h-10 w-10 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold shrink-0">
+                      {initials(c.name)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold break-words">{c.name}</p>
+                      <p className="text-xs text-muted-foreground tabular-nums break-all mt-0.5">
+                        {c.phone}
+                      </p>
+                      <p className="text-xs text-muted-foreground inline-flex items-center gap-1 mt-0.5">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        <span className="break-words">{c.location}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 pt-3 mt-3 border-t border-border/50">
+                    <Badge
+                      variant="outline"
+                      className="border-muted-foreground/30 text-muted-foreground"
+                    >
+                      {c.status}
+                    </Badge>
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 text-primary hover:text-primary hover:bg-primary-soft"
+                    >
+                      <Link to={`/candidates/${c.id}`}>
+                        <Eye className="h-4 w-4" /> View
+                      </Link>
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            {/* Desktop: table */}
+            <div className="hidden md:block rounded-lg border border-border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="font-semibold text-foreground">Name</TableHead>
+                    <TableHead className="font-semibold text-foreground">Phone</TableHead>
+                    <TableHead className="font-semibold text-foreground">Location</TableHead>
+                    <TableHead className="font-semibold text-foreground">Status</TableHead>
+                    <TableHead className="font-semibold text-foreground text-right">Action</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {visibleCandidates.map((c, idx) => (
+                    <TableRow
+                      key={c.id}
+                      className={cn(
+                        "border-b border-border/60",
+                        idx % 2 === 1 && "bg-muted/20",
+                        "hover:bg-primary-soft/40"
+                      )}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold">
+                            {initials(c.name)}
+                          </div>
+                          <span className="text-sm font-medium">{c.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm tabular-nums">{c.phone}</TableCell>
+                      <TableCell className="text-sm">{c.location}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground">
+                          {c.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          asChild
+                          variant="ghost"
+                          size="sm"
+                          className="text-primary hover:text-primary hover:bg-primary-soft"
+                        >
+                          <Link to={`/candidates/${c.id}`}>
+                            <Eye className="h-4 w-4" /> View
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </Card>
 
@@ -303,61 +403,109 @@ export default function AgencyDetail() {
         ) : activeAssignments.length === 0 ? (
           <EmptyState text="No active assignments for this agency." />
         ) : (
-          <div className="rounded-lg border border-border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="font-semibold text-foreground">Candidate</TableHead>
-                  <TableHead className="font-semibold text-foreground">Project</TableHead>
-                  <TableHead className="font-semibold text-foreground">Assigned</TableHead>
-                  <TableHead className="font-semibold text-foreground text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {activeAssignments.map((a, idx) => {
-                  const c = candidateMap.get(a.candidate_id);
-                  const p = projectMap.get(a.project_id);
-                  return (
-                    <TableRow
-                      key={a.id}
-                      className={cn(
-                        "border-b border-border/60",
-                        idx % 2 === 1 && "bg-muted/20"
-                      )}
-                    >
-                      <TableCell>
+          <>
+            {/* Mobile: stacked cards */}
+            <ul className="md:hidden space-y-3">
+              {activeAssignments.map((a) => {
+                const c = candidateMap.get(a.candidate_id);
+                const p = projectMap.get(a.project_id);
+                return (
+                  <li
+                    key={a.id}
+                    className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-2"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
                         {c ? (
-                          <span className="text-sm font-medium">{c.name}</span>
+                          <p className="text-sm font-semibold break-words">{c.name}</p>
                         ) : (
-                          <span className="text-sm text-muted-foreground italic">Unknown</span>
+                          <p className="text-sm text-muted-foreground italic">Unknown</p>
                         )}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {p ? p.name : <span className="text-muted-foreground italic">Unknown</span>}
-                      </TableCell>
-                      <TableCell className="text-sm">
+                        <p className="text-xs text-muted-foreground mt-0.5 break-words">
+                          {p ? p.name : <span className="italic">Unknown project</span>}
+                        </p>
+                      </div>
+                      {c && (
+                        <Button
+                          asChild
+                          variant="ghost"
+                          size="sm"
+                          className="h-9 text-primary hover:text-primary hover:bg-primary-soft shrink-0"
+                        >
+                          <Link to={`/candidates/${c.id}`}>
+                            <Eye className="h-4 w-4" /> View
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground pt-2 border-t border-border/50">
+                      Assigned{" "}
+                      <span className="font-medium text-foreground">
                         {formatDate((a.assigned_at as any)?.toDate?.())}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {c && (
-                          <Button
-                            asChild
-                            variant="ghost"
-                            size="sm"
-                            className="text-primary hover:text-primary hover:bg-primary-soft"
-                          >
-                            <Link to={`/candidates/${c.id}`}>
-                              <Eye className="h-4 w-4" /> View
-                            </Link>
-                          </Button>
+                      </span>
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* Desktop: table */}
+            <div className="hidden md:block rounded-lg border border-border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="font-semibold text-foreground">Candidate</TableHead>
+                    <TableHead className="font-semibold text-foreground">Project</TableHead>
+                    <TableHead className="font-semibold text-foreground">Assigned</TableHead>
+                    <TableHead className="font-semibold text-foreground text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {activeAssignments.map((a, idx) => {
+                    const c = candidateMap.get(a.candidate_id);
+                    const p = projectMap.get(a.project_id);
+                    return (
+                      <TableRow
+                        key={a.id}
+                        className={cn(
+                          "border-b border-border/60",
+                          idx % 2 === 1 && "bg-muted/20"
                         )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+                      >
+                        <TableCell>
+                          {c ? (
+                            <span className="text-sm font-medium">{c.name}</span>
+                          ) : (
+                            <span className="text-sm text-muted-foreground italic">Unknown</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {p ? p.name : <span className="text-muted-foreground italic">Unknown</span>}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {formatDate((a.assigned_at as any)?.toDate?.())}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {c && (
+                            <Button
+                              asChild
+                              variant="ghost"
+                              size="sm"
+                              className="text-primary hover:text-primary hover:bg-primary-soft"
+                            >
+                              <Link to={`/candidates/${c.id}`}>
+                                <Eye className="h-4 w-4" /> View
+                              </Link>
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </Card>
 
