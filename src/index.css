@@ -161,10 +161,16 @@
     @apply h-full;
   }
 
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     transition: background-color 0.3s ease, color 0.3s ease;
+    overflow-x: hidden;
     /* Subtle base gradient under the aurora */
     background-image:
       radial-gradient(ellipse 100% 60% at 50% -10%, hsl(var(--secondary) / 0.06), transparent 60%),
