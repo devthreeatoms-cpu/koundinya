@@ -188,12 +188,12 @@ export default function Settings() {
               <div
                 className={cn(
                   "h-9 w-9 rounded-lg grid place-items-center transition-colors",
-                  prefs.theme === "dark"
+                  theme === "dark"
                     ? "bg-foreground text-background"
                     : "bg-warning/10 text-warning"
                 )}
               >
-                {prefs.theme === "dark" ? (
+                {theme === "dark" ? (
                   <Moon className="h-4 w-4" />
                 ) : (
                   <Sun className="h-4 w-4" />
@@ -207,8 +207,8 @@ export default function Settings() {
               </div>
             </div>
             <Switch
-              checked={prefs.theme === "dark"}
-              onCheckedChange={toggleTheme}
+              checked={theme === "dark"}
+              onCheckedChange={handleThemeToggle}
             />
           </div>
 
