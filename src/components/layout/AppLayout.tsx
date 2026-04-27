@@ -230,20 +230,20 @@ export default function AppLayout() {
       >
         {/* Floating glass header */}
         <header className="sticky top-0 z-20 glass-strong border-b border-border/40">
-          <div className="flex items-center gap-4 px-4 md:px-8 h-16">
+          <div className="flex items-center gap-2 sm:gap-4 px-3 sm:px-4 md:px-8 h-14 sm:h-16">
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
+              className="md:hidden h-11 w-11 shrink-0"
               aria-label="Open menu"
               onClick={() => setMobileOpen(true)}
             >
               <Menu className="h-5 w-5" />
             </Button>
 
-            <div className="md:hidden flex items-center gap-2">
-              <img src={logo} alt="Koundinya" className="h-8 w-8 object-contain" />
-              <span className="font-semibold tracking-tight">Koundinya</span>
+            <div className="md:hidden flex items-center gap-2 min-w-0">
+              <img src={logo} alt="Koundinya" className="h-8 w-8 object-contain shrink-0" />
+              <span className="font-semibold tracking-tight truncate">Koundinya</span>
             </div>
 
             <div className="flex-1 max-w-md hidden md:block">
@@ -259,13 +259,13 @@ export default function AppLayout() {
               </div>
             </div>
 
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-1 sm:gap-2 shrink-0">
               <Button
                 variant="ghost"
                 size="icon"
                 aria-label="Toggle theme"
                 onClick={toggleTheme}
-                className="relative"
+                className="relative h-10 w-10 sm:h-9 sm:w-9"
               >
                 {theme === "dark" ? (
                   <Sun className="h-4 w-4" />
@@ -273,18 +273,23 @@ export default function AppLayout() {
                   <Moon className="h-4 w-4" />
                 )}
               </Button>
-              <Button variant="ghost" size="icon" aria-label="Notifications" className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Notifications"
+                className="relative h-10 w-10 sm:h-9 sm:w-9"
+              >
                 <Bell className="h-4 w-4" />
                 <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-background" />
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2.5 rounded-full p-1 pr-3 hover:bg-muted/60 transition-colors">
-                    <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold shadow-brand">
+                  <button className="flex items-center gap-2.5 rounded-full p-1 sm:pr-3 hover:bg-muted/60 transition-colors min-h-[44px]">
+                    <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold shadow-brand shrink-0">
                       {initials(email || "A")}
                     </div>
-                    <div className="hidden sm:block text-left">
-                      <p className="text-xs font-semibold leading-tight">{email || "Admin"}</p>
+                    <div className="hidden sm:block text-left max-w-[140px]">
+                      <p className="text-xs font-semibold leading-tight truncate">{email || "Admin"}</p>
                       <p className="text-[10px] text-muted-foreground leading-tight">Administrator</p>
                     </div>
                   </button>
@@ -302,9 +307,20 @@ export default function AppLayout() {
               </DropdownMenu>
             </div>
           </div>
+
+          {/* Mobile search row */}
+          <div className="md:hidden px-3 pb-3 -mt-1">
+            <div className="relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search candidates, projects…"
+                className="pl-9 h-11 bg-background/50 border-border/60 backdrop-blur-sm"
+              />
+            </div>
+          </div>
         </header>
 
-        <main className="flex-1 px-4 md:px-8 py-6 animate-fade-in-up">
+        <main className="flex-1 px-3 sm:px-4 md:px-8 py-4 sm:py-6 animate-fade-in-up min-w-0">
           <Outlet />
         </main>
       </div>
