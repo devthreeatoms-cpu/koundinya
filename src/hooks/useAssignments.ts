@@ -13,9 +13,11 @@ export function useAssignments(filter?: { project_id?: string; candidate_id?: st
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let q: any = collection(db, COL);
-    if (filter?.project_id) q = query(q, where("project_id", "==", filter.project_id));
-    if (filter?.candidate_id) q = query(q, where("candidate_id", "==", filter.candidate_id));
+    const base = collection(db, COL);
+    const constraints = [] as any[];
+    if (filter?.project_id) constraints.push(where("project_id", "==", filter.project_id));
+    if (filter?.candidate_id) constraints.push(where("candidate_id", "==", filter.candidate_id));
+    const q = constraints.length ? query(base, ...constraints) : query(base);
 
     const unsub = onSnapshot(
       q,
