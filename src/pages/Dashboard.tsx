@@ -59,6 +59,8 @@ export default function Dashboard() {
       gradient: "bg-gradient-primary",
       ring: "ring-primary/20",
       hint: `${availableCount} available now`,
+      to: "/candidates",
+      hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--primary)/0.45)]",
     },
     {
       label: "Active projects",
@@ -67,6 +69,8 @@ export default function Dashboard() {
       gradient: "bg-gradient-secondary",
       ring: "ring-secondary/20",
       hint: `${projects.length - activeProjects.length} completed`,
+      to: "/projects",
+      hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--secondary)/0.45)]",
     },
     {
       label: "Available candidates",
@@ -75,6 +79,8 @@ export default function Dashboard() {
       gradient: "bg-gradient-accent",
       ring: "ring-accent/20",
       hint: `${assignedIds.size} currently assigned`,
+      to: "/candidates?availability=available",
+      hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--accent)/0.45)]",
     },
   ];
 
@@ -140,46 +146,58 @@ export default function Dashboard() {
         {stats.map((s, idx) => {
           const Icon = s.icon;
           return (
-            <Card
+            <Link
               key={s.label}
-              className={cn(
-                "relative overflow-hidden p-5 border-border/60 shadow-card hover:shadow-elevated transition-all duration-300 hover:-translate-y-0.5 animate-fade-in-up"
-              )}
-              style={{ animationDelay: `${idx * 60}ms` }}
+              to={s.to}
+              aria-label={`${s.label}: ${s.value}. View details.`}
+              className="group rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              {/* Decorative blur */}
-              <div
+              <Card
+                role="button"
+                tabIndex={-1}
                 className={cn(
-                  "absolute -top-10 -right-10 h-32 w-32 rounded-full opacity-20 blur-2xl",
-                  s.gradient
+                  "relative overflow-hidden p-5 border-border/60 shadow-card cursor-pointer",
+                  "transition-all duration-300 ease-out animate-fade-in-up",
+                  "hover:-translate-y-1 hover:scale-[1.02] hover:shadow-elevated",
+                  "active:scale-[0.99] active:translate-y-0",
+                  s.hoverGlow
                 )}
-              />
-              <div className="relative flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">{s.label}</p>
-                  {loading ? (
-                    <Skeleton className="h-9 w-20 mt-2" />
-                  ) : (
-                    <p className="text-4xl font-bold mt-2 tracking-tight tabular-nums">
-                      {s.value}
-                    </p>
-                  )}
-                </div>
+                style={{ animationDelay: `${idx * 60}ms` }}
+              >
+                {/* Decorative blur */}
                 <div
                   className={cn(
-                    "h-12 w-12 rounded-2xl grid place-items-center text-white shadow-lg ring-4",
-                    s.gradient,
-                    s.ring
+                    "absolute -top-10 -right-10 h-32 w-32 rounded-full opacity-20 blur-2xl transition-opacity duration-300 group-hover:opacity-40",
+                    s.gradient
                   )}
-                >
-                  <Icon className="h-5 w-5" />
+                />
+                <div className="relative flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">{s.label}</p>
+                    {loading ? (
+                      <Skeleton className="h-9 w-20 mt-2" />
+                    ) : (
+                      <p className="text-4xl font-bold mt-2 tracking-tight tabular-nums">
+                        {s.value}
+                      </p>
+                    )}
+                  </div>
+                  <div
+                    className={cn(
+                      "h-12 w-12 rounded-2xl grid place-items-center text-white shadow-lg ring-4 transition-transform duration-300 group-hover:scale-110",
+                      s.gradient,
+                      s.ring
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </div>
                 </div>
-              </div>
-              <div className="relative flex items-center gap-1.5 text-xs text-muted-foreground mt-4 pt-4 border-t border-border/60">
-                <TrendingUp className="h-3.5 w-3.5 text-primary" />
-                <span className="font-medium text-foreground">{s.hint}</span>
-              </div>
-            </Card>
+                <div className="relative flex items-center gap-1.5 text-xs text-muted-foreground mt-4 pt-4 border-t border-border/60">
+                  <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                  <span className="font-medium text-foreground">{s.hint}</span>
+                </div>
+              </Card>
+            </Link>
           );
         })}
       </div>
