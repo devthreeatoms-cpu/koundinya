@@ -26,6 +26,7 @@ import {
 import { useCandidateById } from "@/hooks/useCandidates";
 import { useProjects } from "@/hooks/useProjects";
 import { useAssignments } from "@/hooks/useAssignments";
+import { useAuth } from "@/context/AuthContext";
 import CandidateFormModal from "@/components/candidates/CandidateFormModal";
 import { formatDate, initials } from "@/lib/utils-format";
 import type { CandidateStatus } from "@/types";
@@ -48,9 +49,11 @@ const statusDot: Record<CandidateStatus, string> = {
 
 export default function CandidateDetail() {
   const { id } = useParams<{ id: string }>();
+  const { isAdmin } = useAuth();
   const { candidate, loading: cLoading } = useCandidateById(id);
-  const { projects } = useProjects();
-  const { assignments } = useAssignments({ candidate_id: id });
+  const bypass = isAdmin && !!candidate?.agency_id;
+  const { projects } = useProjects({ bypassOwnerFilter: bypass });
+  const { assignments } = useAssignments({ candidate_id: id, bypassOwnerFilter: bypass });
   const [editOpen, setEditOpen] = useState(false);
 
   const projectMap = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
