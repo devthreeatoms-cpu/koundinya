@@ -3,6 +3,7 @@ import type { Timestamp } from "firebase/firestore";
 export type CandidateStatus = "New" | "Contacted" | "Assigned" | "Rejected";
 export type ProjectStatus = "Active" | "Completed";
 export type AssignmentStatus = "Active" | "Completed" | "Dropped";
+export type UserRole = "admin" | "agency";
 
 export interface Candidate {
   id: string;
@@ -15,6 +16,7 @@ export interface Candidate {
   notes?: string;
   is_deleted?: boolean;
   created_at?: Timestamp | null;
+  agency_id?: string | null;
 }
 
 export interface Project {
@@ -25,6 +27,7 @@ export interface Project {
   start_date?: Timestamp | null;
   status: ProjectStatus;
   created_at?: Timestamp | null;
+  agency_id?: string | null;
 }
 
 export interface Assignment {
@@ -34,4 +37,19 @@ export interface Assignment {
   assigned_at?: Timestamp | null;
   removed_at?: Timestamp | null;
   status: AssignmentStatus;
+  agency_id?: string | null;
+}
+
+export interface Agency {
+  id: string;
+  name: string;
+  created_at?: Timestamp | null;
+}
+
+export interface AppUser {
+  id: string;          // == auth uid
+  email: string;
+  role: UserRole;
+  agency_id: string | null;
+  created_at?: Timestamp | null;
 }
