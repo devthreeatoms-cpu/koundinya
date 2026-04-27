@@ -117,7 +117,7 @@ export default function Settings() {
       />
 
       {/* Profile */}
-      <Card className="p-6 shadow-card border-border/60 animate-fade-in-up">
+      <Card className="glass-card p-6 hover-lift animate-fade-in-up">
         <div className="flex items-start gap-3 mb-5">
           <div className="h-10 w-10 rounded-xl bg-primary-soft text-primary grid place-items-center">
             <UserIcon className="h-5 w-5" />
@@ -169,7 +169,7 @@ export default function Settings() {
       </Card>
 
       {/* Preferences */}
-      <Card className="p-6 shadow-card border-border/60 animate-fade-in-up">
+      <Card className="glass-card p-6 hover-lift animate-fade-in-up">
         <div className="flex items-start gap-3 mb-5">
           <div className="h-10 w-10 rounded-xl bg-secondary/10 text-secondary grid place-items-center">
             <Sliders className="h-5 w-5" />
@@ -254,7 +254,7 @@ export default function Settings() {
       </Card>
 
       {/* System Info */}
-      <Card className="p-6 shadow-card border-border/60 animate-fade-in-up">
+      <Card className="glass-card p-6 hover-lift animate-fade-in-up">
         <div className="flex items-start gap-3 mb-5">
           <div className="h-10 w-10 rounded-xl bg-accent/10 text-accent grid place-items-center">
             <Info className="h-5 w-5" />

@@ -210,7 +210,7 @@ export default function Reports() {
       />
 
       {/* Filters */}
-      <Card className="p-4 shadow-card border-border/60 animate-fade-in-up">
+      <Card className="glass-card p-5 hover-lift animate-fade-in-up">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Filter className="h-4 w-4" />
@@ -339,7 +339,7 @@ export default function Reports() {
 
       {/* Charts */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="p-5 shadow-card border-border/60 animate-fade-in-up">
+        <Card className="glass-card p-6 hover-lift animate-fade-in-up">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold tracking-tight">Candidates by status</h3>
@@ -356,25 +356,37 @@ export default function Reports() {
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
+                <defs>
+                  {statusData.map((entry, i) => (
+                    <linearGradient key={`pg-${entry.name}`} id={`pieStatus-${i}`} x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor={STATUS_COLORS[entry.name]} stopOpacity={1} />
+                      <stop offset="100%" stopColor={STATUS_COLORS[entry.name]} stopOpacity={0.55} />
+                    </linearGradient>
+                  ))}
+                </defs>
                 <Pie
                   data={statusData}
-                  innerRadius={50}
-                  outerRadius={90}
-                  paddingAngle={4}
+                  innerRadius={55}
+                  outerRadius={92}
+                  paddingAngle={6}
                   dataKey="value"
                   stroke="hsl(var(--background))"
                   strokeWidth={3}
+                  animationDuration={900}
+                  animationEasing="ease-out"
                 >
-                  {statusData.map((entry) => (
-                    <Cell key={entry.name} fill={STATUS_COLORS[entry.name]} />
+                  {statusData.map((entry, i) => (
+                    <Cell key={entry.name} fill={`url(#pieStatus-${i})`} />
                   ))}
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    background: "hsl(var(--popover))",
+                    background: "hsl(var(--popover) / 0.95)",
+                    backdropFilter: "blur(12px)",
                     border: "1px solid hsl(var(--border))",
                     borderRadius: 12,
                     fontSize: 12,
+                    boxShadow: "var(--shadow-elevated)",
                   }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
@@ -383,7 +395,7 @@ export default function Reports() {
           )}
         </Card>
 
-        <Card className="p-5 shadow-card border-border/60 animate-fade-in-up">
+        <Card className="glass-card p-6 hover-lift animate-fade-in-up">
           <div className="mb-4">
             <h3 className="font-semibold tracking-tight">Projects by status</h3>
             <p className="text-xs text-muted-foreground">Active vs completed</p>
@@ -393,7 +405,17 @@ export default function Reports() {
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={projectData} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <defs>
+                  <linearGradient id="projBarActive" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--primary-glow))" stopOpacity={1} />
+                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.7} />
+                  </linearGradient>
+                  <linearGradient id="projBarCompleted" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--muted-foreground) / 0.7)" stopOpacity={1} />
+                    <stop offset="100%" stopColor="hsl(var(--muted-foreground) / 0.3)" stopOpacity={0.6} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.5} />
                 <XAxis
                   dataKey="name"
                   tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
@@ -407,17 +429,19 @@ export default function Reports() {
                   allowDecimals={false}
                 />
                 <Tooltip
-                  cursor={{ fill: "hsl(var(--muted) / 0.5)" }}
+                  cursor={{ fill: "hsl(var(--primary) / 0.08)", radius: 12 }}
                   contentStyle={{
-                    background: "hsl(var(--popover))",
+                    background: "hsl(var(--popover) / 0.95)",
+                    backdropFilter: "blur(12px)",
                     border: "1px solid hsl(var(--border))",
                     borderRadius: 12,
                     fontSize: 12,
+                    boxShadow: "var(--shadow-elevated)",
                   }}
                 />
-                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                <Bar dataKey="value" radius={[12, 12, 4, 4]} animationDuration={900}>
                   {projectData.map((_, i) => (
-                    <Cell key={i} fill={PROJECT_COLORS[i % PROJECT_COLORS.length]} />
+                    <Cell key={i} fill={i === 0 ? "url(#projBarActive)" : "url(#projBarCompleted)"} />
                   ))}
                 </Bar>
               </BarChart>
@@ -426,7 +450,7 @@ export default function Reports() {
         </Card>
       </div>
 
-      <Card className="p-5 shadow-card border-border/60 animate-fade-in-up">
+      <Card className="glass-card p-6 hover-lift animate-fade-in-up">
         <div className="mb-4">
           <h3 className="font-semibold tracking-tight">Source distribution</h3>
           <p className="text-xs text-muted-foreground">Top recruitment sources</p>
@@ -444,7 +468,15 @@ export default function Reports() {
               layout="vertical"
               margin={{ top: 8, right: 24, bottom: 0, left: 8 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+              <defs>
+                {sourceData.map((_, i) => (
+                  <linearGradient key={`sg-${i}`} id={`sourceBar-${i}`} x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor={SOURCE_PALETTE[i % SOURCE_PALETTE.length]} stopOpacity={0.6} />
+                    <stop offset="100%" stopColor={SOURCE_PALETTE[i % SOURCE_PALETTE.length]} stopOpacity={1} />
+                  </linearGradient>
+                ))}
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} opacity={0.5} />
               <XAxis
                 type="number"
                 tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
@@ -461,17 +493,19 @@ export default function Reports() {
                 width={120}
               />
               <Tooltip
-                cursor={{ fill: "hsl(var(--muted) / 0.5)" }}
+                cursor={{ fill: "hsl(var(--primary) / 0.08)", radius: 8 }}
                 contentStyle={{
-                  background: "hsl(var(--popover))",
+                  background: "hsl(var(--popover) / 0.95)",
+                  backdropFilter: "blur(12px)",
                   border: "1px solid hsl(var(--border))",
                   borderRadius: 12,
                   fontSize: 12,
+                  boxShadow: "var(--shadow-elevated)",
                 }}
               />
-              <Bar dataKey="value" radius={[0, 8, 8, 0]}>
+              <Bar dataKey="value" radius={[0, 12, 12, 0]} animationDuration={900}>
                 {sourceData.map((_, i) => (
-                  <Cell key={i} fill={SOURCE_PALETTE[i % SOURCE_PALETTE.length]} />
+                  <Cell key={i} fill={`url(#sourceBar-${i})`} />
                 ))}
               </Bar>
             </BarChart>
@@ -480,7 +514,7 @@ export default function Reports() {
       </Card>
 
       {/* Recent assignments table */}
-      <Card className="shadow-card border-border/60 animate-fade-in-up overflow-hidden">
+      <Card className="glass-card hover-lift animate-fade-in-up overflow-hidden">
         <div className="p-5 border-b border-border/60">
           <h3 className="font-semibold tracking-tight">Recent assignments activity</h3>
           <p className="text-xs text-muted-foreground">Latest 10 assignments</p>

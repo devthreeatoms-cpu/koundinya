@@ -52,26 +52,28 @@ function SidebarContent({
 }) {
   return (
     <>
+      {/* Brand */}
       <div
         className={cn(
-          "flex items-center gap-3 px-5 py-5 border-b border-sidebar-border",
+          "flex items-center gap-3 px-5 py-5 border-b border-white/5",
           collapsed && "justify-center px-2"
         )}
       >
-        <div className="h-10 w-10 rounded-xl bg-white p-1 shadow-elevated flex items-center justify-center shrink-0">
+        <div className="relative h-10 w-10 rounded-xl bg-white p-1 shadow-elevated flex items-center justify-center shrink-0">
           <img src={logo} alt="Koundinya logo" className="h-full w-full object-contain" />
+          <span className="absolute inset-0 rounded-xl bg-gradient-brand opacity-0 blur-md -z-10 group-hover:opacity-30 transition-opacity" />
         </div>
         {!collapsed && (
           <div className="overflow-hidden">
             <p className="text-sm font-semibold tracking-tight text-white truncate">Koundinya</p>
-            <p className="text-[11px] text-sidebar-foreground/70 truncate">Workforce Management</p>
+            <p className="text-[11px] text-white/50 truncate">Workforce Management</p>
           </div>
         )}
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">
         {!collapsed && (
-          <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
+          <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
             Workspace
           </p>
         )}
@@ -85,28 +87,47 @@ function SidebarContent({
               title={collapsed ? item.label : undefined}
               className={({ isActive }) =>
                 cn(
-                  "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                  "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300",
                   collapsed && "justify-center px-2",
                   isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-brand"
-                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-white hover:translate-x-0.5"
+                    ? "text-white"
+                    : "text-white/70 hover:bg-white/5 hover:text-white hover:translate-x-0.5"
                 )
               }
             >
-              <Icon className="h-4 w-4 shrink-0" />
-              {!collapsed && <span className="truncate">{item.label}</span>}
+              {({ isActive }) => (
+                <>
+                  {isActive && (
+                    <>
+                      {/* gradient pill background */}
+                      <span className="absolute inset-0 rounded-xl bg-gradient-brand opacity-90" />
+                      {/* glow halo */}
+                      <span className="absolute inset-0 rounded-xl bg-gradient-brand blur-xl opacity-50 -z-0" />
+                      {/* left indicator */}
+                      <span className="absolute -left-3 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-white shadow-[0_0_12px_hsl(var(--primary))]" />
+                    </>
+                  )}
+                  <Icon className={cn("h-4 w-4 shrink-0 relative z-10", isActive && "drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]")} />
+                  {!collapsed && (
+                    <span className="truncate relative z-10">{item.label}</span>
+                  )}
+                </>
+              )}
             </NavLink>
           );
         })}
       </nav>
 
       {!collapsed && (
-        <div className="mx-3 mb-3 rounded-xl p-4 bg-gradient-to-br from-sidebar-accent to-sidebar-background border border-sidebar-border">
-          <div className="flex items-center gap-2 mb-1.5">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
+        <div className="mx-3 mb-3 rounded-2xl p-4 bg-gradient-to-br from-white/5 to-white/0 border border-white/10 backdrop-blur-sm relative overflow-hidden">
+          <div className="absolute -top-8 -right-8 h-24 w-24 rounded-full bg-gradient-brand opacity-20 blur-2xl" />
+          <div className="relative flex items-center gap-2 mb-1.5">
+            <div className="h-5 w-5 rounded-md bg-gradient-brand grid place-items-center">
+              <Sparkles className="h-3 w-3 text-white" />
+            </div>
             <p className="text-xs font-semibold text-white">Pro tip</p>
           </div>
-          <p className="text-[11px] text-sidebar-foreground/70 leading-relaxed">
+          <p className="relative text-[11px] text-white/60 leading-relaxed">
             Use search to find candidates by name or phone instantly.
           </p>
         </div>
@@ -137,21 +158,26 @@ export default function AppLayout() {
   const email = user?.email ?? "";
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Desktop Sidebar — fixed full-height */}
+    <div className="relative min-h-screen bg-background overflow-x-hidden">
+      {/* Animated aurora background */}
+      <div className="aurora" aria-hidden="true">
+        <div className="blob" />
+      </div>
+
+      {/* Desktop Sidebar — fixed full-height, glass dark */}
       <aside
         className={cn(
-          "hidden md:flex flex-col fixed inset-y-0 left-0 z-30 bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-[width] duration-300 ease-out overflow-y-auto",
+          "hidden md:flex flex-col fixed inset-y-0 left-0 z-30 glass-sidebar text-white transition-[width] duration-300 ease-out overflow-y-auto",
           collapsed ? "w-[76px]" : "w-64"
         )}
       >
         <SidebarContent collapsed={collapsed} />
 
-        <div className="mt-auto p-3 border-t border-sidebar-border space-y-1">
+        <div className="mt-auto p-3 border-t border-white/5 space-y-1">
           <button
             onClick={() => setCollapsed((c) => !c)}
             className={cn(
-              "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-white transition-colors",
+              "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/60 hover:bg-white/5 hover:text-white transition-colors",
               collapsed && "justify-center px-2"
             )}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -162,7 +188,7 @@ export default function AppLayout() {
           <button
             onClick={handleLogout}
             className={cn(
-              "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 hover:bg-destructive/20 hover:text-white transition-colors",
+              "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/70 hover:bg-destructive/20 hover:text-white transition-colors",
               collapsed && "justify-center px-2"
             )}
             title="Sign out"
@@ -177,14 +203,14 @@ export default function AppLayout() {
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent
           side="left"
-          className="p-0 w-72 bg-sidebar text-sidebar-foreground border-sidebar-border"
+          className="p-0 w-72 glass-sidebar text-white border-0"
         >
           <div className="flex flex-col h-full">
             <SidebarContent collapsed={false} onItemClick={() => setMobileOpen(false)} />
-            <div className="mt-auto p-3 border-t border-sidebar-border">
+            <div className="mt-auto p-3 border-t border-white/5">
               <button
                 onClick={handleLogout}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 hover:bg-destructive/20 hover:text-white transition-colors"
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/70 hover:bg-destructive/20 hover:text-white transition-colors"
               >
                 <LogOut className="h-4 w-4" />
                 Sign out
@@ -197,11 +223,12 @@ export default function AppLayout() {
       {/* Main — offset by sidebar width on desktop */}
       <div
         className={cn(
-          "flex flex-col min-h-screen min-w-0 transition-[margin] duration-300 ease-out",
+          "relative z-10 flex flex-col min-h-screen min-w-0 transition-[margin] duration-300 ease-out",
           collapsed ? "md:ml-[76px]" : "md:ml-64"
         )}
       >
-        <header className="sticky top-0 z-20 glass border-b border-border">
+        {/* Floating glass header */}
+        <header className="sticky top-0 z-20 glass-strong border-b border-border/40">
           <div className="flex items-center gap-4 px-4 md:px-8 h-16">
             <Button
               variant="ghost"
@@ -223,9 +250,9 @@ export default function AppLayout() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
                 <Input
                   placeholder="Search candidates, projects…"
-                  className="pl-9 bg-background/60 border-border/70"
+                  className="pl-9 bg-background/50 border-border/60 backdrop-blur-sm focus:bg-background/80 transition-colors"
                 />
-                <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted/60 px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
                   ⌘K
                 </kbd>
               </div>
@@ -251,7 +278,7 @@ export default function AppLayout() {
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2.5 rounded-full p-1 pr-3 hover:bg-muted transition-colors">
+                  <button className="flex items-center gap-2.5 rounded-full p-1 pr-3 hover:bg-muted/60 transition-colors">
                     <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold shadow-brand">
                       {initials(email || "A")}
                     </div>

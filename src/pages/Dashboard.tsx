@@ -156,45 +156,51 @@ export default function Dashboard() {
                 role="button"
                 tabIndex={-1}
                 className={cn(
-                  "relative overflow-hidden p-5 border-border/60 shadow-card cursor-pointer",
-                  "transition-all duration-300 ease-out animate-fade-in-up",
-                  "hover:-translate-y-1 hover:scale-[1.02] hover:shadow-elevated",
+                  "glass-card relative overflow-hidden p-6 cursor-pointer rounded-2xl",
+                  "transition-all duration-500 ease-out animate-fade-in-up",
+                  "hover:-translate-y-1.5 hover:scale-[1.02]",
                   "active:scale-[0.99] active:translate-y-0",
                   s.hoverGlow
                 )}
-                style={{ animationDelay: `${idx * 60}ms` }}
+                style={{ animationDelay: `${idx * 80}ms` }}
               >
-                {/* Decorative blur */}
+                {/* Aurora blob inside card */}
                 <div
                   className={cn(
-                    "absolute -top-10 -right-10 h-32 w-32 rounded-full opacity-20 blur-2xl transition-opacity duration-300 group-hover:opacity-40",
+                    "absolute -top-14 -right-14 h-40 w-40 rounded-full opacity-25 blur-3xl transition-all duration-500 group-hover:opacity-50 group-hover:scale-110",
                     s.gradient
                   )}
                 />
+                {/* Sweeping shine */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
                 <div className="relative flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">{s.label}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{s.label}</p>
                     {loading ? (
-                      <Skeleton className="h-9 w-20 mt-2" />
+                      <Skeleton className="h-12 w-24 mt-3" />
                     ) : (
-                      <p className="text-4xl font-bold mt-2 tracking-tight tabular-nums">
-                        {s.value}
+                      <p className="text-5xl font-bold mt-3 tracking-tight tabular-nums leading-none">
+                        <span className="text-gradient-brand">{s.value}</span>
                       </p>
                     )}
                   </div>
                   <div
                     className={cn(
-                      "h-12 w-12 rounded-2xl grid place-items-center text-white shadow-lg ring-4 transition-transform duration-300 group-hover:scale-110",
-                      s.gradient,
-                      s.ring
+                      "relative h-14 w-14 rounded-2xl grid place-items-center text-white shadow-lg transition-all duration-500 group-hover:scale-110 group-hover:rotate-3",
+                      s.gradient
                     )}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon className="h-6 w-6 relative z-10 drop-shadow-[0_2px_8px_rgba(255,255,255,0.4)]" />
+                    <div className={cn("absolute inset-0 rounded-2xl blur-xl opacity-60", s.gradient)} />
                   </div>
                 </div>
-                <div className="relative flex items-center gap-1.5 text-xs text-muted-foreground mt-4 pt-4 border-t border-border/60">
-                  <TrendingUp className="h-3.5 w-3.5 text-primary" />
-                  <span className="font-medium text-foreground">{s.hint}</span>
+                <div className="relative flex items-center justify-between gap-1.5 text-xs text-muted-foreground mt-5 pt-4 border-t border-border/40">
+                  <span className="inline-flex items-center gap-1.5">
+                    <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                    <span className="font-medium text-foreground">{s.hint}</span>
+                  </span>
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-all group-hover:translate-x-1 group-hover:text-primary" />
                 </div>
               </Card>
             </Link>
@@ -204,7 +210,7 @@ export default function Dashboard() {
 
       {/* Charts */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="p-5 shadow-card border-border/60 lg:col-span-2 animate-fade-in-up">
+        <Card className="glass-card p-6 hover-lift lg:col-span-2 animate-fade-in-up">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold tracking-tight">Candidate status breakdown</h3>
@@ -219,7 +225,25 @@ export default function Dashboard() {
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={statusData} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <defs>
+                  <linearGradient id="barGradNew" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--secondary-glow))" stopOpacity={1} />
+                    <stop offset="100%" stopColor="hsl(var(--secondary))" stopOpacity={0.7} />
+                  </linearGradient>
+                  <linearGradient id="barGradContacted" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--warning))" stopOpacity={1} />
+                    <stop offset="100%" stopColor="hsl(var(--warning))" stopOpacity={0.6} />
+                  </linearGradient>
+                  <linearGradient id="barGradAssigned" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--primary-glow))" stopOpacity={1} />
+                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.7} />
+                  </linearGradient>
+                  <linearGradient id="barGradRejected" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--destructive))" stopOpacity={1} />
+                    <stop offset="100%" stopColor="hsl(var(--destructive))" stopOpacity={0.6} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.5} />
                 <XAxis
                   dataKey="name"
                   tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
@@ -233,26 +257,39 @@ export default function Dashboard() {
                   allowDecimals={false}
                 />
                 <Tooltip
-                  cursor={{ fill: "hsl(var(--muted) / 0.5)" }}
+                  cursor={{ fill: "hsl(var(--primary) / 0.08)", radius: 12 }}
                   contentStyle={{
-                    background: "hsl(var(--popover))",
+                    background: "hsl(var(--popover) / 0.95)",
+                    backdropFilter: "blur(12px)",
                     border: "1px solid hsl(var(--border))",
                     borderRadius: 12,
                     fontSize: 12,
                     boxShadow: "var(--shadow-elevated)",
+                    padding: "8px 12px",
                   }}
                 />
-                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                  {statusData.map((entry) => (
-                    <Cell key={entry.name} fill={BAR_COLORS[entry.name]} />
-                  ))}
+                <Bar
+                  dataKey="value"
+                  radius={[12, 12, 4, 4]}
+                  animationDuration={900}
+                  animationEasing="ease-out"
+                >
+                  {statusData.map((entry) => {
+                    const gradMap: Record<string, string> = {
+                      New: "url(#barGradNew)",
+                      Contacted: "url(#barGradContacted)",
+                      Assigned: "url(#barGradAssigned)",
+                      Rejected: "url(#barGradRejected)",
+                    };
+                    return <Cell key={entry.name} fill={gradMap[entry.name] ?? BAR_COLORS[entry.name]} />;
+                  })}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           )}
         </Card>
 
-        <Card className="p-5 shadow-card border-border/60 animate-fade-in-up">
+        <Card className="glass-card p-6 hover-lift animate-fade-in-up">
           <div className="mb-4">
             <h3 className="font-semibold tracking-tight">Projects</h3>
             <p className="text-xs text-muted-foreground">Active vs completed</p>
@@ -264,25 +301,42 @@ export default function Dashboard() {
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
+                <defs>
+                  <linearGradient id="pieGradActive" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--primary-glow))" />
+                    <stop offset="100%" stopColor="hsl(var(--secondary))" />
+                  </linearGradient>
+                  <linearGradient id="pieGradCompleted" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--muted-foreground) / 0.6)" />
+                    <stop offset="100%" stopColor="hsl(var(--muted-foreground) / 0.3)" />
+                  </linearGradient>
+                </defs>
                 <Pie
                   data={projectData}
-                  innerRadius={50}
-                  outerRadius={85}
-                  paddingAngle={4}
+                  innerRadius={55}
+                  outerRadius={90}
+                  paddingAngle={6}
                   dataKey="value"
                   stroke="hsl(var(--background))"
                   strokeWidth={3}
+                  animationDuration={900}
+                  animationEasing="ease-out"
                 >
                   {projectData.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    <Cell
+                      key={i}
+                      fill={i === 0 ? "url(#pieGradActive)" : "url(#pieGradCompleted)"}
+                    />
                   ))}
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    background: "hsl(var(--popover))",
+                    background: "hsl(var(--popover) / 0.95)",
+                    backdropFilter: "blur(12px)",
                     border: "1px solid hsl(var(--border))",
                     borderRadius: 12,
                     fontSize: 12,
+                    boxShadow: "var(--shadow-elevated)",
                   }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
@@ -294,7 +348,7 @@ export default function Dashboard() {
 
       {/* Recent activity + Recent lists */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="p-5 shadow-card border-border/60 lg:col-span-2 animate-fade-in-up">
+        <Card className="glass-card p-6 hover-lift lg:col-span-2 animate-fade-in-up">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-lg bg-primary-soft text-primary grid place-items-center">
@@ -385,7 +439,7 @@ export default function Dashboard() {
           )}
         </Card>
 
-        <Card className="p-5 shadow-card border-border/60 animate-fade-in-up">
+        <Card className="glass-card p-6 hover-lift animate-fade-in-up">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold tracking-tight">Recent candidates</h3>
             <Link
@@ -429,7 +483,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <Card className="p-5 shadow-card border-border/60 animate-fade-in-up">
+      <Card className="glass-card p-6 hover-lift animate-fade-in-up">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold tracking-tight">Recent projects</h3>
           <Link

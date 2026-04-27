@@ -113,8 +113,9 @@ export default function Login() {
       </div>
 
       {/* Right form */}
-      <div className="relative flex items-center justify-center p-6 sm:p-12 bg-mesh">
-        <div className="w-full max-w-md space-y-8 animate-fade-in-up">
+      <div className="relative flex items-center justify-center p-6 sm:p-12 overflow-hidden">
+        <div className="aurora" aria-hidden="true"><div className="blob" /></div>
+        <div className="above-aurora w-full max-w-md space-y-8 animate-fade-in-up">
           <div className="lg:hidden flex items-center gap-3 justify-center">
             <div className="h-12 w-12 rounded-xl bg-white p-1.5 shadow-card">
               <img src={logo} alt="Koundinya" className="h-full w-full object-contain" />

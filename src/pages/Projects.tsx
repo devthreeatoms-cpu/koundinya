@@ -70,7 +70,7 @@ export default function ProjectsPage() {
         }
       />
 
-      <Card className="p-4 shadow-card border-border/60">
+      <Card className="glass-card p-5 hover-lift">
         <div className="flex flex-col lg:flex-row gap-3">
           <div className="relative flex-1 group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
@@ -101,7 +101,7 @@ export default function ProjectsPage() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <Card className="p-16 text-center shadow-card border-border/60">
+        <Card className="glass-card p-16 text-center hover-lift">
           <div className="h-16 w-16 rounded-2xl bg-gradient-soft mx-auto mb-4 grid place-items-center">
             <Briefcase className="h-7 w-7 text-primary" />
           </div>
@@ -129,7 +129,7 @@ export default function ProjectsPage() {
               <Link to={`/projects/${p.id}`} key={p.id} className="group block animate-fade-in-up" style={{ animationDelay: `${idx * 40}ms` }}>
                 <Card
                   className={cn(
-                    "relative overflow-hidden p-0 shadow-card border-border/60 h-full transition-all duration-300",
+                    "glass-card relative overflow-hidden p-0 hover-lift h-full transition-all duration-300",
                     "hover:shadow-elevated hover:-translate-y-1 hover:border-primary/30"
                   )}
                 >
