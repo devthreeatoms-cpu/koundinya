@@ -59,25 +59,32 @@ export function useCandidates() {
  * Returns ALL candidates (incl. soft-deleted), filtered by agency for non-admins.
  * Used for resolving names in assignment history.
  */
-export function useAllCandidates() {
+export function useAllCandidates(opts?: { bypassOwnerFilter?: boolean }) {
   const { isAdmin, agencyId, loading: authLoading } = useAuth();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
+  const bypass = !!opts?.bypassOwnerFilter;
 
   useEffect(() => {
     if (authLoading) return;
-    if (!isAdmin && !agencyId) {
+    if (!bypass && !isAdmin && !agencyId) {
       setCandidates([]);
       setLoading(false);
       return;
     }
     // Admin sees only admin-owned (agency_id == null); agency sees only own.
-    const constraints: QueryConstraint[] = [
-      isAdmin
-        ? where("agency_id", "==", null)
-        : where("agency_id", "==", agencyId),
-    ];
-    const q = query(collection(db, COL), ...constraints);
+    // bypass=true returns the full collection (used by detail pages where the
+    // parent record is already access-checked).
+    const constraints: QueryConstraint[] = bypass
+      ? []
+      : [
+          isAdmin
+            ? where("agency_id", "==", null)
+            : where("agency_id", "==", agencyId),
+        ];
+    const q = constraints.length
+      ? query(collection(db, COL), ...constraints)
+      : query(collection(db, COL));
     const unsub = onSnapshot(
       q,
       (snap) => {
@@ -93,7 +100,7 @@ export function useAllCandidates() {
       () => setLoading(false)
     );
     return () => unsub();
-  }, [isAdmin, agencyId, authLoading]);
+  }, [isAdmin, agencyId, authLoading, bypass]);
 
   return { candidates, loading };
 }

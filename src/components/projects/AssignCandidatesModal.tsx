@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Search, Loader2, X, Sparkles, MapPin, Bike } from "lucide-react";
-import { useCandidates } from "@/hooks/useCandidates";
+import { useCandidates, useAllCandidates } from "@/hooks/useCandidates";
 import { useAssignments, assignCandidates } from "@/hooks/useAssignments";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
@@ -24,13 +24,37 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: string;
+  /**
+   * The agency_id of the project being assigned to. When provided and the
+   * current user is an admin viewing an agency-owned project, candidates and
+   * active-assignment checks are scoped to that agency instead of the
+   * admin's own (agency_id == null) data.
+   */
+  projectAgencyId?: string | null;
 }
 
-export default function AssignCandidatesModal({ open, onOpenChange, projectId }: Props) {
-  const { candidates } = useCandidates();
-  const { assignments } = useAssignments();
+export default function AssignCandidatesModal({ open, onOpenChange, projectId, projectAgencyId }: Props) {
+  const { isAdmin, agencyId } = useAuth();
+  // When admin is assigning into an agency-owned project, bypass owner filters
+  // and scope candidates/assignments to that project's agency.
+  const adminCrossAgency = isAdmin && !!projectAgencyId;
+  const ownerAgencyForAssign = adminCrossAgency ? projectAgencyId! : agencyId;
+
+  // Candidate list: agency users use their own scoped list; admin cross-agency
+  // uses the bypass + filters down to the project's agency below.
+  const { candidates: ownCandidates } = useCandidates();
+  const { candidates: allCandidates } = useAllCandidates({
+    bypassOwnerFilter: adminCrossAgency,
+  });
+  const candidates = adminCrossAgency
+    ? allCandidates.filter(
+        (c) => !c.is_deleted && c.agency_id === projectAgencyId
+      )
+    : ownCandidates;
+
+  // Active assignments to exclude: include cross-agency ones when needed.
+  const { assignments } = useAssignments({ bypassOwnerFilter: adminCrossAgency });
   const { toast } = useToast();
-  const { agencyId } = useAuth();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
@@ -78,7 +102,9 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId }:
     if (selected.size === 0) return;
     setSubmitting(true);
     try {
-      await assignCandidates(projectId, Array.from(selected), { agency_id: agencyId });
+      await assignCandidates(projectId, Array.from(selected), {
+        agency_id: ownerAgencyForAssign,
+      });
       toast({ title: `${selected.size} candidate${selected.size > 1 ? "s" : ""} assigned` });
       setSelected(new Set());
       onOpenChange(false);

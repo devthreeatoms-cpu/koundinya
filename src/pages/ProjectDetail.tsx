@@ -11,6 +11,7 @@ import {
 import { useProjectById } from "@/hooks/useProjects";
 import { useAllCandidates } from "@/hooks/useCandidates";
 import { useAssignments, removeAssignment } from "@/hooks/useAssignments";
+import { useAuth } from "@/context/AuthContext";
 import ProjectFormModal from "@/components/projects/ProjectFormModal";
 import AssignCandidatesModal from "@/components/projects/AssignCandidatesModal";
 import { formatDate, initials } from "@/lib/utils-format";
@@ -19,9 +20,13 @@ import { cn } from "@/lib/utils";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
+  const { isAdmin } = useAuth();
   const { project, loading: pLoading } = useProjectById(id);
-  const { candidates: allCandidates } = useAllCandidates();
-  const { assignments } = useAssignments({ project_id: id });
+  // If admin is viewing an agency-owned project (drill-down from /agencies/:id),
+  // bypass the strict admin owner filter so the project's actual data shows.
+  const bypass = isAdmin && !!project?.agency_id;
+  const { candidates: allCandidates } = useAllCandidates({ bypassOwnerFilter: bypass });
+  const { assignments } = useAssignments({ project_id: id, bypassOwnerFilter: bypass });
   const { toast } = useToast();
 
   const [editOpen, setEditOpen] = useState(false);
@@ -355,7 +360,12 @@ export default function ProjectDetail() {
       )}
 
       <ProjectFormModal open={editOpen} onOpenChange={setEditOpen} project={project} />
-      <AssignCandidatesModal open={assignOpen} onOpenChange={setAssignOpen} projectId={project.id} />
+      <AssignCandidatesModal
+        open={assignOpen}
+        onOpenChange={setAssignOpen}
+        projectId={project.id}
+        projectAgencyId={project.agency_id ?? null}
+      />
     </div>
   );
 }
