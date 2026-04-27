@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -11,6 +11,10 @@ import {
   Mail,
   ShieldCheck,
   Users as UsersIcon,
+  Pencil,
+  Trash2,
+  Phone as PhoneIcon,
+  RotateCcw,
 } from "lucide-react";
 
 import PageHeader from "@/components/PageHeader";
@@ -20,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +33,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -43,11 +58,18 @@ import {
   useAllUsers,
   createAgency,
   createAgencyUser,
+  updateAgency,
+  softDeleteAgency,
+  restoreAgency,
 } from "@/hooks/useAgencies";
 import { formatDate } from "@/lib/utils-format";
+import { cn } from "@/lib/utils";
+import type { Agency } from "@/types";
 
 const agencySchema = z.object({
   name: z.string().trim().min(2, "Name is required").max(100),
+  email: z.string().trim().email("Enter a valid email").max(255).optional().or(z.literal("")),
+  phone: z.string().trim().max(30).optional().or(z.literal("")),
 });
 type AgencyForm = z.infer<typeof agencySchema>;
 
@@ -60,13 +82,15 @@ type UserForm = z.infer<typeof userSchema>;
 
 export default function AgenciesPage() {
   const { isAdmin, loading: authLoading } = useAuth();
-  const { toast } = useToast();
-  const { agencies, loading: aLoading } = useAgencies();
+  const [showInactive, setShowInactive] = useState(false);
+  const { agencies, loading: aLoading } = useAgencies({ includeDeleted: showInactive });
   const { users, loading: uLoading } = useAllUsers();
 
   const [agencyOpen, setAgencyOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const [presetAgencyId, setPresetAgencyId] = useState<string | null>(null);
+  const [editAgency, setEditAgency] = useState<Agency | null>(null);
+  const [deleteAgency, setDeleteAgency] = useState<Agency | null>(null);
 
   // Hooks must run unconditionally — guard render below.
   const usersByAgency = useMemo(() => {
@@ -78,6 +102,12 @@ export default function AgenciesPage() {
     }
     return m;
   }, [users]);
+
+  // Active agencies (for the invite-user dropdown — never offer deleted ones).
+  const activeAgencies = useMemo(
+    () => agencies.filter((a) => !a.is_deleted),
+    [agencies]
+  );
 
   if (authLoading) {
     return (
@@ -101,7 +131,7 @@ export default function AgenciesPage() {
                 setPresetAgencyId(null);
                 setUserOpen(true);
               }}
-              disabled={agencies.length === 0}
+              disabled={activeAgencies.length === 0}
             >
               <UserPlus className="h-4 w-4" /> Invite user
             </Button>
@@ -112,10 +142,25 @@ export default function AgenciesPage() {
         }
       />
 
+      {/* Filter toggle */}
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium">Show inactive agencies</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Deactivated agencies stay in the database with all their data preserved.
+          </p>
+        </div>
+        <Switch
+          checked={showInactive}
+          onCheckedChange={setShowInactive}
+          aria-label="Show inactive agencies"
+        />
+      </div>
+
       {aLoading || uLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-44 w-full rounded-xl" />
+            <Skeleton key={i} className="h-52 w-full rounded-xl" />
           ))}
         </div>
       ) : agencies.length === 0 ? (
@@ -123,9 +168,13 @@ export default function AgenciesPage() {
           <div className="h-16 w-16 rounded-2xl bg-gradient-soft mx-auto mb-4 grid place-items-center">
             <Building2 className="h-7 w-7 text-primary" />
           </div>
-          <p className="font-semibold">No agencies yet</p>
+          <p className="font-semibold">
+            {showInactive ? "No agencies found" : "No active agencies"}
+          </p>
           <p className="text-sm text-muted-foreground mt-1">
-            Create your first agency, then invite a user to access it.
+            {showInactive
+              ? "Create your first agency, then invite a user to access it."
+              : "Toggle \"Show inactive\" to see deactivated ones, or create a new agency."}
           </p>
           <Button variant="premium" className="mt-5" onClick={() => setAgencyOpen(true)}>
             <Plus className="h-4 w-4" /> New agency
@@ -135,40 +184,133 @@ export default function AgenciesPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {agencies.map((a) => {
             const userCount = usersByAgency.get(a.id) ?? 0;
+            const inactive = !!a.is_deleted;
             return (
-              <Card key={a.id} className="glass-card p-5 hover-lift relative group">
+              <Card
+                key={a.id}
+                className={cn(
+                  "glass-card p-5 hover-lift relative group",
+                  inactive && "opacity-75"
+                )}
+              >
                 <Link
                   to={`/agencies/${a.id}`}
                   className="absolute inset-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   aria-label={`Open ${a.name}`}
                 />
                 <div className="flex items-start justify-between gap-3">
-                  <div className="h-11 w-11 rounded-xl bg-gradient-brand text-white grid place-items-center shadow-sm">
+                  <div
+                    className={cn(
+                      "h-11 w-11 rounded-xl text-white grid place-items-center shadow-sm",
+                      inactive ? "bg-muted-foreground/60" : "bg-gradient-brand"
+                    )}
+                  >
                     <Building2 className="h-5 w-5" />
                   </div>
-                  <Badge variant="outline" className="border-primary/40 text-primary bg-primary-soft">
-                    <UsersIcon className="h-3 w-3 mr-1" /> {userCount}
-                  </Badge>
+                  <div className="flex flex-wrap justify-end gap-1.5">
+                    {inactive && (
+                      <Badge
+                        variant="outline"
+                        className="border-muted-foreground/30 text-muted-foreground bg-muted/40"
+                      >
+                        Inactive
+                      </Badge>
+                    )}
+                    <Badge
+                      variant="outline"
+                      className="border-primary/40 text-primary bg-primary-soft"
+                    >
+                      <UsersIcon className="h-3 w-3 mr-1" /> {userCount}
+                    </Badge>
+                  </div>
                 </div>
-                <h3 className="font-semibold tracking-tight text-base mt-4 break-words group-hover:text-primary transition-colors">
+
+                <h3
+                  className={cn(
+                    "font-semibold tracking-tight text-base mt-4 break-words transition-colors",
+                    inactive
+                      ? "text-muted-foreground"
+                      : "group-hover:text-primary"
+                  )}
+                >
                   {a.name}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Created {formatDate((a.created_at as any)?.toDate?.()) || "—"}
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-4 w-full relative z-10"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setPresetAgencyId(a.id);
-                    setUserOpen(true);
-                  }}
-                >
-                  <UserPlus className="h-4 w-4" /> Invite user
-                </Button>
+
+                <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                  {a.email && (
+                    <p className="inline-flex items-center gap-1.5 break-all">
+                      <Mail className="h-3 w-3 shrink-0" /> {a.email}
+                    </p>
+                  )}
+                  {a.phone && (
+                    <p className="inline-flex items-center gap-1.5">
+                      <PhoneIcon className="h-3 w-3 shrink-0" /> {a.phone}
+                    </p>
+                  )}
+                  <p>Created {formatDate((a.created_at as any)?.toDate?.()) || "—"}</p>
+                </div>
+
+                {/* Action row — keep above the click overlay. */}
+                <div className="mt-4 flex items-center gap-2 relative z-10">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    disabled={inactive}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setPresetAgencyId(a.id);
+                      setUserOpen(true);
+                    }}
+                  >
+                    <UserPlus className="h-4 w-4" /> Invite
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="px-2.5"
+                    aria-label="Edit agency"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setEditAgency(a);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  {inactive ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="px-2.5 text-primary hover:text-primary hover:bg-primary-soft"
+                      aria-label="Reactivate agency"
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        try {
+                          await restoreAgency(a.id);
+                        } catch {/* noop */}
+                      }}
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="px-2.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      aria-label="Deactivate agency"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDeleteAgency(a);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </Card>
             );
           })}
@@ -206,7 +348,11 @@ export default function AgenciesPage() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium break-all">{u.email}</p>
                     <p className="text-[11px] text-muted-foreground">
-                      {ag ? ag.name : u.role === "admin" ? "Global admin" : "Unassigned"}
+                      {ag
+                        ? `${ag.name}${ag.is_deleted ? " · Inactive" : ""}`
+                        : u.role === "admin"
+                        ? "Global admin"
+                        : "Unassigned"}
                     </p>
                   </div>
                   <Badge
@@ -241,13 +387,25 @@ export default function AgenciesPage() {
           setUserOpen(true);
         }}
       />
+      <EditAgencyDialog
+        agency={editAgency}
+        onOpenChange={(open) => {
+          if (!open) setEditAgency(null);
+        }}
+      />
+      <DeleteAgencyDialog
+        agency={deleteAgency}
+        onOpenChange={(open) => {
+          if (!open) setDeleteAgency(null);
+        }}
+      />
       <InviteUserDialog
         open={userOpen}
         onOpenChange={(o) => {
           setUserOpen(o);
           if (!o) setPresetAgencyId(null);
         }}
-        agencies={agencies.map((a) => ({ id: a.id, name: a.name }))}
+        agencies={activeAgencies.map((a) => ({ id: a.id, name: a.name }))}
         defaultAgencyId={presetAgencyId}
       />
     </div>
@@ -269,11 +427,18 @@ function CreateAgencyDialog({
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<AgencyForm>({ resolver: zodResolver(agencySchema), defaultValues: { name: "" } });
+  } = useForm<AgencyForm>({
+    resolver: zodResolver(agencySchema),
+    defaultValues: { name: "", email: "", phone: "" },
+  });
 
   async function onSubmit(values: AgencyForm) {
     try {
-      const id = await createAgency(values.name);
+      const id = await createAgency({
+        name: values.name,
+        email: values.email || null,
+        phone: values.phone || null,
+      });
       toast({ title: "Agency created" });
       reset();
       onCreated(id);
@@ -305,6 +470,20 @@ function CreateAgencyDialog({
               <p className="text-xs text-destructive mt-1">{errors.name.message}</p>
             )}
           </div>
+          <div>
+            <Label htmlFor="email">Email <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Input id="email" type="email" className="mt-1.5" {...register("email")} />
+            {errors.email && (
+              <p className="text-xs text-destructive mt-1">{errors.email.message}</p>
+            )}
+          </div>
+          <div>
+            <Label htmlFor="phone">Phone <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Input id="phone" className="mt-1.5" {...register("phone")} />
+            {errors.phone && (
+              <p className="text-xs text-destructive mt-1">{errors.phone.message}</p>
+            )}
+          </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
@@ -317,6 +496,157 @@ function CreateAgencyDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function EditAgencyDialog({
+  agency,
+  onOpenChange,
+}: {
+  agency: Agency | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { toast } = useToast();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<AgencyForm>({
+    resolver: zodResolver(agencySchema),
+    defaultValues: { name: "", email: "", phone: "" },
+  });
+
+  // Repopulate when a different agency is opened.
+  useEffect(() => {
+    if (agency) {
+      reset({
+        name: agency.name ?? "",
+        email: agency.email ?? "",
+        phone: agency.phone ?? "",
+      });
+    }
+  }, [agency, reset]);
+
+  async function onSubmit(values: AgencyForm) {
+    if (!agency) return;
+    try {
+      await updateAgency(agency.id, {
+        name: values.name,
+        email: values.email || null,
+        phone: values.phone || null,
+      });
+      toast({ title: "Agency updated" });
+      onOpenChange(false);
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message, variant: "destructive" });
+    }
+  }
+
+  return (
+    <Dialog open={!!agency} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit agency</DialogTitle>
+          <DialogDescription>
+            Update the agency's details. Existing candidates, projects, and assignments are preserved.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div>
+            <Label htmlFor="edit-name">Agency name</Label>
+            <Input id="edit-name" className="mt-1.5" {...register("name")} />
+            {errors.name && (
+              <p className="text-xs text-destructive mt-1">{errors.name.message}</p>
+            )}
+          </div>
+          <div>
+            <Label htmlFor="edit-email">Email</Label>
+            <Input id="edit-email" type="email" className="mt-1.5" {...register("email")} />
+            {errors.email && (
+              <p className="text-xs text-destructive mt-1">{errors.email.message}</p>
+            )}
+          </div>
+          <div>
+            <Label htmlFor="edit-phone">Phone</Label>
+            <Input id="edit-phone" className="mt-1.5" {...register("phone")} />
+            {errors.phone && (
+              <p className="text-xs text-destructive mt-1">{errors.phone.message}</p>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="premium" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Save changes
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DeleteAgencyDialog({
+  agency,
+  onOpenChange,
+}: {
+  agency: Agency | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { toast } = useToast();
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleConfirm() {
+    if (!agency) return;
+    setSubmitting(true);
+    try {
+      await softDeleteAgency(agency.id);
+      toast({
+        title: "Agency deactivated",
+        description: `${agency.name} can no longer sign in. Their data is preserved.`,
+      });
+      onOpenChange(false);
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <AlertDialog open={!!agency} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you sure you want to deactivate this agency?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {agency ? (
+              <>
+                <span className="font-medium text-foreground">{agency.name}</span> will be marked
+                inactive. Their users will no longer be able to sign in. All candidates, projects,
+                and assignments are preserved and remain visible to admins.
+              </>
+            ) : null}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={submitting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => {
+              e.preventDefault();
+              handleConfirm();
+            }}
+            disabled={submitting}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+            Deactivate
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -345,12 +675,11 @@ function InviteUserDialog({
   });
 
   // Reset agency_id when dialog opens with a different preset.
-  useMemo(() => {
+  useEffect(() => {
     if (open) {
       reset({ email: "", password: "", agency_id: defaultAgencyId ?? "" });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, defaultAgencyId]);
+  }, [open, defaultAgencyId, reset]);
 
   async function onSubmit(values: UserForm) {
     try {
