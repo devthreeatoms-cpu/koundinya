@@ -9,7 +9,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { useProjects } from "@/hooks/useProjects";
-import { useCandidates, useAllCandidates } from "@/hooks/useCandidates";
+import { useAllCandidates } from "@/hooks/useCandidates";
 import { useAssignments, removeAssignment } from "@/hooks/useAssignments";
 import ProjectFormModal from "@/components/projects/ProjectFormModal";
 import AssignCandidatesModal from "@/components/projects/AssignCandidatesModal";
@@ -20,7 +20,6 @@ import { cn } from "@/lib/utils";
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const { projects } = useProjects();
-  const { candidates } = useCandidates();
   const { candidates: allCandidates } = useAllCandidates();
   const { assignments } = useAssignments({ project_id: id });
   const { toast } = useToast();
