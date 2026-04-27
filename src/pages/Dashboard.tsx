@@ -219,7 +219,25 @@ export default function Dashboard() {
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={statusData} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <defs>
+                  <linearGradient id="barGradNew" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--secondary-glow))" stopOpacity={1} />
+                    <stop offset="100%" stopColor="hsl(var(--secondary))" stopOpacity={0.7} />
+                  </linearGradient>
+                  <linearGradient id="barGradContacted" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--warning))" stopOpacity={1} />
+                    <stop offset="100%" stopColor="hsl(var(--warning))" stopOpacity={0.6} />
+                  </linearGradient>
+                  <linearGradient id="barGradAssigned" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--primary-glow))" stopOpacity={1} />
+                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.7} />
+                  </linearGradient>
+                  <linearGradient id="barGradRejected" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--destructive))" stopOpacity={1} />
+                    <stop offset="100%" stopColor="hsl(var(--destructive))" stopOpacity={0.6} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.5} />
                 <XAxis
                   dataKey="name"
                   tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
@@ -233,19 +251,32 @@ export default function Dashboard() {
                   allowDecimals={false}
                 />
                 <Tooltip
-                  cursor={{ fill: "hsl(var(--muted) / 0.5)" }}
+                  cursor={{ fill: "hsl(var(--primary) / 0.08)", radius: 12 }}
                   contentStyle={{
-                    background: "hsl(var(--popover))",
+                    background: "hsl(var(--popover) / 0.95)",
+                    backdropFilter: "blur(12px)",
                     border: "1px solid hsl(var(--border))",
                     borderRadius: 12,
                     fontSize: 12,
                     boxShadow: "var(--shadow-elevated)",
+                    padding: "8px 12px",
                   }}
                 />
-                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                  {statusData.map((entry) => (
-                    <Cell key={entry.name} fill={BAR_COLORS[entry.name]} />
-                  ))}
+                <Bar
+                  dataKey="value"
+                  radius={[12, 12, 4, 4]}
+                  animationDuration={900}
+                  animationEasing="ease-out"
+                >
+                  {statusData.map((entry) => {
+                    const gradMap: Record<string, string> = {
+                      New: "url(#barGradNew)",
+                      Contacted: "url(#barGradContacted)",
+                      Assigned: "url(#barGradAssigned)",
+                      Rejected: "url(#barGradRejected)",
+                    };
+                    return <Cell key={entry.name} fill={gradMap[entry.name] ?? BAR_COLORS[entry.name]} />;
+                  })}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -264,25 +295,42 @@ export default function Dashboard() {
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
+                <defs>
+                  <linearGradient id="pieGradActive" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--primary-glow))" />
+                    <stop offset="100%" stopColor="hsl(var(--secondary))" />
+                  </linearGradient>
+                  <linearGradient id="pieGradCompleted" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--muted-foreground) / 0.6)" />
+                    <stop offset="100%" stopColor="hsl(var(--muted-foreground) / 0.3)" />
+                  </linearGradient>
+                </defs>
                 <Pie
                   data={projectData}
-                  innerRadius={50}
-                  outerRadius={85}
-                  paddingAngle={4}
+                  innerRadius={55}
+                  outerRadius={90}
+                  paddingAngle={6}
                   dataKey="value"
                   stroke="hsl(var(--background))"
                   strokeWidth={3}
+                  animationDuration={900}
+                  animationEasing="ease-out"
                 >
                   {projectData.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    <Cell
+                      key={i}
+                      fill={i === 0 ? "url(#pieGradActive)" : "url(#pieGradCompleted)"}
+                    />
                   ))}
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    background: "hsl(var(--popover))",
+                    background: "hsl(var(--popover) / 0.95)",
+                    backdropFilter: "blur(12px)",
                     border: "1px solid hsl(var(--border))",
                     borderRadius: 12,
                     fontSize: 12,
+                    boxShadow: "var(--shadow-elevated)",
                   }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
