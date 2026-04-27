@@ -21,8 +21,6 @@ export function useProjects() {
       setLoading(false);
       return;
     }
-    // Admin: fetch all and filter client-side (treats legacy records with no
-    // agency_id field as admin-owned). Agency: strict server-side filter.
     const constraints: QueryConstraint[] = [];
     if (!isAdmin) constraints.push(where("agency_id", "==", agencyId));
     const q = constraints.length
@@ -31,10 +29,7 @@ export function useProjects() {
     const unsub = onSnapshot(
       q,
       (snap) => {
-        let list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Project[];
-        if (isAdmin) {
-          list = list.filter((p) => !(p as any).agency_id);
-        }
+        const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Project[];
         list.sort((a, b) => {
           const ta = (a.created_at as any)?.toMillis?.() ?? 0;
           const tb = (b.created_at as any)?.toMillis?.() ?? 0;

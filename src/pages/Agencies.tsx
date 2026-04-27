@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -82,9 +82,8 @@ type UserForm = z.infer<typeof userSchema>;
 
 export default function AgenciesPage() {
   const { isAdmin, loading: authLoading } = useAuth();
-  // Always include soft-deleted agencies — admin must always see every agency
-  // (deactivated ones still display all their details, just marked Inactive).
-  const { agencies, loading: aLoading } = useAgencies({ includeDeleted: true });
+  const [showInactive, setShowInactive] = useState(false);
+  const { agencies, loading: aLoading } = useAgencies({ includeDeleted: showInactive });
   const { users, loading: uLoading } = useAllUsers();
 
   const [agencyOpen, setAgencyOpen] = useState(false);
@@ -143,8 +142,20 @@ export default function AgenciesPage() {
         }
       />
 
-      {/* Inactive agencies are always shown to admins so deactivated accounts
-          remain visible with all their details. */}
+      {/* Filter toggle */}
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium">Show inactive agencies</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Deactivated agencies stay in the database with all their data preserved.
+          </p>
+        </div>
+        <Switch
+          checked={showInactive}
+          onCheckedChange={setShowInactive}
+          aria-label="Show inactive agencies"
+        />
+      </div>
 
       {aLoading || uLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -157,9 +168,13 @@ export default function AgenciesPage() {
           <div className="h-16 w-16 rounded-2xl bg-gradient-soft mx-auto mb-4 grid place-items-center">
             <Building2 className="h-7 w-7 text-primary" />
           </div>
-          <p className="font-semibold">No agencies yet</p>
+          <p className="font-semibold">
+            {showInactive ? "No agencies found" : "No active agencies"}
+          </p>
           <p className="text-sm text-muted-foreground mt-1">
-            Create your first agency, then invite a user to access it.
+            {showInactive
+              ? "Create your first agency, then invite a user to access it."
+              : "Toggle \"Show inactive\" to see deactivated ones, or create a new agency."}
           </p>
           <Button variant="premium" className="mt-5" onClick={() => setAgencyOpen(true)}>
             <Plus className="h-4 w-4" /> New agency

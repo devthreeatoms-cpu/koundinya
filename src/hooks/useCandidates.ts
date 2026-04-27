@@ -29,21 +29,13 @@ export function useCandidates() {
       setLoading(false);
       return;
     }
-    // Admin: fetch ALL non-deleted candidates and filter client-side, treating
-    // any record without an agency_id (legacy data) OR with agency_id == null
-    // as admin-owned. This way pre-existing data created before agencies still
-    // shows up on the admin dashboard.
-    // Agency: server-side filter by their agency_id (strict isolation).
     const constraints: QueryConstraint[] = [where("is_deleted", "==", false)];
     if (!isAdmin) constraints.push(where("agency_id", "==", agencyId));
     const q = query(collection(db, COL), ...constraints);
     const unsub = onSnapshot(
       q,
       (snap) => {
-        let list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Candidate[];
-        if (isAdmin) {
-          list = list.filter((c) => !c.agency_id); // null, undefined, or ""
-        }
+        const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Candidate[];
         list.sort((a, b) => {
           const ta = (a.created_at as any)?.toMillis?.() ?? 0;
           const tb = (b.created_at as any)?.toMillis?.() ?? 0;
@@ -76,8 +68,6 @@ export function useAllCandidates() {
       setLoading(false);
       return;
     }
-    // Same isolation rule as useCandidates: admin sees admin-owned (incl. legacy
-    // records without agency_id); agency sees only their own.
     const constraints: QueryConstraint[] = [];
     if (!isAdmin) constraints.push(where("agency_id", "==", agencyId));
     const q = constraints.length
@@ -86,10 +76,7 @@ export function useAllCandidates() {
     const unsub = onSnapshot(
       q,
       (snap) => {
-        let list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Candidate[];
-        if (isAdmin) {
-          list = list.filter((c) => !c.agency_id);
-        }
+        const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Candidate[];
         list.sort((a, b) => {
           const ta = (a.created_at as any)?.toMillis?.() ?? 0;
           const tb = (b.created_at as any)?.toMillis?.() ?? 0;
