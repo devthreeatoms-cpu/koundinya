@@ -43,7 +43,11 @@ export interface Assignment {
 export interface Agency {
   id: string;
   name: string;
+  email?: string | null;
+  phone?: string | null;
+  is_deleted?: boolean;
   created_at?: Timestamp | null;
+  updated_at?: Timestamp | null;
 }
 
 export interface AppUser {
