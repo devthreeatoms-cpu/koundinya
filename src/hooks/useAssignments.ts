@@ -58,7 +58,7 @@ export function useAssignments(filter?: {
     );
     return () => unsub();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter?.project_id, filter?.candidate_id, isAdmin, agencyId, authLoading]);
+  }, [filter?.project_id, filter?.candidate_id, filter?.bypassOwnerFilter, isAdmin, agencyId, authLoading]);
 
   return { assignments, loading };
 }
