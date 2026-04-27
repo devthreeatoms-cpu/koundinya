@@ -468,7 +468,15 @@ export default function Reports() {
               layout="vertical"
               margin={{ top: 8, right: 24, bottom: 0, left: 8 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+              <defs>
+                {sourceData.map((_, i) => (
+                  <linearGradient key={`sg-${i}`} id={`sourceBar-${i}`} x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor={SOURCE_PALETTE[i % SOURCE_PALETTE.length]} stopOpacity={0.6} />
+                    <stop offset="100%" stopColor={SOURCE_PALETTE[i % SOURCE_PALETTE.length]} stopOpacity={1} />
+                  </linearGradient>
+                ))}
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} opacity={0.5} />
               <XAxis
                 type="number"
                 tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
@@ -485,17 +493,19 @@ export default function Reports() {
                 width={120}
               />
               <Tooltip
-                cursor={{ fill: "hsl(var(--muted) / 0.5)" }}
+                cursor={{ fill: "hsl(var(--primary) / 0.08)", radius: 8 }}
                 contentStyle={{
-                  background: "hsl(var(--popover))",
+                  background: "hsl(var(--popover) / 0.95)",
+                  backdropFilter: "blur(12px)",
                   border: "1px solid hsl(var(--border))",
                   borderRadius: 12,
                   fontSize: 12,
+                  boxShadow: "var(--shadow-elevated)",
                 }}
               />
-              <Bar dataKey="value" radius={[0, 8, 8, 0]}>
+              <Bar dataKey="value" radius={[0, 12, 12, 0]} animationDuration={900}>
                 {sourceData.map((_, i) => (
-                  <Cell key={i} fill={SOURCE_PALETTE[i % SOURCE_PALETTE.length]} />
+                  <Cell key={i} fill={`url(#sourceBar-${i})`} />
                 ))}
               </Bar>
             </BarChart>
