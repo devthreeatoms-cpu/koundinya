@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -13,6 +13,7 @@ import {
   Menu,
   Sun,
   Moon,
+  Building2,
 } from "lucide-react";
 import logo from "@/assets/koundinya-logo.jpeg";
 import { useAuth } from "@/context/AuthContext";
@@ -30,10 +31,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
-const navItems = [
+type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; adminOnly?: boolean };
+
+const navItems: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/candidates", label: "Candidates", icon: Users },
   { to: "/projects", label: "Projects", icon: Briefcase },
+  { to: "/agencies", label: "Agencies", icon: Building2, adminOnly: true },
   // Reports and Settings temporarily hidden from navigation
   // { to: "/reports", label: "Reports", icon: BarChart3 },
   // { to: "/settings", label: "Settings", icon: Settings },
@@ -44,9 +48,11 @@ const STORAGE_KEY = "koundinya-sidebar-collapsed";
 function SidebarContent({
   collapsed,
   onItemClick,
+  items,
 }: {
   collapsed: boolean;
   onItemClick?: () => void;
+  items: NavItem[];
 }) {
   return (
     <>
@@ -75,7 +81,7 @@ function SidebarContent({
             Workspace
           </p>
         )}
-        {navItems.map((item) => {
+        {items.map((item) => {
           const Icon = item.icon;
           return (
             <NavLink
@@ -135,7 +141,7 @@ function SidebarContent({
 }
 
 export default function AppLayout() {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -154,6 +160,11 @@ export default function AppLayout() {
   }
 
   const email = user?.email ?? "";
+  const visibleNavItems = useMemo(
+    () => navItems.filter((i) => !i.adminOnly || isAdmin),
+    [isAdmin]
+  );
+  const roleLabel = isAdmin ? "Administrator" : "Agency user";
 
   return (
     <div className="relative min-h-screen bg-background overflow-x-hidden">
@@ -169,7 +180,7 @@ export default function AppLayout() {
           collapsed ? "w-[76px]" : "w-64"
         )}
       >
-        <SidebarContent collapsed={collapsed} />
+        <SidebarContent collapsed={collapsed} items={visibleNavItems} />
 
         <div className="mt-auto p-3 border-t border-white/5 space-y-1">
           <button
@@ -204,7 +215,7 @@ export default function AppLayout() {
           className="p-0 w-72 glass-sidebar text-white border-0"
         >
           <div className="flex flex-col h-full">
-            <SidebarContent collapsed={false} onItemClick={() => setMobileOpen(false)} />
+            <SidebarContent collapsed={false} items={visibleNavItems} onItemClick={() => setMobileOpen(false)} />
             <div className="mt-auto p-3 border-t border-white/5">
               <button
                 onClick={handleLogout}
@@ -265,14 +276,14 @@ export default function AppLayout() {
                     </div>
                     <div className="hidden sm:block text-left max-w-[140px]">
                       <p className="text-xs font-semibold leading-tight truncate">{email || "Admin"}</p>
-                      <p className="text-[10px] text-muted-foreground leading-tight">Administrator</p>
+                      <p className="text-[10px] text-muted-foreground leading-tight">{roleLabel}</p>
                     </div>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>
                     <p className="text-xs font-medium truncate">{email || "Admin"}</p>
-                    <p className="text-[10px] text-muted-foreground font-normal">Administrator</p>
+                    <p className="text-[10px] text-muted-foreground font-normal">{roleLabel}</p>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="text-destructive">

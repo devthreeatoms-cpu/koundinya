@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { createProject, updateProject } from "@/hooks/useProjects";
+import { useAuth } from "@/context/AuthContext";
 import type { Project, ProjectStatus } from "@/types";
 import { Loader2, Briefcase, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,7 @@ function FieldError({ message }: { message?: string }) {
 
 export default function ProjectFormModal({ open, onOpenChange, project }: Props) {
   const { toast } = useToast();
+  const { agencyId } = useAuth();
   const isEdit = !!project;
 
   const {
@@ -93,7 +95,7 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
         await updateProject(project.id, payload);
         toast({ title: "Project updated" });
       } else {
-        await createProject(payload);
+        await createProject(payload, { agency_id: agencyId });
         toast({ title: "Project created" });
       }
       onOpenChange(false);
