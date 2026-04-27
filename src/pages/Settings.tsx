@@ -38,6 +38,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { initials } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
 
@@ -46,25 +47,31 @@ const FIREBASE_PROJECT_ID = "workforce-management-sys-f3960";
 const PREFS_KEY = "koundinya-preferences";
 
 interface Preferences {
-  theme: "light" | "dark";
   defaultStatus: string;
   defaultSource: string;
 }
 
 function loadPrefs(): Preferences {
   if (typeof window === "undefined")
-    return { theme: "light", defaultStatus: "all", defaultSource: "all" };
+    return { defaultStatus: "all", defaultSource: "all" };
   try {
     const raw = window.localStorage.getItem(PREFS_KEY);
-    if (raw) return { theme: "light", defaultStatus: "all", defaultSource: "all", ...JSON.parse(raw) };
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        defaultStatus: parsed.defaultStatus ?? "all",
+        defaultSource: parsed.defaultSource ?? "all",
+      };
+    }
   } catch {
     /* noop */
   }
-  return { theme: "light", defaultStatus: "all", defaultSource: "all" };
+  return { defaultStatus: "all", defaultSource: "all" };
 }
 
 export default function Settings() {
   const { user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
 
   const [name, setName] = useState<string>(user?.displayName ?? "");
@@ -81,17 +88,18 @@ export default function Settings() {
     const updated = { ...prefs, ...next };
     setPrefs(updated);
     try {
-      window.localStorage.setItem(PREFS_KEY, JSON.stringify(updated));
+      const existing = window.localStorage.getItem(PREFS_KEY);
+      const merged = { ...(existing ? JSON.parse(existing) : {}), ...updated };
+      window.localStorage.setItem(PREFS_KEY, JSON.stringify(merged));
     } catch {
       /* noop */
     }
   }
 
-  function toggleTheme(checked: boolean) {
-    const theme: Preferences["theme"] = checked ? "dark" : "light";
-    savePrefs({ theme });
-    document.documentElement.classList.toggle("dark", checked);
-    toast.success(`Switched to ${theme} mode`);
+  function handleThemeToggle(checked: boolean) {
+    const next = checked ? "dark" : "light";
+    setTheme(next);
+    toast.success(`Switched to ${next} mode`);
   }
 
   async function handleLogout() {
@@ -180,12 +188,12 @@ export default function Settings() {
               <div
                 className={cn(
                   "h-9 w-9 rounded-lg grid place-items-center transition-colors",
-                  prefs.theme === "dark"
+                  theme === "dark"
                     ? "bg-foreground text-background"
                     : "bg-warning/10 text-warning"
                 )}
               >
-                {prefs.theme === "dark" ? (
+                {theme === "dark" ? (
                   <Moon className="h-4 w-4" />
                 ) : (
                   <Sun className="h-4 w-4" />
@@ -199,8 +207,8 @@ export default function Settings() {
               </div>
             </div>
             <Switch
-              checked={prefs.theme === "dark"}
-              onCheckedChange={toggleTheme}
+              checked={theme === "dark"}
+              onCheckedChange={handleThemeToggle}
             />
           </div>
 

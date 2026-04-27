@@ -15,6 +15,22 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <script>
+      // Apply theme before paint to prevent flash
+      (function () {
+        try {
+          var t = localStorage.getItem("koundinya-theme");
+          if (!t) {
+            var p = localStorage.getItem("koundinya-preferences");
+            if (p) { try { t = (JSON.parse(p) || {}).theme; } catch (e) {} }
+          }
+          if (!t) t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          if (t === "dark") document.documentElement.classList.add("dark");
+          document.documentElement.style.colorScheme = t;
+        } catch (e) {}
+      })();
+    </script>
   </head>
 
   <body>
