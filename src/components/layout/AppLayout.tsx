@@ -26,7 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -86,15 +86,8 @@ function SidebarContent({
                 )
               }
             >
-              {({ isActive }) => (
-                <>
-                  {isActive && !collapsed && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-white/80" />
-                  )}
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {!collapsed && <span className="truncate">{item.label}</span>}
-                </>
-              )}
+              <Icon className="h-4 w-4 shrink-0" />
+              {!collapsed && <span className="truncate">{item.label}</span>}
             </NavLink>
           );
         })}
@@ -191,74 +184,76 @@ export default function AppLayout() {
             </div>
           </div>
         </SheetContent>
+      </Sheet>
 
-        {/* Main */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <header className="sticky top-0 z-20 glass border-b border-border">
-            <div className="flex items-center gap-4 px-4 md:px-8 h-16">
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open menu">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
+      {/* Main */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="sticky top-0 z-20 glass border-b border-border">
+          <div className="flex items-center gap-4 px-4 md:px-8 h-16">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              aria-label="Open menu"
+              onClick={() => setMobileOpen(true)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
 
-              <div className="md:hidden flex items-center gap-2">
-                <img src={logo} alt="Koundinya" className="h-8 w-8 object-contain" />
-                <span className="font-semibold tracking-tight">Koundinya</span>
-              </div>
+            <div className="md:hidden flex items-center gap-2">
+              <img src={logo} alt="Koundinya" className="h-8 w-8 object-contain" />
+              <span className="font-semibold tracking-tight">Koundinya</span>
+            </div>
 
-              <div className="flex-1 max-w-md hidden md:block">
-                <div className="relative group">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
-                  <Input
-                    placeholder="Search candidates, projects…"
-                    className="pl-9 bg-background/60 border-border/70"
-                  />
-                  <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-                    ⌘K
-                  </kbd>
-                </div>
-              </div>
-
-              <div className="ml-auto flex items-center gap-2">
-                <Button variant="ghost" size="icon" aria-label="Notifications" className="relative">
-                  <Bell className="h-4 w-4" />
-                  <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-background" />
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="flex items-center gap-2.5 rounded-full p-1 pr-3 hover:bg-muted transition-colors">
-                      <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold shadow-brand">
-                        {initials(email || "A")}
-                      </div>
-                      <div className="hidden sm:block text-left">
-                        <p className="text-xs font-semibold leading-tight">{email || "Admin"}</p>
-                        <p className="text-[10px] text-muted-foreground leading-tight">Administrator</p>
-                      </div>
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>
-                      <p className="text-xs font-medium truncate">{email || "Admin"}</p>
-                      <p className="text-[10px] text-muted-foreground font-normal">
-                        Administrator
-                      </p>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                      <LogOut className="h-4 w-4 mr-2" /> Sign out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+            <div className="flex-1 max-w-md hidden md:block">
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
+                <Input
+                  placeholder="Search candidates, projects…"
+                  className="pl-9 bg-background/60 border-border/70"
+                />
+                <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                  ⌘K
+                </kbd>
               </div>
             </div>
-          </header>
 
-          <main className="flex-1 px-4 md:px-8 py-6 animate-fade-in-up">
-            <Outlet />
-          </main>
-        </div>
-      </Sheet>
+            <div className="ml-auto flex items-center gap-2">
+              <Button variant="ghost" size="icon" aria-label="Notifications" className="relative">
+                <Bell className="h-4 w-4" />
+                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-background" />
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2.5 rounded-full p-1 pr-3 hover:bg-muted transition-colors">
+                    <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold shadow-brand">
+                      {initials(email || "A")}
+                    </div>
+                    <div className="hidden sm:block text-left">
+                      <p className="text-xs font-semibold leading-tight">{email || "Admin"}</p>
+                      <p className="text-[10px] text-muted-foreground leading-tight">Administrator</p>
+                    </div>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    <p className="text-xs font-medium truncate">{email || "Admin"}</p>
+                    <p className="text-[10px] text-muted-foreground font-normal">Administrator</p>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                    <LogOut className="h-4 w-4 mr-2" /> Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 px-4 md:px-8 py-6 animate-fade-in-up">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }
