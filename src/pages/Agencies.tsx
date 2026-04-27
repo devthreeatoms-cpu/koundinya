@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -136,7 +136,12 @@ export default function AgenciesPage() {
           {agencies.map((a) => {
             const userCount = usersByAgency.get(a.id) ?? 0;
             return (
-              <Card key={a.id} className="glass-card p-5 hover-lift">
+              <Card key={a.id} className="glass-card p-5 hover-lift relative group">
+                <Link
+                  to={`/agencies/${a.id}`}
+                  className="absolute inset-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  aria-label={`Open ${a.name}`}
+                />
                 <div className="flex items-start justify-between gap-3">
                   <div className="h-11 w-11 rounded-xl bg-gradient-brand text-white grid place-items-center shadow-sm">
                     <Building2 className="h-5 w-5" />
@@ -145,7 +150,7 @@ export default function AgenciesPage() {
                     <UsersIcon className="h-3 w-3 mr-1" /> {userCount}
                   </Badge>
                 </div>
-                <h3 className="font-semibold tracking-tight text-base mt-4 break-words">
+                <h3 className="font-semibold tracking-tight text-base mt-4 break-words group-hover:text-primary transition-colors">
                   {a.name}
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -154,8 +159,10 @@ export default function AgenciesPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="mt-4 w-full"
-                  onClick={() => {
+                  className="mt-4 w-full relative z-10"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     setPresetAgencyId(a.id);
                     setUserOpen(true);
                   }}
