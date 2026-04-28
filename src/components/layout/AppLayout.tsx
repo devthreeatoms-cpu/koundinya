@@ -125,20 +125,6 @@ function SidebarContent({
         })}
       </nav>
 
-      {!collapsed && (
-        <div className="mx-3 mb-3 rounded-2xl p-4 bg-gradient-to-br from-white/5 to-white/0 border border-white/10 backdrop-blur-sm relative overflow-hidden">
-          <div className="absolute -top-8 -right-8 h-24 w-24 rounded-full bg-gradient-brand opacity-20 blur-2xl" />
-          <div className="relative flex items-center gap-2 mb-1.5">
-            <div className="h-5 w-5 rounded-md bg-gradient-brand grid place-items-center">
-              <Sparkles className="h-3 w-3 text-white" />
-            </div>
-            <p className="text-xs font-semibold text-white">Pro tip</p>
-          </div>
-          <p className="relative text-[11px] text-white/60 leading-relaxed">
-            Use search to find candidates by name or phone instantly.
-          </p>
-        </div>
-      )}
     </>
   );
 }
