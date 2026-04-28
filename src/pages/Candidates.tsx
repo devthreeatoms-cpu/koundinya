@@ -426,7 +426,10 @@ export default function CandidatesPage() {
                           {initials(c.name)}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium text-sm break-words">{c.name}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-medium text-sm break-words">{c.name}</p>
+                            <OriginBadge agencyId={c.agency_id} agencyName={c.agency_id ? agencyMap.get(c.agency_id)?.name : null} />
+                          </div>
                           <p className="text-xs text-muted-foreground tabular-nums break-all">{c.phone}</p>
                           <p className="text-xs text-muted-foreground inline-flex items-center gap-1 mt-0.5">
                             <MapPin className="h-3 w-3 shrink-0" />
