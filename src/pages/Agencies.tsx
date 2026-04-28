@@ -15,6 +15,9 @@ import {
   Trash2,
   Phone as PhoneIcon,
   RotateCcw,
+  Eye,
+  Calendar,
+  Hash,
 } from "lucide-react";
 
 import PageHeader from "@/components/PageHeader";
@@ -64,7 +67,7 @@ import {
 } from "@/hooks/useAgencies";
 import { formatDate } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
-import type { Agency } from "@/types";
+import type { Agency, AppUser } from "@/types";
 
 const agencySchema = z.object({
   name: z.string().trim().min(2, "Name is required").max(100),
@@ -91,6 +94,7 @@ export default function AgenciesPage() {
   const [presetAgencyId, setPresetAgencyId] = useState<string | null>(null);
   const [editAgency, setEditAgency] = useState<Agency | null>(null);
   const [deleteAgency, setDeleteAgency] = useState<Agency | null>(null);
+  const [viewUser, setViewUser] = useState<AppUser | null>(null);
 
   // Hooks must run unconditionally — guard render below.
   const usersByAgency = useMemo(() => {
