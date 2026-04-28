@@ -27,7 +27,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { useCandidates, useAllCandidates } from "@/hooks/useCandidates";
+import { useCandidates, useAllCandidates, useAgencyOwnedCandidates } from "@/hooks/useCandidates";
 import { useProjects } from "@/hooks/useProjects";
 import { useAssignments } from "@/hooks/useAssignments";
 import { useAgencies } from "@/hooks/useAgencies";
@@ -38,13 +38,26 @@ import { Building2 } from "lucide-react";
 
 export default function Dashboard() {
   const { isAdmin } = useAuth();
-  const { candidates, loading: cLoading } = useCandidates();
-  const { candidates: allCandidates } = useAllCandidates();
+  const { candidates: ownCandidates, loading: cLoading } = useCandidates();
+  const { candidates: allCandidates } = useAllCandidates({ bypassOwnerFilter: isAdmin });
+  // Admin: include agency-owned candidates so the dashboard reflects the
+  // entire workforce across the platform, not just admin-owned records.
+  const { candidates: agencyOwnedCandidates } = useAgencyOwnedCandidates();
   const { projects, loading: pLoading } = useProjects();
-  const { assignments, loading: aLoading } = useAssignments();
+  const { assignments, loading: aLoading } = useAssignments({ bypassOwnerFilter: isAdmin });
   const { agencies, loading: agLoading } = useAgencies({ includeDeleted: true });
 
   const loading = cLoading || pLoading || aLoading;
+
+  // For admins, the "candidates" view is the union of admin-owned + every
+  // agency's candidates. For agency users it's their own scoped list.
+  const candidates = useMemo(() => {
+    if (!isAdmin) return ownCandidates;
+    const map = new Map<string, (typeof ownCandidates)[number]>();
+    for (const c of ownCandidates) map.set(c.id, c);
+    for (const c of agencyOwnedCandidates) map.set(c.id, c);
+    return Array.from(map.values());
+  }, [isAdmin, ownCandidates, agencyOwnedCandidates]);
 
   const activeAssignments = useMemo(
     () => assignments.filter((a) => a.status === "Active"),
