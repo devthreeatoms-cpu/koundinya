@@ -89,7 +89,8 @@ export default function CandidatesPage() {
   const { isAdmin, agencyId } = useAuth();
   const { candidates: adminCandidates, loading: adminLoading } = useCandidates();
   const { candidates: agencyCandidates, loading: agencyLoading } = useAgencyOwnedCandidates();
-  // Agency users see admin pool + their own agency candidates combined.
+  // Combined pool: admin pool + every agency's candidates (used by the "All
+  // candidates" tab for admins, and by the unified view for agency users).
   const { candidates: combinedPool, loading: combinedLoading } = useCombinedCandidatePool();
   const { agencies } = useAgencies({ includeDeleted: true });
   const { assignments } = useAssignments({ bypassOwnerFilter: !isAdmin });
