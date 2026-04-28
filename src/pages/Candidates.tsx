@@ -250,9 +250,10 @@ export default function CandidatesPage() {
       />
 
       {isAdmin && (
-        <Tabs value={tab} onValueChange={(v) => setTab(v as "admin" | "agency")}>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "all" | "admin" | "agency")}>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <TabsList className="grid grid-cols-2 sm:w-auto sm:inline-flex">
+            <TabsList className="grid grid-cols-3 sm:w-auto sm:inline-flex">
+              <TabsTrigger value="all">All Candidates</TabsTrigger>
               <TabsTrigger value="admin">Admin Candidates</TabsTrigger>
               <TabsTrigger value="agency">Agency Candidates</TabsTrigger>
             </TabsList>
@@ -273,6 +274,7 @@ export default function CandidatesPage() {
               </Select>
             )}
           </div>
+          <TabsContent value="all" />
           <TabsContent value="admin" />
           <TabsContent value="agency" />
         </Tabs>
