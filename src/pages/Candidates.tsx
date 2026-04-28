@@ -86,11 +86,13 @@ const statusDot: Record<CandidateStatus, string> = {
 };
 
 export default function CandidatesPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, agencyId } = useAuth();
   const { candidates: adminCandidates, loading: adminLoading } = useCandidates();
   const { candidates: agencyCandidates, loading: agencyLoading } = useAgencyOwnedCandidates();
+  // Agency users see admin pool + their own agency candidates combined.
+  const { candidates: combinedPool, loading: combinedLoading } = useCombinedCandidatePool();
   const { agencies } = useAgencies({ includeDeleted: true });
-  const { assignments } = useAssignments();
+  const { assignments } = useAssignments({ bypassOwnerFilter: !isAdmin });
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -100,23 +102,29 @@ export default function CandidatesPage() {
     return v === "available" || v === "assigned" ? v : "all";
   })();
 
-  // Tab state — only used for admin. Agency users always see their own list.
+  // Tab state — only used for admin. Agency users always see their combined pool.
   const [tab, setTab] = useState<"admin" | "agency">("admin");
   const [agencyFilter, setAgencyFilter] = useState<string>("all");
+  // Origin filter for agency users: all | admin (admin pool) | mine (my agency)
+  const [originFilter, setOriginFilter] = useState<"all" | "admin" | "mine">("all");
 
   const candidates = useMemo(() => {
-    if (!isAdmin) return adminCandidates; // hook already returns agency-scoped list
+    if (!isAdmin) {
+      let list = combinedPool;
+      if (originFilter === "admin") list = list.filter((c) => c.agency_id == null);
+      else if (originFilter === "mine") list = list.filter((c) => c.agency_id === agencyId);
+      return list;
+    }
     if (tab === "admin") return adminCandidates;
-    // Agency tab + optional specific agency filter
     if (agencyFilter === "all") return agencyCandidates;
     return agencyCandidates.filter((c) => c.agency_id === agencyFilter);
-  }, [isAdmin, tab, agencyFilter, adminCandidates, agencyCandidates]);
+  }, [isAdmin, tab, agencyFilter, originFilter, adminCandidates, agencyCandidates, combinedPool, agencyId]);
 
   const loading = isAdmin
     ? tab === "admin"
       ? adminLoading
       : agencyLoading
-    : adminLoading;
+    : combinedLoading;
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
