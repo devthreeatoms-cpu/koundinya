@@ -79,7 +79,10 @@ const statusDot: Record<CandidateStatus, string> = {
 };
 
 export default function CandidatesPage() {
-  const { candidates, loading } = useCandidates();
+  const { isAdmin } = useAuth();
+  const { candidates: adminCandidates, loading: adminLoading } = useCandidates();
+  const { candidates: agencyCandidates, loading: agencyLoading } = useAgencyOwnedCandidates();
+  const { agencies } = useAgencies({ includeDeleted: true });
   const { assignments } = useAssignments();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -90,11 +93,34 @@ export default function CandidatesPage() {
     return v === "available" || v === "assigned" ? v : "all";
   })();
 
+  // Tab state — only used for admin. Agency users always see their own list.
+  const [tab, setTab] = useState<"admin" | "agency">("admin");
+  const [agencyFilter, setAgencyFilter] = useState<string>("all");
+
+  const candidates = useMemo(() => {
+    if (!isAdmin) return adminCandidates; // hook already returns agency-scoped list
+    if (tab === "admin") return adminCandidates;
+    // Agency tab + optional specific agency filter
+    if (agencyFilter === "all") return agencyCandidates;
+    return agencyCandidates.filter((c) => c.agency_id === agencyFilter);
+  }, [isAdmin, tab, agencyFilter, adminCandidates, agencyCandidates]);
+
+  const loading = isAdmin
+    ? tab === "admin"
+      ? adminLoading
+      : agencyLoading
+    : adminLoading;
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [availFilter, setAvailFilter] = useState<string>(initialAvail);
   const [page, setPage] = useState(1);
+
+  // Reset pagination when tab/agency filter changes.
+  useEffect(() => {
+    setPage(1);
+  }, [tab, agencyFilter]);
 
   // Keep URL in sync with availability filter (so Dashboard deep-links work
   // and the user can share the filtered view).
