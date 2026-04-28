@@ -44,9 +44,20 @@ export default function AgencyDetail() {
     loading: dLoading,
   } = useAgencyData(id);
 
-  const candidateMap = useMemo(
-    () => new Map(candidates.map((c) => [c.id, c])),
+  // Mirror what the agency itself sees: hide soft-deleted candidates
+  // everywhere on this page (stats, lists, assignment counts).
+  const visibleCandidatesAll = useMemo(
+    () => candidates.filter((c) => !c.is_deleted),
     [candidates]
+  );
+  const visibleCandidateIds = useMemo(
+    () => new Set(visibleCandidatesAll.map((c) => c.id)),
+    [visibleCandidatesAll]
+  );
+
+  const candidateMap = useMemo(
+    () => new Map(visibleCandidatesAll.map((c) => [c.id, c])),
+    [visibleCandidatesAll]
   );
   const projectMap = useMemo(
     () => new Map(projects.map((p) => [p.id, p])),
@@ -54,8 +65,11 @@ export default function AgencyDetail() {
   );
 
   const activeAssignments = useMemo(
-    () => assignments.filter((a) => a.status === "Active"),
-    [assignments]
+    () =>
+      assignments.filter(
+        (a) => a.status === "Active" && visibleCandidateIds.has(a.candidate_id)
+      ),
+    [assignments, visibleCandidateIds]
   );
 
   // candidate_id -> active project (used by the Candidates section to show
