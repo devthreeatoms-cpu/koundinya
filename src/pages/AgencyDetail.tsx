@@ -145,19 +145,12 @@ export default function AgencyDetail() {
       />
 
       {/* Stats */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-3">
-        <StatCard
-          icon={<Briefcase className="h-5 w-5" />}
-          label="Projects"
-          value={projects.length}
-          tone="brand"
-          loading={dLoading}
-        />
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
         <StatCard
           icon={<UsersIcon className="h-5 w-5" />}
-          label="Candidates"
+          label="Total candidates"
           value={visibleCandidates.length}
-          tone="secondary"
+          tone="brand"
           loading={dLoading}
         />
         <StatCard
