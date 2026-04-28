@@ -214,8 +214,26 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
                         {initials(c.name)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{c.name}</p>
-                        <p className="text-xs text-muted-foreground inline-flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-sm font-medium truncate">{c.name}</p>
+                          {c.agency_id == null ? (
+                            <Badge
+                              variant="outline"
+                              className="border-primary/40 text-primary bg-primary-soft/50 text-[10px] gap-1 px-1.5 py-0"
+                            >
+                              <ShieldCheck className="h-2.5 w-2.5" /> Admin
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="border-secondary/40 text-secondary bg-secondary-soft/50 text-[10px] gap-1 px-1.5 py-0"
+                            >
+                              <Building2 className="h-2.5 w-2.5" />
+                              {agencyNameMap.get(c.agency_id) ?? "Agency"}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground inline-flex items-center gap-2 mt-0.5">
                           <span>{c.phone}</span>
                           <span className="inline-flex items-center gap-0.5">
                             <MapPin className="h-3 w-3" /> {c.location}
