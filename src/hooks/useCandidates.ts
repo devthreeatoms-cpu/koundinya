@@ -106,6 +106,53 @@ export function useAllCandidates(opts?: { bypassOwnerFilter?: boolean }) {
 }
 
 /**
+ * Combined candidate pool visible to the current user:
+ * - Admin: all non-deleted candidates (admin-owned + every agency).
+ * - Agency: own agency candidates + admin pool (agency_id == null).
+ *
+ * Each candidate keeps its real `agency_id`, so callers can label origin
+ * (Admin pool vs. specific agency name).
+ */
+export function useCombinedCandidatePool() {
+  const { isAdmin, agencyId, loading: authLoading } = useAuth();
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!isAdmin && !agencyId) {
+      setCandidates([]);
+      setLoading(false);
+      return;
+    }
+    const q = query(collection(db, COL), where("is_deleted", "==", false));
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        let list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Candidate[];
+        if (!isAdmin) {
+          // Agency users see admin-owned (null) + their own agency.
+          list = list.filter(
+            (c) => c.agency_id == null || c.agency_id === agencyId
+          );
+        }
+        list.sort((a, b) => {
+          const ta = (a.created_at as any)?.toMillis?.() ?? 0;
+          const tb = (b.created_at as any)?.toMillis?.() ?? 0;
+          return tb - ta;
+        });
+        setCandidates(list);
+        setLoading(false);
+      },
+      () => setLoading(false)
+    );
+    return () => unsub();
+  }, [isAdmin, agencyId, authLoading]);
+
+  return { candidates, loading };
+}
+
+/**
  * Admin-only: returns all non-deleted candidates that BELONG to an agency
  * (agency_id != null). Used for the "Agency Candidates" tab.
  */
