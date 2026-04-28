@@ -50,8 +50,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useCandidates, softDeleteCandidate } from "@/hooks/useCandidates";
+import { useCandidates, useAgencyOwnedCandidates, softDeleteCandidate } from "@/hooks/useCandidates";
 import { useAssignments } from "@/hooks/useAssignments";
+import { useAgencies } from "@/hooks/useAgencies";
+import { useAuth } from "@/context/AuthContext";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import CandidateFormModal from "@/components/candidates/CandidateFormModal";
 import type { Candidate, CandidateStatus } from "@/types";
 import { useToast } from "@/hooks/use-toast";
@@ -76,7 +79,10 @@ const statusDot: Record<CandidateStatus, string> = {
 };
 
 export default function CandidatesPage() {
-  const { candidates, loading } = useCandidates();
+  const { isAdmin } = useAuth();
+  const { candidates: adminCandidates, loading: adminLoading } = useCandidates();
+  const { candidates: agencyCandidates, loading: agencyLoading } = useAgencyOwnedCandidates();
+  const { agencies } = useAgencies({ includeDeleted: true });
   const { assignments } = useAssignments();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -87,11 +93,34 @@ export default function CandidatesPage() {
     return v === "available" || v === "assigned" ? v : "all";
   })();
 
+  // Tab state — only used for admin. Agency users always see their own list.
+  const [tab, setTab] = useState<"admin" | "agency">("admin");
+  const [agencyFilter, setAgencyFilter] = useState<string>("all");
+
+  const candidates = useMemo(() => {
+    if (!isAdmin) return adminCandidates; // hook already returns agency-scoped list
+    if (tab === "admin") return adminCandidates;
+    // Agency tab + optional specific agency filter
+    if (agencyFilter === "all") return agencyCandidates;
+    return agencyCandidates.filter((c) => c.agency_id === agencyFilter);
+  }, [isAdmin, tab, agencyFilter, adminCandidates, agencyCandidates]);
+
+  const loading = isAdmin
+    ? tab === "admin"
+      ? adminLoading
+      : agencyLoading
+    : adminLoading;
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [availFilter, setAvailFilter] = useState<string>(initialAvail);
   const [page, setPage] = useState(1);
+
+  // Reset pagination when tab/agency filter changes.
+  useEffect(() => {
+    setPage(1);
+  }, [tab, agencyFilter]);
 
   // Keep URL in sync with availability filter (so Dashboard deep-links work
   // and the user can share the filtered view).
@@ -172,17 +201,54 @@ export default function CandidatesPage() {
     setPage(1);
   }
 
+  const showAddButton = !isAdmin || tab === "admin";
+  const agencyMap = useMemo(
+    () => new Map(agencies.map((a) => [a.id, a])),
+    [agencies]
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Candidates"
         description="Manage your candidate database, statuses, and availability."
         actions={
-          <Button onClick={openAdd} variant="premium">
-            <Plus className="h-4 w-4" /> Add candidate
-          </Button>
+          showAddButton ? (
+            <Button onClick={openAdd} variant="premium">
+              <Plus className="h-4 w-4" /> Add candidate
+            </Button>
+          ) : null
         }
       />
+
+      {isAdmin && (
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "admin" | "agency")}>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <TabsList className="grid grid-cols-2 sm:w-auto sm:inline-flex">
+              <TabsTrigger value="admin">Admin Candidates</TabsTrigger>
+              <TabsTrigger value="agency">Agency Candidates</TabsTrigger>
+            </TabsList>
+            {tab === "agency" && (
+              <Select value={agencyFilter} onValueChange={setAgencyFilter}>
+                <SelectTrigger className="sm:w-56">
+                  <SelectValue placeholder="Filter by agency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All agencies</SelectItem>
+                  {agencies.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                      {a.is_deleted ? " (inactive)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <TabsContent value="admin" />
+          <TabsContent value="agency" />
+        </Tabs>
+      )}
 
       <Card className="glass-card hover-lift overflow-hidden">
         <div className="p-4 border-b border-border/60 space-y-3">

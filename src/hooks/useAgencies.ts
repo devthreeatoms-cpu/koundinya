@@ -83,6 +83,29 @@ export async function createAgency(input: {
   return ref.id;
 }
 
+/**
+ * Combined: create agency record + Firebase Auth user in one go.
+ * The user's email/password become the agency's sign-in credentials.
+ */
+export async function createAgencyWithUser(input: {
+  name: string;
+  email: string;
+  phone?: string | null;
+  password: string;
+}): Promise<string> {
+  const agencyId = await createAgency({
+    name: input.name,
+    email: input.email,
+    phone: input.phone ?? null,
+  });
+  await createAgencyUser({
+    email: input.email,
+    password: input.password,
+    agency_id: agencyId,
+  });
+  return agencyId;
+}
+
 /** Update editable fields on an agency. Stamps updated_at. */
 export async function updateAgency(
   id: string,
