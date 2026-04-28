@@ -328,16 +328,24 @@ export default function AgencyDetail() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold break-words">{c.name}</p>
+                        {c.phone && (
+                          <p className="text-xs text-muted-foreground mt-0.5">{c.phone}</p>
+                        )}
                         {a ? (
                           <Link
                             to={`/projects/${a.projectId}`}
-                            className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-0.5 break-words"
+                            className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-1 break-words"
                           >
-                            Assigned to {a.projectName}
+                            {a.projectName}
                           </Link>
                         ) : (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            Not assigned to any project
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Not assigned
+                          </p>
+                        )}
+                        {a && (
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            Assigned {formatDate((a.assignedAt as any)?.toDate?.())}
                           </p>
                         )}
                       </div>
@@ -348,8 +356,8 @@ export default function AgencyDetail() {
                         className={cn(
                           "font-medium",
                           a
-                            ? "border-warning/40 text-warning bg-warning/10"
-                            : "border-primary/40 text-primary bg-primary-soft"
+                            ? "border-secondary/40 text-secondary bg-secondary-soft"
+                            : "border-success/40 text-success bg-success/10"
                         )}
                       >
                         {a ? "Assigned" : "Available"}
@@ -376,7 +384,10 @@ export default function AgencyDetail() {
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40">
                     <TableHead className="font-semibold text-foreground">Name</TableHead>
+                    <TableHead className="font-semibold text-foreground">Phone</TableHead>
                     <TableHead className="font-semibold text-foreground">Status</TableHead>
+                    <TableHead className="font-semibold text-foreground">Assigned Project</TableHead>
+                    <TableHead className="font-semibold text-foreground">Assigned Date</TableHead>
                     <TableHead className="font-semibold text-foreground text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -400,31 +411,37 @@ export default function AgencyDetail() {
                             <span className="text-sm font-medium">{c.name}</span>
                           </div>
                         </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {c.phone || "—"}
+                        </TableCell>
                         <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "font-medium",
+                              a
+                                ? "border-secondary/40 text-secondary bg-secondary-soft"
+                                : "border-success/40 text-success bg-success/10"
+                            )}
+                          >
+                            {a ? "Assigned" : "Available"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">
                           {a ? (
-                            <div className="flex items-center gap-2">
-                              <Badge
-                                variant="outline"
-                                className="border-warning/40 text-warning bg-warning/10 font-medium"
-                              >
-                                Assigned
-                              </Badge>
-                              <Link
-                                to={`/projects/${a.projectId}`}
-                                className="text-xs text-primary hover:underline truncate max-w-[14rem]"
-                                title={a.projectName}
-                              >
-                                {a.projectName}
-                              </Link>
-                            </div>
-                          ) : (
-                            <Badge
-                              variant="outline"
-                              className="border-primary/40 text-primary bg-primary-soft font-medium"
+                            <Link
+                              to={`/projects/${a.projectId}`}
+                              className="inline-flex items-center rounded-md border border-secondary/30 bg-secondary-soft px-2 py-0.5 text-xs font-medium text-secondary hover:underline max-w-[14rem] truncate"
+                              title={a.projectName}
                             >
-                              Available
-                            </Badge>
+                              {a.projectName}
+                            </Link>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Not assigned</span>
                           )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground tabular-nums">
+                          {a ? formatDate((a.assignedAt as any)?.toDate?.()) : "—"}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
