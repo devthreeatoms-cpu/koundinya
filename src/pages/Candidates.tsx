@@ -12,6 +12,8 @@ import {
   X,
   Eye,
   Users as UsersIcon,
+  ShieldCheck,
+  Building2,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
