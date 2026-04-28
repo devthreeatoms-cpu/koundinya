@@ -211,8 +211,8 @@ export default function Dashboard() {
     [allCandidates]
   );
   const projectMap = useMemo(
-    () => new Map(projects.map((p) => [p.id, p])),
-    [projects]
+    () => new Map(allProjectsForLookup.map((p) => [p.id, p])),
+    [allProjectsForLookup]
   );
 
   return (
