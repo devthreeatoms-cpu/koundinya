@@ -61,7 +61,7 @@ function FieldError({ message }: { message?: string }) {
 
 export default function CandidateFormModal({ open, onOpenChange, candidate }: Props) {
   const { toast } = useToast();
-  const { agencyId } = useAuth();
+  const { agencyId, isAdmin } = useAuth();
   const isEdit = !!candidate;
 
   const {
