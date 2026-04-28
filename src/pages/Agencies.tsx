@@ -376,6 +376,15 @@ export default function AgenciesPage() {
                       "Agency"
                     )}
                   </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="px-2.5 shrink-0"
+                    aria-label="View user details"
+                    onClick={() => setViewUser(u)}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
                 </li>
               );
             })}
