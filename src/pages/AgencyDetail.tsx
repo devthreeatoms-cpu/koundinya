@@ -125,7 +125,7 @@ export default function AgencyDetail() {
     );
   }
 
-  const visibleCandidates = candidates.filter((c) => !c.is_deleted);
+  const visibleCandidates = visibleCandidatesAll;
 
   return (
     <div className="space-y-6">
