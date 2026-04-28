@@ -3,13 +3,9 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Building2,
-  Briefcase,
   Users as UsersIcon,
   ClipboardList,
-  Mail,
-  ShieldCheck,
   Loader2,
-  MapPin,
   Eye,
 } from "lucide-react";
 
@@ -40,7 +36,6 @@ export default function AgencyDetail() {
     projects,
     candidates,
     assignments,
-    users,
     loading: dLoading,
   } = useAgencyData(id);
 
@@ -52,11 +47,6 @@ export default function AgencyDetail() {
   );
   const visibleCandidateIds = useMemo(
     () => new Set(visibleCandidatesAll.map((c) => c.id)),
-    [visibleCandidatesAll]
-  );
-
-  const candidateMap = useMemo(
-    () => new Map(visibleCandidatesAll.map((c) => [c.id, c])),
     [visibleCandidatesAll]
   );
   const projectMap = useMemo(
@@ -145,19 +135,12 @@ export default function AgencyDetail() {
       />
 
       {/* Stats */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-3">
-        <StatCard
-          icon={<Briefcase className="h-5 w-5" />}
-          label="Projects"
-          value={projects.length}
-          tone="brand"
-          loading={dLoading}
-        />
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
         <StatCard
           icon={<UsersIcon className="h-5 w-5" />}
-          label="Candidates"
+          label="Total candidates"
           value={visibleCandidates.length}
-          tone="secondary"
+          tone="brand"
           loading={dLoading}
         />
         <StatCard
@@ -168,137 +151,6 @@ export default function AgencyDetail() {
           loading={dLoading}
         />
       </div>
-
-      {/* Projects */}
-      <Card className="glass-card p-4 sm:p-6 hover-lift">
-        <SectionHeader
-          icon={<Briefcase className="h-3.5 w-3.5" />}
-          title="Projects"
-          count={projects.length}
-        />
-        {dLoading ? (
-          <SkeletonRows />
-        ) : projects.length === 0 ? (
-          <EmptyState text="No projects in this agency yet." />
-        ) : (
-          <>
-            {/* Mobile: stacked cards */}
-            <ul className="md:hidden space-y-3">
-              {projects.map((p) => {
-                const isActive = p.status === "Active";
-                return (
-                  <li
-                    key={p.id}
-                    className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-2"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold break-words">{p.name}</p>
-                        {p.client_name && (
-                          <p className="text-xs text-muted-foreground truncate mt-0.5">
-                            {p.client_name}
-                          </p>
-                        )}
-                      </div>
-                      <Badge
-                        className={cn(
-                          "shrink-0 font-medium",
-                          isActive
-                            ? "bg-primary/15 text-primary border border-primary/30"
-                            : "bg-muted text-muted-foreground border border-border"
-                        )}
-                      >
-                        {p.status}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50">
-                      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
-                        <MapPin className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{p.location}</span>
-                      </span>
-                      <Button
-                        asChild
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 text-primary hover:text-primary hover:bg-primary-soft shrink-0"
-                      >
-                        <Link to={`/projects/${p.id}`}>
-                          <Eye className="h-4 w-4" /> View
-                        </Link>
-                      </Button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-
-            {/* Desktop: table */}
-            <div className="hidden md:block rounded-lg border border-border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead className="font-semibold text-foreground">Name</TableHead>
-                    <TableHead className="font-semibold text-foreground">Client</TableHead>
-                    <TableHead className="font-semibold text-foreground">Location</TableHead>
-                    <TableHead className="font-semibold text-foreground">Status</TableHead>
-                    <TableHead className="font-semibold text-foreground text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {projects.map((p, idx) => {
-                    const isActive = p.status === "Active";
-                    return (
-                      <TableRow
-                        key={p.id}
-                        className={cn(
-                          "border-b border-border/60",
-                          idx % 2 === 1 && "bg-muted/20",
-                          "hover:bg-primary-soft/40"
-                        )}
-                      >
-                        <TableCell className="font-medium">{p.name}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {p.client_name || "—"}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          <span className="inline-flex items-center gap-1.5">
-                            <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                            {p.location}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={cn(
-                              "font-medium",
-                              isActive
-                                ? "bg-primary/15 text-primary border border-primary/30"
-                                : "bg-muted text-muted-foreground border border-border"
-                            )}
-                          >
-                            {p.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            asChild
-                            variant="ghost"
-                            size="sm"
-                            className="text-primary hover:text-primary hover:bg-primary-soft"
-                          >
-                            <Link to={`/projects/${p.id}`}>
-                              <Eye className="h-4 w-4" /> View
-                            </Link>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </>
-        )}
-      </Card>
 
       {/* Candidates */}
       <Card className="glass-card p-4 sm:p-6 hover-lift">
@@ -465,162 +317,6 @@ export default function AgencyDetail() {
         )}
       </Card>
 
-      {/* Active assignments */}
-      <Card className="glass-card p-4 sm:p-6 hover-lift">
-        <SectionHeader
-          icon={<ClipboardList className="h-3.5 w-3.5" />}
-          title="Active assignments"
-          count={activeAssignments.length}
-        />
-        {dLoading ? (
-          <SkeletonRows />
-        ) : activeAssignments.length === 0 ? (
-          <EmptyState text="No active assignments for this agency." />
-        ) : (
-          <>
-            {/* Mobile: stacked cards */}
-            <ul className="md:hidden space-y-3">
-              {activeAssignments.map((a) => {
-                const c = candidateMap.get(a.candidate_id);
-                const p = projectMap.get(a.project_id);
-                return (
-                  <li
-                    key={a.id}
-                    className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-2"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        {c ? (
-                          <p className="text-sm font-semibold break-words">{c.name}</p>
-                        ) : (
-                          <p className="text-sm text-muted-foreground italic">Unknown</p>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-0.5 break-words">
-                          {p ? p.name : <span className="italic">Unknown project</span>}
-                        </p>
-                      </div>
-                      {c && (
-                        <Button
-                          asChild
-                          variant="ghost"
-                          size="sm"
-                          className="h-9 text-primary hover:text-primary hover:bg-primary-soft shrink-0"
-                        >
-                          <Link to={`/candidates/${c.id}`}>
-                            <Eye className="h-4 w-4" /> View
-                          </Link>
-                        </Button>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground pt-2 border-t border-border/50">
-                      Assigned{" "}
-                      <span className="font-medium text-foreground">
-                        {formatDate((a.assigned_at as any)?.toDate?.())}
-                      </span>
-                    </p>
-                  </li>
-                );
-              })}
-            </ul>
-
-            {/* Desktop: table */}
-            <div className="hidden md:block rounded-lg border border-border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead className="font-semibold text-foreground">Candidate</TableHead>
-                    <TableHead className="font-semibold text-foreground">Project</TableHead>
-                    <TableHead className="font-semibold text-foreground">Assigned</TableHead>
-                    <TableHead className="font-semibold text-foreground text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {activeAssignments.map((a, idx) => {
-                    const c = candidateMap.get(a.candidate_id);
-                    const p = projectMap.get(a.project_id);
-                    return (
-                      <TableRow
-                        key={a.id}
-                        className={cn(
-                          "border-b border-border/60",
-                          idx % 2 === 1 && "bg-muted/20"
-                        )}
-                      >
-                        <TableCell>
-                          {c ? (
-                            <span className="text-sm font-medium">{c.name}</span>
-                          ) : (
-                            <span className="text-sm text-muted-foreground italic">Unknown</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {p ? p.name : <span className="text-muted-foreground italic">Unknown</span>}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {formatDate((a.assigned_at as any)?.toDate?.())}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {c && (
-                            <Button
-                              asChild
-                              variant="ghost"
-                              size="sm"
-                              className="text-primary hover:text-primary hover:bg-primary-soft"
-                            >
-                              <Link to={`/candidates/${c.id}`}>
-                                <Eye className="h-4 w-4" /> View
-                              </Link>
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </>
-        )}
-      </Card>
-
-      {/* Users */}
-      <Card className="glass-card p-4 sm:p-6 hover-lift">
-        <SectionHeader
-          icon={<ShieldCheck className="h-3.5 w-3.5" />}
-          title="Users"
-          count={users.length}
-        />
-        {dLoading ? (
-          <SkeletonRows />
-        ) : users.length === 0 ? (
-          <EmptyState text="No users invited to this agency yet." />
-        ) : (
-          <ul className="space-y-2">
-            {users.map((u) => (
-              <li
-                key={u.id}
-                className="flex items-center gap-3 p-3 rounded-lg border border-border/60 bg-muted/20"
-              >
-                <div className="h-9 w-9 rounded-full bg-gradient-brand text-white grid place-items-center shrink-0">
-                  <Mail className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium break-all">{u.email}</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {u.role === "admin" ? "Global admin" : agency.name}
-                  </p>
-                </div>
-                <Badge
-                  variant="outline"
-                  className="border-border text-muted-foreground"
-                >
-                  {u.role === "admin" ? "Admin" : "Agency"}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
     </div>
   );
 }
