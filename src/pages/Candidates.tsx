@@ -93,7 +93,11 @@ export default function CandidatesPage() {
   // candidates" tab for admins, and by the unified view for agency users).
   const { candidates: combinedPool, loading: combinedLoading } = useCombinedCandidatePool();
   const { agencies } = useAgencies({ includeDeleted: true });
-  const { assignments } = useAssignments({ bypassOwnerFilter: !isAdmin });
+  // Admins view a combined pool (admin + every agency); to correctly compute
+  // availability for agency-owned candidates we need ALL assignments, not
+  // just admin-owned ones. Agency users also bypass so they can see active
+  // assignments on admin-pool candidates they were assigned to.
+  const { assignments } = useAssignments({ bypassOwnerFilter: true });
   const { toast } = useToast();
   const navigate = useNavigate();
 
