@@ -29,6 +29,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useCandidates, useAllCandidates, useAgencyOwnedCandidates } from "@/hooks/useCandidates";
 import { useProjects } from "@/hooks/useProjects";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useAssignments } from "@/hooks/useAssignments";
 import { useAgencies } from "@/hooks/useAgencies";
 import { useAuth } from "@/context/AuthContext";
