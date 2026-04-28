@@ -103,8 +103,9 @@ export default function CandidatesPage() {
     return v === "available" || v === "assigned" ? v : "all";
   })();
 
-  // Tab state — only used for admin. Agency users always see their combined pool.
-  const [tab, setTab] = useState<"admin" | "agency">("admin");
+  // Tab state — admins choose between All / Admin / Agency. Agency users
+  // always see their combined pool (admin + own agency).
+  const [tab, setTab] = useState<"all" | "admin" | "agency">("all");
   const [agencyFilter, setAgencyFilter] = useState<string>("all");
   // Origin filter for agency users: all | admin (admin pool) | mine (my agency)
   const [originFilter, setOriginFilter] = useState<"all" | "admin" | "mine">("all");
@@ -123,6 +124,7 @@ export default function CandidatesPage() {
       else if (originFilter === "mine") list = list.filter((c) => c.agency_id === agencyId);
       return list;
     }
+    if (tab === "all") return combinedPool.filter(dropDeactivated);
     if (tab === "admin") return adminCandidates;
     const base = agencyCandidates.filter(dropDeactivated);
     if (agencyFilter === "all") return base;
@@ -130,9 +132,11 @@ export default function CandidatesPage() {
   }, [isAdmin, tab, agencyFilter, originFilter, adminCandidates, agencyCandidates, combinedPool, agencyId, activeAgencyIds]);
 
   const loading = isAdmin
-    ? tab === "admin"
-      ? adminLoading
-      : agencyLoading
+    ? tab === "all"
+      ? combinedLoading
+      : tab === "admin"
+        ? adminLoading
+        : agencyLoading
     : combinedLoading;
 
   const [search, setSearch] = useState("");
