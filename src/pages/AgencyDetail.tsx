@@ -62,18 +62,25 @@ export default function AgencyDetail() {
     [assignments, visibleCandidateIds]
   );
 
-  // candidate_id -> active assignment info (project + assigned_at).
+  // candidate_id -> LATEST active assignment info (project + assigned_at).
+  // If a candidate has been assigned → removed → reassigned, we must always
+  // pick the most-recent record with status === "Active". Completed/Dropped
+  // records are already filtered out via `activeAssignments`.
   const candidateAssignmentMap = useMemo(() => {
     const m = new Map<
       string,
-      { projectId: string; projectName: string; assignedAt: any }
+      { projectId: string; projectName: string; assignedAt: any; ts: number }
     >();
     for (const a of activeAssignments) {
+      const ts = (a as any).assigned_at?.toMillis?.() ?? 0;
+      const existing = m.get(a.candidate_id);
+      if (existing && existing.ts >= ts) continue;
       const p = projectMap.get(a.project_id);
       m.set(a.candidate_id, {
         projectId: a.project_id,
         projectName: p?.name ?? "Unknown project",
         assignedAt: (a as any).assigned_at,
+        ts,
       });
     }
     return m;
