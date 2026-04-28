@@ -265,6 +265,19 @@ export default function CandidatesPage() {
         </Tabs>
       )}
 
+      {!isAdmin && (
+        <Tabs value={originFilter} onValueChange={(v) => setOriginFilter(v as any)}>
+          <TabsList className="grid grid-cols-3 sm:w-auto sm:inline-flex">
+            <TabsTrigger value="all">All candidates</TabsTrigger>
+            <TabsTrigger value="mine">My agency</TabsTrigger>
+            <TabsTrigger value="admin">Admin pool</TabsTrigger>
+          </TabsList>
+          <TabsContent value="all" />
+          <TabsContent value="mine" />
+          <TabsContent value="admin" />
+        </Tabs>
+      )}
+
       <Card className="glass-card hover-lift overflow-hidden">
         <div className="p-4 border-b border-border/60 space-y-3">
           <div className="flex flex-col lg:flex-row gap-3">
