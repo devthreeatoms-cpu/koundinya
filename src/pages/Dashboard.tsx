@@ -344,8 +344,8 @@ export default function Dashboard() {
       )}
 
       {/* Charts */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="glass-card p-4 sm:p-6 hover-lift lg:col-span-2 animate-fade-in-up">
+      <div className={cn("grid gap-4", isAdmin ? "lg:grid-cols-3" : "lg:grid-cols-1")}>
+        <Card className={cn("glass-card p-4 sm:p-6 hover-lift animate-fade-in-up", isAdmin && "lg:col-span-2")}>
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold tracking-tight">Candidate status breakdown</h3>
@@ -424,6 +424,7 @@ export default function Dashboard() {
           )}
         </Card>
 
+        {isAdmin && (
         <Card className="glass-card p-4 sm:p-6 hover-lift animate-fade-in-up">
           <div className="mb-4">
             <h3 className="font-semibold tracking-tight">Projects</h3>
@@ -479,6 +480,7 @@ export default function Dashboard() {
             </ResponsiveContainer>
           )}
         </Card>
+        )}
       </div>
 
       {/* Recent activity + Recent lists */}
