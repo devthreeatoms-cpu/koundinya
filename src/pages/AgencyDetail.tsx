@@ -36,7 +36,6 @@ export default function AgencyDetail() {
     projects,
     candidates,
     assignments,
-    users,
     loading: dLoading,
   } = useAgencyData(id);
 
@@ -48,11 +47,6 @@ export default function AgencyDetail() {
   );
   const visibleCandidateIds = useMemo(
     () => new Set(visibleCandidatesAll.map((c) => c.id)),
-    [visibleCandidatesAll]
-  );
-
-  const candidateMap = useMemo(
-    () => new Map(visibleCandidatesAll.map((c) => [c.id, c])),
     [visibleCandidatesAll]
   );
   const projectMap = useMemo(
