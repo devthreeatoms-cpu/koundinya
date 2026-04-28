@@ -3,13 +3,9 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Building2,
-  Briefcase,
   Users as UsersIcon,
   ClipboardList,
-  Mail,
-  ShieldCheck,
   Loader2,
-  MapPin,
   Eye,
 } from "lucide-react";
 
