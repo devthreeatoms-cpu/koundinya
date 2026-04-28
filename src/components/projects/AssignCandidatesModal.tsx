@@ -140,7 +140,7 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
             <div className="flex-1">
               <DialogTitle className="text-lg">Assign candidates</DialogTitle>
               <DialogDescription className="text-xs mt-0.5">
-                Only available candidates (no active assignment) are shown.
+                Showing the combined pool — admin candidates and agency candidates. Only those with no active assignment are listed.
               </DialogDescription>
             </div>
           </div>
