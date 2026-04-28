@@ -7,17 +7,11 @@ import {
   Plus,
   Building2,
   Loader2,
-  UserPlus,
   Mail,
-  ShieldCheck,
-  Users as UsersIcon,
   Pencil,
   Trash2,
   Phone as PhoneIcon,
   RotateCcw,
-  Eye,
-  Calendar,
-  Hash,
 } from "lucide-react";
 
 import PageHeader from "@/components/PageHeader";
@@ -46,42 +40,34 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import {
   useAgencies,
-  useAllUsers,
-  createAgency,
-  createAgencyUser,
+  createAgencyWithUser,
   updateAgency,
   softDeleteAgency,
   restoreAgency,
 } from "@/hooks/useAgencies";
 import { formatDate } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
-import type { Agency, AppUser } from "@/types";
+import type { Agency } from "@/types";
 
 const agencySchema = z.object({
+  name: z.string().trim().min(2, "Name is required").max(100),
+  email: z.string().trim().email("Enter a valid email").max(255),
+  phone: z.string().trim().max(30).optional().or(z.literal("")),
+  password: z.string().min(6, "Password must be at least 6 characters").max(100),
+});
+type AgencyForm = z.infer<typeof agencySchema>;
+
+const editSchema = z.object({
   name: z.string().trim().min(2, "Name is required").max(100),
   email: z.string().trim().email("Enter a valid email").max(255).optional().or(z.literal("")),
   phone: z.string().trim().max(30).optional().or(z.literal("")),
 });
-type AgencyForm = z.infer<typeof agencySchema>;
-
-const userSchema = z.object({
-  email: z.string().trim().email("Enter a valid email").max(255),
-  password: z.string().min(6, "Password must be at least 6 characters").max(100),
-  agency_id: z.string().min(1, "Pick an agency"),
-});
-type UserForm = z.infer<typeof userSchema>;
+type EditAgencyForm = z.infer<typeof editSchema>;
 
 export default function AgenciesPage() {
   const { isAdmin, loading: authLoading } = useAuth();
