@@ -11,12 +11,43 @@ import {
 import { useProjectById } from "@/hooks/useProjects";
 import { useAllCandidates } from "@/hooks/useCandidates";
 import { useAssignments, removeAssignment } from "@/hooks/useAssignments";
+import { useAgencies } from "@/hooks/useAgencies";
 import { useAuth } from "@/context/AuthContext";
 import ProjectFormModal from "@/components/projects/ProjectFormModal";
 import AssignCandidatesModal from "@/components/projects/AssignCandidatesModal";
 import { formatDate, initials } from "@/lib/utils-format";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { Building2, Shield } from "lucide-react";
+
+/** Small badge showing whether a candidate is owned by Admin or a specific agency. */
+function OwnerBadge({
+  agencyId,
+  agencyName,
+}: {
+  agencyId?: string | null;
+  agencyName?: string | null;
+}) {
+  if (!agencyId) {
+    return (
+      <Badge
+        variant="outline"
+        className="text-[10px] uppercase tracking-wide border-primary/30 text-primary bg-primary-soft inline-flex items-center gap-1"
+      >
+        <Shield className="h-2.5 w-2.5" /> Admin
+      </Badge>
+    );
+  }
+  return (
+    <Badge
+      variant="outline"
+      className="text-[10px] uppercase tracking-wide border-secondary/40 text-secondary bg-secondary/10 inline-flex items-center gap-1 max-w-[140px]"
+    >
+      <Building2 className="h-2.5 w-2.5 shrink-0" />
+      <span className="truncate">{agencyName || "Agency"}</span>
+    </Badge>
+  );
+}
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
