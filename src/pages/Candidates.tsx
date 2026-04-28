@@ -201,17 +201,54 @@ export default function CandidatesPage() {
     setPage(1);
   }
 
+  const showAddButton = !isAdmin || tab === "admin";
+  const agencyMap = useMemo(
+    () => new Map(agencies.map((a) => [a.id, a])),
+    [agencies]
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Candidates"
         description="Manage your candidate database, statuses, and availability."
         actions={
-          <Button onClick={openAdd} variant="premium">
-            <Plus className="h-4 w-4" /> Add candidate
-          </Button>
+          showAddButton ? (
+            <Button onClick={openAdd} variant="premium">
+              <Plus className="h-4 w-4" /> Add candidate
+            </Button>
+          ) : null
         }
       />
+
+      {isAdmin && (
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "admin" | "agency")}>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <TabsList className="grid grid-cols-2 sm:w-auto sm:inline-flex">
+              <TabsTrigger value="admin">Admin Candidates</TabsTrigger>
+              <TabsTrigger value="agency">Agency Candidates</TabsTrigger>
+            </TabsList>
+            {tab === "agency" && (
+              <Select value={agencyFilter} onValueChange={setAgencyFilter}>
+                <SelectTrigger className="sm:w-56">
+                  <SelectValue placeholder="Filter by agency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All agencies</SelectItem>
+                  {agencies.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                      {a.is_deleted ? " (inactive)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <TabsContent value="admin" />
+          <TabsContent value="agency" />
+        </Tabs>
+      )}
 
       <Card className="glass-card hover-lift overflow-hidden">
         <div className="p-4 border-b border-border/60 space-y-3">
