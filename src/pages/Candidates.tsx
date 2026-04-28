@@ -50,8 +50,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useCandidates, softDeleteCandidate } from "@/hooks/useCandidates";
+import { useCandidates, useAgencyOwnedCandidates, softDeleteCandidate } from "@/hooks/useCandidates";
 import { useAssignments } from "@/hooks/useAssignments";
+import { useAgencies } from "@/hooks/useAgencies";
+import { useAuth } from "@/context/AuthContext";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import CandidateFormModal from "@/components/candidates/CandidateFormModal";
 import type { Candidate, CandidateStatus } from "@/types";
 import { useToast } from "@/hooks/use-toast";
