@@ -119,17 +119,15 @@ export default function CandidatesPage() {
     const dropDeactivated = (c: Candidate) =>
       c.agency_id == null || activeAgencyIds.has(c.agency_id);
     if (!isAdmin) {
-      let list = combinedPool.filter(dropDeactivated);
-      if (originFilter === "admin") list = list.filter((c) => c.agency_id == null);
-      else if (originFilter === "mine") list = list.filter((c) => c.agency_id === agencyId);
-      return list;
+      // Agency users see ONLY candidates their own agency created.
+      return adminCandidates; // useCandidates already scopes to agency_id for non-admins
     }
     if (tab === "all") return combinedPool.filter(dropDeactivated);
     if (tab === "admin") return adminCandidates;
     const base = agencyCandidates.filter(dropDeactivated);
     if (agencyFilter === "all") return base;
     return base.filter((c) => c.agency_id === agencyFilter);
-  }, [isAdmin, tab, agencyFilter, originFilter, adminCandidates, agencyCandidates, combinedPool, agencyId, activeAgencyIds]);
+  }, [isAdmin, tab, agencyFilter, adminCandidates, agencyCandidates, combinedPool, activeAgencyIds]);
 
   const loading = isAdmin
     ? tab === "all"
@@ -137,7 +135,7 @@ export default function CandidatesPage() {
       : tab === "admin"
         ? adminLoading
         : agencyLoading
-    : combinedLoading;
+    : adminLoading;
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
