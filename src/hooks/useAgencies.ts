@@ -221,8 +221,10 @@ export function useAgencyData(agencyId: string | undefined) {
     let p = false, c = false, a = false, u = false;
     const done = () => { if (p && c && a && u) setLoading(false); };
 
+    // Fetch ALL projects so cross-agency assignments (e.g. agency candidate
+    // assigned to an admin-owned project) can resolve their project name.
     const unsubP = onSnapshot(
-      query(collection(db, "projects"), where("agency_id", "==", agencyId)),
+      collection(db, "projects"),
       (snap) => {
         const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Project[];
         list.sort((x, y) => ((y.created_at as any)?.toMillis?.() ?? 0) - ((x.created_at as any)?.toMillis?.() ?? 0));
