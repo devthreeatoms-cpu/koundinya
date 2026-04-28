@@ -31,16 +31,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
-type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; adminOnly?: boolean };
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  adminOnly?: boolean;
+  hideForAgency?: boolean;
+};
 
 const navItems: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/candidates", label: "Candidates", icon: Users },
-  { to: "/projects", label: "Projects", icon: Briefcase },
+  { to: "/projects", label: "Projects", icon: Briefcase, hideForAgency: true },
   { to: "/agencies", label: "Agencies", icon: Building2, adminOnly: true },
-  // Reports and Settings temporarily hidden from navigation
-  // { to: "/reports", label: "Reports", icon: BarChart3 },
-  // { to: "/settings", label: "Settings", icon: Settings },
 ];
 
 const STORAGE_KEY = "koundinya-sidebar-collapsed";
@@ -161,7 +164,12 @@ export default function AppLayout() {
 
   const email = user?.email ?? "";
   const visibleNavItems = useMemo(
-    () => navItems.filter((i) => !i.adminOnly || isAdmin),
+    () =>
+      navItems.filter((i) => {
+        if (i.adminOnly && !isAdmin) return false;
+        if (i.hideForAgency && !isAdmin) return false;
+        return true;
+      }),
     [isAdmin]
   );
   const roleLabel = isAdmin ? "Administrator" : "Agency user";
