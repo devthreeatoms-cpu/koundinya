@@ -380,8 +380,9 @@ export default function ProjectDetail() {
                     <TableRow key={a.id} className={cn("border-b border-border/60", idx % 2 === 1 && "bg-muted/20")}>
                       <TableCell className={cn("text-sm", isDeleted && "text-muted-foreground")}>
                         {c ? (
-                          <span className="inline-flex items-center gap-2">
+                          <span className="inline-flex items-center gap-2 flex-wrap">
                             <span className={cn(isDeleted && "line-through decoration-muted-foreground/40")}>{c.name}</span>
+                            <OwnerBadge agencyId={c.agency_id} agencyName={c.agency_id ? agencyNameMap.get(c.agency_id) : null} />
                             {isDeleted && (
                               <Badge variant="outline" className="text-[10px] uppercase tracking-wide border-muted-foreground/30 text-muted-foreground bg-muted/40">
                                 Deleted
