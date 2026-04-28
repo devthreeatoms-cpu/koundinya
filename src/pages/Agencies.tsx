@@ -422,6 +422,13 @@ export default function AgenciesPage() {
         agencies={activeAgencies.map((a) => ({ id: a.id, name: a.name }))}
         defaultAgencyId={presetAgencyId}
       />
+      <UserDetailsDialog
+        user={viewUser}
+        agency={viewUser ? agencies.find((a) => a.id === viewUser.agency_id) ?? null : null}
+        onOpenChange={(open) => {
+          if (!open) setViewUser(null);
+        }}
+      />
     </div>
   );
 }
