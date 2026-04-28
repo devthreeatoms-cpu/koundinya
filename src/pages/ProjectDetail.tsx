@@ -204,14 +204,18 @@ export default function ProjectDetail() {
                               <span className="text-sm font-medium text-muted-foreground line-through decoration-muted-foreground/40 break-words">
                                 {c.name}
                               </span>
+                              <OwnerBadge agencyId={c.agency_id} agencyName={c.agency_id ? agencyNameMap.get(c.agency_id) : null} />
                               <Badge variant="outline" className="text-[10px] uppercase tracking-wide border-muted-foreground/30 text-muted-foreground bg-muted/40">
                                 Deleted
                               </Badge>
                             </div>
                           ) : (
-                            <Link to={`/candidates/${c.id}`} className="text-sm font-semibold hover:text-primary break-words block">
-                              {c.name}
-                            </Link>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <Link to={`/candidates/${c.id}`} className="text-sm font-semibold hover:text-primary break-words">
+                                {c.name}
+                              </Link>
+                              <OwnerBadge agencyId={c.agency_id} agencyName={c.agency_id ? agencyNameMap.get(c.agency_id) : null} />
+                            </div>
                           )
                         ) : (
                           <span className="text-sm text-muted-foreground italic">Unknown candidate</span>
