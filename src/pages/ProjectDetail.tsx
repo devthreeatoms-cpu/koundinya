@@ -59,6 +59,7 @@ export default function ProjectDetail() {
   // whether the candidate sits in the admin pool or any agency pool.
   const { candidates: allCandidates } = useAllCandidates({ bypassOwnerFilter: true });
   const { assignments } = useAssignments({ project_id: id, bypassOwnerFilter: true });
+  const { agencies } = useAgencies({ includeDeleted: true });
   const { toast } = useToast();
 
   const [editOpen, setEditOpen] = useState(false);
@@ -67,6 +68,7 @@ export default function ProjectDetail() {
   // Use the full candidate list (incl. soft-deleted) so historical
   // assignments still show the candidate's name with a "(Deleted)" tag.
   const candidateMap = useMemo(() => new Map(allCandidates.map((c) => [c.id, c])), [allCandidates]);
+  const agencyNameMap = useMemo(() => new Map(agencies.map((a) => [a.id, a.name])), [agencies]);
 
   const active = assignments.filter((a) => a.status === "Active");
   const past = assignments.filter((a) => a.status !== "Active");
