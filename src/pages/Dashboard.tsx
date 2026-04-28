@@ -620,6 +620,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
+      {isAdmin && (
       <Card className="glass-card p-4 sm:p-6 hover-lift animate-fade-in-up">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold tracking-tight">Recent projects</h3>
@@ -669,6 +670,7 @@ export default function Dashboard() {
           </ul>
         )}
       </Card>
+      )}
     </div>
   );
 }
