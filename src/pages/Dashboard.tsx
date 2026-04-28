@@ -51,13 +51,21 @@ export default function Dashboard() {
 
   // For admins, the "candidates" view is the union of admin-owned + every
   // agency's candidates. For agency users it's their own scoped list.
+  // Candidates whose owning agency has been deactivated are excluded so
+  // dashboard totals match what's visible elsewhere in the app.
+  const activeAgencyIds = useMemo(
+    () => new Set(agencies.filter((a) => !a.is_deleted).map((a) => a.id)),
+    [agencies]
+  );
   const candidates = useMemo(() => {
-    if (!isAdmin) return ownCandidates;
+    const dropDeactivated = (c: { agency_id?: string | null }) =>
+      c.agency_id == null || activeAgencyIds.has(c.agency_id);
+    if (!isAdmin) return ownCandidates.filter(dropDeactivated);
     const map = new Map<string, (typeof ownCandidates)[number]>();
     for (const c of ownCandidates) map.set(c.id, c);
     for (const c of agencyOwnedCandidates) map.set(c.id, c);
-    return Array.from(map.values());
-  }, [isAdmin, ownCandidates, agencyOwnedCandidates]);
+    return Array.from(map.values()).filter(dropDeactivated);
+  }, [isAdmin, ownCandidates, agencyOwnedCandidates, activeAgencyIds]);
 
   // Only count active assignments whose candidate is currently visible.
   // Stale assignments (deleted candidates, deactivated agencies) would
