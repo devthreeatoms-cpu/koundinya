@@ -59,9 +59,19 @@ export default function Dashboard() {
     return Array.from(map.values());
   }, [isAdmin, ownCandidates, agencyOwnedCandidates]);
 
+  // Only count active assignments whose candidate is currently visible.
+  // Stale assignments (deleted candidates, deactivated agencies) would
+  // otherwise inflate the "currently assigned" number above the total.
+  const visibleCandidateIds = useMemo(
+    () => new Set(candidates.map((c) => c.id)),
+    [candidates]
+  );
   const activeAssignments = useMemo(
-    () => assignments.filter((a) => a.status === "Active"),
-    [assignments]
+    () =>
+      assignments.filter(
+        (a) => a.status === "Active" && visibleCandidateIds.has(a.candidate_id)
+      ),
+    [assignments, visibleCandidateIds]
   );
   const assignedIds = useMemo(
     () => new Set(activeAssignments.map((a) => a.candidate_id)),
