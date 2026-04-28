@@ -106,6 +106,43 @@ export function useAllCandidates(opts?: { bypassOwnerFilter?: boolean }) {
 }
 
 /**
+ * Admin-only: returns all non-deleted candidates that BELONG to an agency
+ * (agency_id != null). Used for the "Agency Candidates" tab.
+ */
+export function useAgencyOwnedCandidates() {
+  const { isAdmin, loading: authLoading } = useAuth();
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!isAdmin) { setCandidates([]); setLoading(false); return; }
+    const q = query(
+      collection(db, COL),
+      where("is_deleted", "==", false),
+      where("agency_id", "!=", null)
+    );
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Candidate[];
+        list.sort((a, b) => {
+          const ta = (a.created_at as any)?.toMillis?.() ?? 0;
+          const tb = (b.created_at as any)?.toMillis?.() ?? 0;
+          return tb - ta;
+        });
+        setCandidates(list);
+        setLoading(false);
+      },
+      () => setLoading(false)
+    );
+    return () => unsub();
+  }, [isAdmin, authLoading]);
+
+  return { candidates, loading };
+}
+
+/**
  * Live single-candidate fetch by ID, bypassing list-level agency filters.
  * Useful for detail pages so admins can drill into agency-owned candidates
  * via /agencies/:id without being blocked by the strict admin filter.
