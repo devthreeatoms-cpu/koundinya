@@ -22,11 +22,12 @@ export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const { isAdmin } = useAuth();
   const { project, loading: pLoading } = useProjectById(id);
-  // If admin is viewing an agency-owned project (drill-down from /agencies/:id),
-  // bypass the strict admin owner filter so the project's actual data shows.
-  const bypass = isAdmin && !!project?.agency_id;
-  const { candidates: allCandidates } = useAllCandidates({ bypassOwnerFilter: bypass });
-  const { assignments } = useAssignments({ project_id: id, bypassOwnerFilter: bypass });
+  // Project detail is already scoped by project_id, and the project doc itself
+  // is access-checked above. Always bypass the owner filter here so EVERY
+  // assignment + candidate on this project renders correctly — regardless of
+  // whether the candidate sits in the admin pool or any agency pool.
+  const { candidates: allCandidates } = useAllCandidates({ bypassOwnerFilter: true });
+  const { assignments } = useAssignments({ project_id: id, bypassOwnerFilter: true });
   const { toast } = useToast();
 
   const [editOpen, setEditOpen] = useState(false);
