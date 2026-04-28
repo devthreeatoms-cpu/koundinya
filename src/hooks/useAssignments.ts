@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  collection, onSnapshot, addDoc, updateDoc, doc, serverTimestamp,
+  collection, onSnapshot, addDoc, updateDoc, doc, getDoc, serverTimestamp,
   query, where, getDocs, QueryConstraint,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -66,7 +66,10 @@ export function useAssignments(filter?: {
 export async function assignCandidates(
   projectId: string,
   candidateIds: string[],
-  ctx: { agency_id: string | null }
+  // ctx kept for backwards compatibility, but the assignment's agency_id is
+  // ALWAYS derived from the candidate so candidate ↔ assignment ownership
+  // can never drift.
+  _ctx?: { agency_id?: string | null }
 ) {
   for (const cid of candidateIds) {
     // check no active assignment
@@ -78,13 +81,21 @@ export async function assignCandidates(
       )
     );
     if (!existing.empty) continue; // skip already-active candidates
+
+    // Derive agency_id from the candidate so assignment.agency_id always
+    // matches candidate.agency_id (admin pool => null, agency => agency id).
+    const candSnap = await getDoc(doc(db, "candidates", cid));
+    const candAgencyId = candSnap.exists()
+      ? ((candSnap.data() as any).agency_id ?? null)
+      : null;
+
     await addDoc(collection(db, COL), {
       candidate_id: cid,
       project_id: projectId,
       status: "Active",
       assigned_at: serverTimestamp(),
       removed_at: null,
-      agency_id: ctx.agency_id ?? null,
+      agency_id: candAgencyId,
     });
   }
 }
