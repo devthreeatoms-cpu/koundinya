@@ -352,11 +352,11 @@ export default function CandidatesPage() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="col-span-2 w-full sm:w-44">
+                <SelectTrigger className="col-span-2 w-full sm:w-40">
                   <SelectValue placeholder="Availability" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All availability</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="available">Available</SelectItem>
                   <SelectItem value="assigned">Assigned</SelectItem>
                 </SelectContent>
