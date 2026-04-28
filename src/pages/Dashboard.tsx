@@ -88,38 +88,71 @@ export default function Dashboard() {
   const availableCount = candidates.filter((c) => !assignedIds.has(c.id)).length;
   const activeProjects = projects.filter((p) => p.status === "Active");
 
-  const stats = [
-    {
-      label: "Total candidates",
-      value: candidates.length,
-      icon: Users,
-      gradient: "bg-gradient-primary",
-      ring: "ring-primary/20",
-      hint: `${availableCount} available now`,
-      to: "/candidates",
-      hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--primary)/0.45)]",
-    },
-    {
-      label: "Active projects",
-      value: activeProjects.length,
-      icon: Briefcase,
-      gradient: "bg-gradient-secondary",
-      ring: "ring-secondary/20",
-      hint: `${projects.length - activeProjects.length} completed`,
-      to: "/projects",
-      hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--secondary)/0.45)]",
-    },
-    {
-      label: "Available candidates",
-      value: availableCount,
-      icon: UserCheck,
-      gradient: "bg-gradient-accent",
-      ring: "ring-accent/20",
-      hint: `${assignedIds.size} currently assigned`,
-      to: "/candidates?availability=available",
-      hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--accent)/0.45)]",
-    },
-  ];
+  const stats = isAdmin
+    ? [
+        {
+          label: "Total candidates",
+          value: candidates.length,
+          icon: Users,
+          gradient: "bg-gradient-primary",
+          ring: "ring-primary/20",
+          hint: `${availableCount} available now`,
+          to: "/candidates",
+          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--primary)/0.45)]",
+        },
+        {
+          label: "Active projects",
+          value: activeProjects.length,
+          icon: Briefcase,
+          gradient: "bg-gradient-secondary",
+          ring: "ring-secondary/20",
+          hint: `${projects.length - activeProjects.length} completed`,
+          to: "/projects",
+          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--secondary)/0.45)]",
+        },
+        {
+          label: "Available candidates",
+          value: availableCount,
+          icon: UserCheck,
+          gradient: "bg-gradient-accent",
+          ring: "ring-accent/20",
+          hint: `${assignedIds.size} currently assigned`,
+          to: "/candidates?availability=available",
+          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--accent)/0.45)]",
+        },
+      ]
+    : [
+        {
+          label: "Total candidates",
+          value: candidates.length,
+          icon: Users,
+          gradient: "bg-gradient-primary",
+          ring: "ring-primary/20",
+          hint: "Your agency pool",
+          to: "/candidates",
+          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--primary)/0.45)]",
+        },
+        {
+          label: "Available candidates",
+          value: availableCount,
+          icon: UserCheck,
+          gradient: "bg-gradient-accent",
+          ring: "ring-accent/20",
+          hint: "Not currently assigned",
+          to: "/candidates?availability=available",
+          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--accent)/0.45)]",
+        },
+        {
+          label: "Assigned candidates",
+          value: assignedIds.size,
+          icon: Briefcase,
+          gradient: "bg-gradient-secondary",
+          ring: "ring-secondary/20",
+          hint: "On an active project",
+          to: "/candidates?availability=assigned",
+          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--secondary)/0.45)]",
+        },
+      ];
 
   // Candidate status breakdown for chart
   const statusData = useMemo(() => {
