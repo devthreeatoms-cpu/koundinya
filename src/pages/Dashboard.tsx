@@ -29,14 +29,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useCandidates, useAllCandidates, useAgencyOwnedCandidates } from "@/hooks/useCandidates";
 import { useProjects } from "@/hooks/useProjects";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { useAssignments } from "@/hooks/useAssignments";
 import { useAgencies } from "@/hooks/useAgencies";
 import { useAuth } from "@/context/AuthContext";
@@ -52,9 +44,6 @@ export default function Dashboard() {
   // entire workforce across the platform, not just admin-owned records.
   const { candidates: agencyOwnedCandidates } = useAgencyOwnedCandidates();
   const { projects, loading: pLoading } = useProjects();
-  // Agency users need to resolve names of projects their candidates are
-  // assigned to (those projects are usually admin-owned). Read-only lookup.
-  const { projects: allProjectsForLookup } = useProjects({ bypassOwnerFilter: !isAdmin });
   const { assignments, loading: aLoading } = useAssignments({ bypassOwnerFilter: isAdmin });
   const { agencies, loading: agLoading } = useAgencies({ includeDeleted: true });
 
@@ -211,8 +200,8 @@ export default function Dashboard() {
     [allCandidates]
   );
   const projectMap = useMemo(
-    () => new Map(allProjectsForLookup.map((p) => [p.id, p])),
-    [allProjectsForLookup]
+    () => new Map(projects.map((p) => [p.id, p])),
+    [projects]
   );
 
   return (
