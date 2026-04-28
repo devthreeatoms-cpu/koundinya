@@ -250,10 +250,19 @@ export default function CandidatesPage() {
       {isAdmin && (
         <Tabs value={tab} onValueChange={(v) => setTab(v as "all" | "admin" | "agency")}>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <TabsList className="grid grid-cols-3 sm:w-auto sm:inline-flex">
-              <TabsTrigger value="all">All Candidates</TabsTrigger>
-              <TabsTrigger value="admin">Admin Candidates</TabsTrigger>
-              <TabsTrigger value="agency">Agency Candidates</TabsTrigger>
+            <TabsList className="grid grid-cols-3 w-full sm:w-auto sm:inline-flex h-auto gap-1 p-1">
+              <TabsTrigger value="all" className="text-[11px] sm:text-sm px-1.5 sm:px-3 py-1.5 whitespace-normal sm:whitespace-nowrap leading-tight">
+                <span className="sm:hidden">All</span>
+                <span className="hidden sm:inline">All Candidates</span>
+              </TabsTrigger>
+              <TabsTrigger value="admin" className="text-[11px] sm:text-sm px-1.5 sm:px-3 py-1.5 whitespace-normal sm:whitespace-nowrap leading-tight">
+                <span className="sm:hidden">Admin</span>
+                <span className="hidden sm:inline">Admin Candidates</span>
+              </TabsTrigger>
+              <TabsTrigger value="agency" className="text-[11px] sm:text-sm px-1.5 sm:px-3 py-1.5 whitespace-normal sm:whitespace-nowrap leading-tight">
+                <span className="sm:hidden">Agency</span>
+                <span className="hidden sm:inline">Agency Candidates</span>
+              </TabsTrigger>
             </TabsList>
             {tab === "agency" && (
               <Select value={agencyFilter} onValueChange={setAgencyFilter}>
