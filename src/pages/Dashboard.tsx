@@ -88,38 +88,71 @@ export default function Dashboard() {
   const availableCount = candidates.filter((c) => !assignedIds.has(c.id)).length;
   const activeProjects = projects.filter((p) => p.status === "Active");
 
-  const stats = [
-    {
-      label: "Total candidates",
-      value: candidates.length,
-      icon: Users,
-      gradient: "bg-gradient-primary",
-      ring: "ring-primary/20",
-      hint: `${availableCount} available now`,
-      to: "/candidates",
-      hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--primary)/0.45)]",
-    },
-    {
-      label: "Active projects",
-      value: activeProjects.length,
-      icon: Briefcase,
-      gradient: "bg-gradient-secondary",
-      ring: "ring-secondary/20",
-      hint: `${projects.length - activeProjects.length} completed`,
-      to: "/projects",
-      hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--secondary)/0.45)]",
-    },
-    {
-      label: "Available candidates",
-      value: availableCount,
-      icon: UserCheck,
-      gradient: "bg-gradient-accent",
-      ring: "ring-accent/20",
-      hint: `${assignedIds.size} currently assigned`,
-      to: "/candidates?availability=available",
-      hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--accent)/0.45)]",
-    },
-  ];
+  const stats = isAdmin
+    ? [
+        {
+          label: "Total candidates",
+          value: candidates.length,
+          icon: Users,
+          gradient: "bg-gradient-primary",
+          ring: "ring-primary/20",
+          hint: `${availableCount} available now`,
+          to: "/candidates",
+          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--primary)/0.45)]",
+        },
+        {
+          label: "Active projects",
+          value: activeProjects.length,
+          icon: Briefcase,
+          gradient: "bg-gradient-secondary",
+          ring: "ring-secondary/20",
+          hint: `${projects.length - activeProjects.length} completed`,
+          to: "/projects",
+          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--secondary)/0.45)]",
+        },
+        {
+          label: "Available candidates",
+          value: availableCount,
+          icon: UserCheck,
+          gradient: "bg-gradient-accent",
+          ring: "ring-accent/20",
+          hint: `${assignedIds.size} currently assigned`,
+          to: "/candidates?availability=available",
+          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--accent)/0.45)]",
+        },
+      ]
+    : [
+        {
+          label: "Total candidates",
+          value: candidates.length,
+          icon: Users,
+          gradient: "bg-gradient-primary",
+          ring: "ring-primary/20",
+          hint: "Your agency pool",
+          to: "/candidates",
+          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--primary)/0.45)]",
+        },
+        {
+          label: "Available candidates",
+          value: availableCount,
+          icon: UserCheck,
+          gradient: "bg-gradient-accent",
+          ring: "ring-accent/20",
+          hint: "Not currently assigned",
+          to: "/candidates?availability=available",
+          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--accent)/0.45)]",
+        },
+        {
+          label: "Assigned candidates",
+          value: assignedIds.size,
+          icon: Briefcase,
+          gradient: "bg-gradient-secondary",
+          ring: "ring-secondary/20",
+          hint: "On an active project",
+          to: "/candidates?availability=assigned",
+          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--secondary)/0.45)]",
+        },
+      ];
 
   // Candidate status breakdown for chart
   const statusData = useMemo(() => {
@@ -311,8 +344,8 @@ export default function Dashboard() {
       )}
 
       {/* Charts */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="glass-card p-4 sm:p-6 hover-lift lg:col-span-2 animate-fade-in-up">
+      <div className={cn("grid gap-4", isAdmin ? "lg:grid-cols-3" : "lg:grid-cols-1")}>
+        <Card className={cn("glass-card p-4 sm:p-6 hover-lift animate-fade-in-up", isAdmin && "lg:col-span-2")}>
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold tracking-tight">Candidate status breakdown</h3>
@@ -391,6 +424,7 @@ export default function Dashboard() {
           )}
         </Card>
 
+        {isAdmin && (
         <Card className="glass-card p-4 sm:p-6 hover-lift animate-fade-in-up">
           <div className="mb-4">
             <h3 className="font-semibold tracking-tight">Projects</h3>
@@ -446,6 +480,7 @@ export default function Dashboard() {
             </ResponsiveContainer>
           )}
         </Card>
+        )}
       </div>
 
       {/* Recent activity + Recent lists */}
@@ -585,6 +620,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
+      {isAdmin && (
       <Card className="glass-card p-4 sm:p-6 hover-lift animate-fade-in-up">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold tracking-tight">Recent projects</h3>
@@ -634,6 +670,7 @@ export default function Dashboard() {
           </ul>
         )}
       </Card>
+      )}
     </div>
   );
 }
