@@ -58,6 +58,20 @@ export default function AgencyDetail() {
     [assignments]
   );
 
+  // candidate_id -> active project (used by the Candidates section to show
+  // "Assigned to <project>" or "Available" inline).
+  const candidateAssignmentMap = useMemo(() => {
+    const m = new Map<string, { projectId: string; projectName: string }>();
+    for (const a of activeAssignments) {
+      const p = projectMap.get(a.project_id);
+      m.set(a.candidate_id, {
+        projectId: a.project_id,
+        projectName: p?.name ?? "Unknown project",
+      });
+    }
+    return m;
+  }, [activeAssignments, projectMap]);
+
   if (authLoading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -284,46 +298,59 @@ export default function AgencyDetail() {
           <>
             {/* Mobile: stacked cards */}
             <ul className="md:hidden space-y-3">
-              {visibleCandidates.map((c) => (
-                <li
-                  key={c.id}
-                  className="rounded-xl border border-border/60 bg-muted/20 p-3"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="h-10 w-10 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold shrink-0">
-                      {initials(c.name)}
+              {visibleCandidates.map((c) => {
+                const a = candidateAssignmentMap.get(c.id);
+                return (
+                  <li
+                    key={c.id}
+                    className="rounded-xl border border-border/60 bg-muted/20 p-3"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="h-10 w-10 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold shrink-0">
+                        {initials(c.name)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold break-words">{c.name}</p>
+                        {a ? (
+                          <Link
+                            to={`/projects/${a.projectId}`}
+                            className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-0.5 break-words"
+                          >
+                            Assigned to {a.projectName}
+                          </Link>
+                        ) : (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Not assigned to any project
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold break-words">{c.name}</p>
-                      <p className="text-xs text-muted-foreground tabular-nums break-all mt-0.5">
-                        {c.phone}
-                      </p>
-                      <p className="text-xs text-muted-foreground inline-flex items-center gap-1 mt-0.5">
-                        <MapPin className="h-3 w-3 shrink-0" />
-                        <span className="break-words">{c.location}</span>
-                      </p>
+                    <div className="flex items-center justify-between gap-2 pt-3 mt-3 border-t border-border/50">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "font-medium",
+                          a
+                            ? "border-warning/40 text-warning bg-warning/10"
+                            : "border-primary/40 text-primary bg-primary-soft"
+                        )}
+                      >
+                        {a ? "Assigned" : "Available"}
+                      </Badge>
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 text-primary hover:text-primary hover:bg-primary-soft"
+                      >
+                        <Link to={`/candidates/${c.id}`}>
+                          <Eye className="h-4 w-4" /> View
+                        </Link>
+                      </Button>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 pt-3 mt-3 border-t border-border/50">
-                    <Badge
-                      variant="outline"
-                      className="border-muted-foreground/30 text-muted-foreground"
-                    >
-                      {c.status}
-                    </Badge>
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="sm"
-                      className="h-9 text-primary hover:text-primary hover:bg-primary-soft"
-                    >
-                      <Link to={`/candidates/${c.id}`}>
-                        <Eye className="h-4 w-4" /> View
-                      </Link>
-                    </Button>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
 
             {/* Desktop: table */}
@@ -332,51 +359,71 @@ export default function AgencyDetail() {
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40">
                     <TableHead className="font-semibold text-foreground">Name</TableHead>
-                    <TableHead className="font-semibold text-foreground">Phone</TableHead>
-                    <TableHead className="font-semibold text-foreground">Location</TableHead>
                     <TableHead className="font-semibold text-foreground">Status</TableHead>
                     <TableHead className="font-semibold text-foreground text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {visibleCandidates.map((c, idx) => (
-                    <TableRow
-                      key={c.id}
-                      className={cn(
-                        "border-b border-border/60",
-                        idx % 2 === 1 && "bg-muted/20",
-                        "hover:bg-primary-soft/40"
-                      )}
-                    >
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold">
-                            {initials(c.name)}
+                  {visibleCandidates.map((c, idx) => {
+                    const a = candidateAssignmentMap.get(c.id);
+                    return (
+                      <TableRow
+                        key={c.id}
+                        className={cn(
+                          "border-b border-border/60",
+                          idx % 2 === 1 && "bg-muted/20",
+                          "hover:bg-primary-soft/40"
+                        )}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold">
+                              {initials(c.name)}
+                            </div>
+                            <span className="text-sm font-medium">{c.name}</span>
                           </div>
-                          <span className="text-sm font-medium">{c.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm tabular-nums">{c.phone}</TableCell>
-                      <TableCell className="text-sm">{c.location}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground">
-                          {c.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          asChild
-                          variant="ghost"
-                          size="sm"
-                          className="text-primary hover:text-primary hover:bg-primary-soft"
-                        >
-                          <Link to={`/candidates/${c.id}`}>
-                            <Eye className="h-4 w-4" /> View
-                          </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell>
+                          {a ? (
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant="outline"
+                                className="border-warning/40 text-warning bg-warning/10 font-medium"
+                              >
+                                Assigned
+                              </Badge>
+                              <Link
+                                to={`/projects/${a.projectId}`}
+                                className="text-xs text-primary hover:underline truncate max-w-[14rem]"
+                                title={a.projectName}
+                              >
+                                {a.projectName}
+                              </Link>
+                            </div>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="border-primary/40 text-primary bg-primary-soft font-medium"
+                            >
+                              Available
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            asChild
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary hover:text-primary hover:bg-primary-soft"
+                          >
+                            <Link to={`/candidates/${c.id}`}>
+                              <Eye className="h-4 w-4" /> View
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
