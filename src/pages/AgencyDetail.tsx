@@ -58,6 +58,20 @@ export default function AgencyDetail() {
     [assignments]
   );
 
+  // candidate_id -> active project (used by the Candidates section to show
+  // "Assigned to <project>" or "Available" inline).
+  const candidateAssignmentMap = useMemo(() => {
+    const m = new Map<string, { projectId: string; projectName: string }>();
+    for (const a of activeAssignments) {
+      const p = projectMap.get(a.project_id);
+      m.set(a.candidate_id, {
+        projectId: a.project_id,
+        projectName: p?.name ?? "Unknown project",
+      });
+    }
+    return m;
+  }, [activeAssignments, projectMap]);
+
   if (authLoading) {
     return (
       <div className="flex items-center justify-center py-24">
