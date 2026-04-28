@@ -41,33 +41,38 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
   const adminCrossAgency = isAdmin && !!projectAgencyId;
   const ownerAgencyForAssign = adminCrossAgency ? projectAgencyId! : agencyId;
 
-  // Candidate pool:
-  //  - Agency users: admin pool (agency_id == null) + their own agency.
-  //  - Admin (own project): admin pool only (combined hook returns all for admin, so filter).
-  //  - Admin cross-agency project: admin pool + that agency's candidates.
+  // Candidate pool: always show the full active platform pool so admins and
+  // agencies can pick from admin candidates AND every (active) agency's
+  // candidates when assigning. Soft-deleted candidates and candidates whose
+  // owning agency is deactivated are filtered out.
   const { candidates: combined } = useCombinedCandidatePool();
-  const { candidates: allRaw } = useAllCandidates({ bypassOwnerFilter: adminCrossAgency });
+  const { candidates: allRaw } = useAllCandidates({ bypassOwnerFilter: isAdmin });
+  const { agencies } = useAgencies({ includeDeleted: true });
+  const activeAgencyIds = useMemo(
+    () => new Set(agencies.filter((a) => !a.is_deleted).map((a) => a.id)),
+    [agencies]
+  );
+  const agencyNameMap = useMemo(
+    () => new Map(agencies.map((a) => [a.id, a.name])),
+    [agencies]
+  );
 
   const candidates = useMemo(() => {
-    if (!isAdmin) return combined; // already admin-pool + own-agency
-    if (adminCrossAgency) {
-      return allRaw.filter(
-        (c) => !c.is_deleted && (c.agency_id == null || c.agency_id === projectAgencyId)
-      );
-    }
-    // Admin assigning into own (admin-owned) project: only admin pool.
-    return combined.filter((c) => c.agency_id == null);
-  }, [isAdmin, adminCrossAgency, combined, allRaw, projectAgencyId]);
+    // Admin: full platform pool (admin-owned + every agency).
+    // Agency: admin-owned + their own agency (already enforced by combined hook).
+    const base = isAdmin ? allRaw : combined;
+    return base.filter((c) => {
+      if (c.is_deleted) return false;
+      // Hide candidates whose owning agency has been deactivated.
+      if (c.agency_id != null && !activeAgencyIds.has(c.agency_id)) return false;
+      return true;
+    });
+  }, [isAdmin, allRaw, combined, activeAgencyIds]);
 
   // Active-assignment exclusion must consider ALL active assignments for the
   // candidates we're showing — bypass owner filter so a candidate booked by
   // admin doesn't appear "Available" to an agency user.
   const { assignments } = useAssignments({ bypassOwnerFilter: true });
-  const { agencies } = useAgencies({ includeDeleted: true });
-  const agencyNameMap = useMemo(
-    () => new Map(agencies.map((a) => [a.id, a.name])),
-    [agencies]
-  );
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
