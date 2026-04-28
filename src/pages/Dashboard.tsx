@@ -44,7 +44,11 @@ export default function Dashboard() {
   // entire workforce across the platform, not just admin-owned records.
   const { candidates: agencyOwnedCandidates } = useAgencyOwnedCandidates();
   const { projects, loading: pLoading } = useProjects();
-  const { assignments, loading: aLoading } = useAssignments({ bypassOwnerFilter: isAdmin });
+  // Always bypass the owner filter on assignments — we intersect with the
+  // visible candidate set below, which is the source of truth for ownership.
+  // This avoids missing an active assignment if its agency_id ever drifts
+  // from the candidate's agency_id.
+  const { assignments, loading: aLoading } = useAssignments({ bypassOwnerFilter: true });
   const { agencies, loading: agLoading } = useAgencies({ includeDeleted: true });
 
   const loading = cLoading || pLoading || aLoading;
