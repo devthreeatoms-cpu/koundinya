@@ -72,15 +72,18 @@ export default function AgencyDetail() {
     [assignments, visibleCandidateIds]
   );
 
-  // candidate_id -> active project (used by the Candidates section to show
-  // "Assigned to <project>" or "Available" inline).
+  // candidate_id -> active assignment info (project + assigned_at).
   const candidateAssignmentMap = useMemo(() => {
-    const m = new Map<string, { projectId: string; projectName: string }>();
+    const m = new Map<
+      string,
+      { projectId: string; projectName: string; assignedAt: any }
+    >();
     for (const a of activeAssignments) {
       const p = projectMap.get(a.project_id);
       m.set(a.candidate_id, {
         projectId: a.project_id,
         projectName: p?.name ?? "Unknown project",
+        assignedAt: (a as any).assigned_at,
       });
     }
     return m;
