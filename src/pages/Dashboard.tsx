@@ -26,17 +26,23 @@ import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { useCandidates, useAllCandidates } from "@/hooks/useCandidates";
 import { useProjects } from "@/hooks/useProjects";
 import { useAssignments } from "@/hooks/useAssignments";
+import { useAgencies } from "@/hooks/useAgencies";
+import { useAuth } from "@/context/AuthContext";
 import { formatDate, initials } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
+import { Building2 } from "lucide-react";
 
 export default function Dashboard() {
+  const { isAdmin } = useAuth();
   const { candidates, loading: cLoading } = useCandidates();
   const { candidates: allCandidates } = useAllCandidates();
   const { projects, loading: pLoading } = useProjects();
   const { assignments, loading: aLoading } = useAssignments();
+  const { agencies, loading: agLoading } = useAgencies({ includeDeleted: true });
 
   const loading = cLoading || pLoading || aLoading;
 
