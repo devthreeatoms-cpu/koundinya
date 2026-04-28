@@ -12,9 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Search, Loader2, X, Sparkles, MapPin, Bike } from "lucide-react";
-import { useCandidates, useAllCandidates } from "@/hooks/useCandidates";
+import { Search, Loader2, X, Sparkles, MapPin, Bike, Building2, ShieldCheck } from "lucide-react";
+import { useCombinedCandidatePool, useAllCandidates } from "@/hooks/useCandidates";
 import { useAssignments, assignCandidates } from "@/hooks/useAssignments";
+import { useAgencies } from "@/hooks/useAgencies";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { initials } from "@/lib/utils-format";
@@ -35,25 +36,38 @@ interface Props {
 
 export default function AssignCandidatesModal({ open, onOpenChange, projectId, projectAgencyId }: Props) {
   const { isAdmin, agencyId } = useAuth();
-  // When admin is assigning into an agency-owned project, bypass owner filters
-  // and scope candidates/assignments to that project's agency.
+  // Admin assigning into an agency project still needs the cross-agency bypass
+  // for the candidate list AND the active-assignment lookup.
   const adminCrossAgency = isAdmin && !!projectAgencyId;
   const ownerAgencyForAssign = adminCrossAgency ? projectAgencyId! : agencyId;
 
-  // Candidate list: agency users use their own scoped list; admin cross-agency
-  // uses the bypass + filters down to the project's agency below.
-  const { candidates: ownCandidates } = useCandidates();
-  const { candidates: allCandidates } = useAllCandidates({
-    bypassOwnerFilter: adminCrossAgency,
-  });
-  const candidates = adminCrossAgency
-    ? allCandidates.filter(
-        (c) => !c.is_deleted && c.agency_id === projectAgencyId
-      )
-    : ownCandidates;
+  // Candidate pool:
+  //  - Agency users: admin pool (agency_id == null) + their own agency.
+  //  - Admin (own project): admin pool only (combined hook returns all for admin, so filter).
+  //  - Admin cross-agency project: admin pool + that agency's candidates.
+  const { candidates: combined } = useCombinedCandidatePool();
+  const { candidates: allRaw } = useAllCandidates({ bypassOwnerFilter: adminCrossAgency });
 
-  // Active assignments to exclude: include cross-agency ones when needed.
-  const { assignments } = useAssignments({ bypassOwnerFilter: adminCrossAgency });
+  const candidates = useMemo(() => {
+    if (!isAdmin) return combined; // already admin-pool + own-agency
+    if (adminCrossAgency) {
+      return allRaw.filter(
+        (c) => !c.is_deleted && (c.agency_id == null || c.agency_id === projectAgencyId)
+      );
+    }
+    // Admin assigning into own (admin-owned) project: only admin pool.
+    return combined.filter((c) => c.agency_id == null);
+  }, [isAdmin, adminCrossAgency, combined, allRaw, projectAgencyId]);
+
+  // Active-assignment exclusion must consider ALL active assignments for the
+  // candidates we're showing — bypass owner filter so a candidate booked by
+  // admin doesn't appear "Available" to an agency user.
+  const { assignments } = useAssignments({ bypassOwnerFilter: true });
+  const { agencies } = useAgencies({ includeDeleted: true });
+  const agencyNameMap = useMemo(
+    () => new Map(agencies.map((a) => [a.id, a.name])),
+    [agencies]
+  );
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -126,7 +140,7 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
             <div className="flex-1">
               <DialogTitle className="text-lg">Assign candidates</DialogTitle>
               <DialogDescription className="text-xs mt-0.5">
-                Only available candidates (no active assignment) are shown.
+                Showing the combined pool — admin candidates and agency candidates. Only those with no active assignment are listed.
               </DialogDescription>
             </div>
           </div>
@@ -200,8 +214,26 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
                         {initials(c.name)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{c.name}</p>
-                        <p className="text-xs text-muted-foreground inline-flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-sm font-medium truncate">{c.name}</p>
+                          {c.agency_id == null ? (
+                            <Badge
+                              variant="outline"
+                              className="border-primary/40 text-primary bg-primary-soft/50 text-[10px] gap-1 px-1.5 py-0"
+                            >
+                              <ShieldCheck className="h-2.5 w-2.5" /> Admin
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="border-secondary/40 text-secondary bg-secondary-soft/50 text-[10px] gap-1 px-1.5 py-0"
+                            >
+                              <Building2 className="h-2.5 w-2.5" />
+                              {agencyNameMap.get(c.agency_id) ?? "Agency"}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground inline-flex items-center gap-2 mt-0.5">
                           <span>{c.phone}</span>
                           <span className="inline-flex items-center gap-0.5">
                             <MapPin className="h-3 w-3" /> {c.location}

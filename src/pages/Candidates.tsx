@@ -12,6 +12,8 @@ import {
   X,
   Eye,
   Users as UsersIcon,
+  ShieldCheck,
+  Building2,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -50,7 +52,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useCandidates, useAgencyOwnedCandidates, softDeleteCandidate } from "@/hooks/useCandidates";
+import {
+  useCandidates,
+  useAgencyOwnedCandidates,
+  useCombinedCandidatePool,
+  softDeleteCandidate,
+} from "@/hooks/useCandidates";
 import { useAssignments } from "@/hooks/useAssignments";
 import { useAgencies } from "@/hooks/useAgencies";
 import { useAuth } from "@/context/AuthContext";
@@ -79,11 +86,13 @@ const statusDot: Record<CandidateStatus, string> = {
 };
 
 export default function CandidatesPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, agencyId } = useAuth();
   const { candidates: adminCandidates, loading: adminLoading } = useCandidates();
   const { candidates: agencyCandidates, loading: agencyLoading } = useAgencyOwnedCandidates();
+  // Agency users see admin pool + their own agency candidates combined.
+  const { candidates: combinedPool, loading: combinedLoading } = useCombinedCandidatePool();
   const { agencies } = useAgencies({ includeDeleted: true });
-  const { assignments } = useAssignments();
+  const { assignments } = useAssignments({ bypassOwnerFilter: !isAdmin });
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -93,23 +102,29 @@ export default function CandidatesPage() {
     return v === "available" || v === "assigned" ? v : "all";
   })();
 
-  // Tab state — only used for admin. Agency users always see their own list.
+  // Tab state — only used for admin. Agency users always see their combined pool.
   const [tab, setTab] = useState<"admin" | "agency">("admin");
   const [agencyFilter, setAgencyFilter] = useState<string>("all");
+  // Origin filter for agency users: all | admin (admin pool) | mine (my agency)
+  const [originFilter, setOriginFilter] = useState<"all" | "admin" | "mine">("all");
 
   const candidates = useMemo(() => {
-    if (!isAdmin) return adminCandidates; // hook already returns agency-scoped list
+    if (!isAdmin) {
+      let list = combinedPool;
+      if (originFilter === "admin") list = list.filter((c) => c.agency_id == null);
+      else if (originFilter === "mine") list = list.filter((c) => c.agency_id === agencyId);
+      return list;
+    }
     if (tab === "admin") return adminCandidates;
-    // Agency tab + optional specific agency filter
     if (agencyFilter === "all") return agencyCandidates;
     return agencyCandidates.filter((c) => c.agency_id === agencyFilter);
-  }, [isAdmin, tab, agencyFilter, adminCandidates, agencyCandidates]);
+  }, [isAdmin, tab, agencyFilter, originFilter, adminCandidates, agencyCandidates, combinedPool, agencyId]);
 
   const loading = isAdmin
     ? tab === "admin"
       ? adminLoading
       : agencyLoading
-    : adminLoading;
+    : combinedLoading;
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -247,6 +262,19 @@ export default function CandidatesPage() {
           </div>
           <TabsContent value="admin" />
           <TabsContent value="agency" />
+        </Tabs>
+      )}
+
+      {!isAdmin && (
+        <Tabs value={originFilter} onValueChange={(v) => setOriginFilter(v as any)}>
+          <TabsList className="grid grid-cols-3 sm:w-auto sm:inline-flex">
+            <TabsTrigger value="all">All candidates</TabsTrigger>
+            <TabsTrigger value="mine">My agency</TabsTrigger>
+            <TabsTrigger value="admin">Admin pool</TabsTrigger>
+          </TabsList>
+          <TabsContent value="all" />
+          <TabsContent value="mine" />
+          <TabsContent value="admin" />
         </Tabs>
       )}
 
@@ -398,7 +426,10 @@ export default function CandidatesPage() {
                           {initials(c.name)}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium text-sm break-words">{c.name}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-medium text-sm break-words">{c.name}</p>
+                            <OriginBadge agencyId={c.agency_id} agencyName={c.agency_id ? agencyMap.get(c.agency_id)?.name : null} />
+                          </div>
                           <p className="text-xs text-muted-foreground tabular-nums break-all">{c.phone}</p>
                           <p className="text-xs text-muted-foreground inline-flex items-center gap-1 mt-0.5">
                             <MapPin className="h-3 w-3 shrink-0" />
@@ -427,15 +458,19 @@ export default function CandidatesPage() {
                             <DropdownMenuItem onClick={() => navigate(`/candidates/${c.id}`)}>
                               <Eye className="h-4 w-4 mr-2" /> View
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openEdit(c)}>
-                              <Edit className="h-4 w-4 mr-2" /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => setDeleting(c)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" /> Delete
-                            </DropdownMenuItem>
+                            {(isAdmin || c.agency_id === agencyId) && (
+                              <>
+                                <DropdownMenuItem onClick={() => openEdit(c)}>
+                                  <Edit className="h-4 w-4 mr-2" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => setDeleting(c)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -530,9 +565,12 @@ export default function CandidatesPage() {
                             {initials(c.name)}
                           </div>
                           <div>
-                            <p className="font-medium text-sm group-hover/link:text-primary transition-colors">
-                              {c.name}
-                            </p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-medium text-sm group-hover/link:text-primary transition-colors">
+                                {c.name}
+                              </p>
+                              <OriginBadge agencyId={c.agency_id} agencyName={c.agency_id ? agencyMap.get(c.agency_id)?.name : null} />
+                            </div>
                             {c.has_bike && (
                               <p className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
                                 <Bike className="h-3 w-3" /> Has bike
@@ -597,15 +635,19 @@ export default function CandidatesPage() {
                               <DropdownMenuItem onClick={() => navigate(`/candidates/${c.id}`)}>
                                 <Eye className="h-4 w-4 mr-2" /> View
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openEdit(c)}>
-                                <Edit className="h-4 w-4 mr-2" /> Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => setDeleting(c)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" /> Delete
-                              </DropdownMenuItem>
+                              {(isAdmin || c.agency_id === agencyId) && (
+                                <>
+                                  <DropdownMenuItem onClick={() => openEdit(c)}>
+                                    <Edit className="h-4 w-4 mr-2" /> Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => setDeleting(c)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -673,5 +715,33 @@ export default function CandidatesPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+function OriginBadge({
+  agencyId,
+  agencyName,
+}: {
+  agencyId: string | null | undefined;
+  agencyName?: string | null;
+}) {
+  if (agencyId == null) {
+    return (
+      <Badge
+        variant="outline"
+        className="border-primary/40 text-primary bg-primary-soft/50 text-[10px] gap-1 px-1.5 py-0 font-medium"
+      >
+        <ShieldCheck className="h-2.5 w-2.5" /> Admin
+      </Badge>
+    );
+  }
+  return (
+    <Badge
+      variant="outline"
+      className="border-secondary/40 text-secondary bg-secondary-soft/50 text-[10px] gap-1 px-1.5 py-0 font-medium max-w-[10rem] truncate"
+    >
+      <Building2 className="h-2.5 w-2.5 shrink-0" />
+      <span className="truncate">{agencyName || "Agency"}</span>
+    </Badge>
   );
 }
