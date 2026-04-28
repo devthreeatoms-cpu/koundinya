@@ -52,6 +52,9 @@ export default function Dashboard() {
   // entire workforce across the platform, not just admin-owned records.
   const { candidates: agencyOwnedCandidates } = useAgencyOwnedCandidates();
   const { projects, loading: pLoading } = useProjects();
+  // Agency users need to resolve names of projects their candidates are
+  // assigned to (those projects are usually admin-owned). Read-only lookup.
+  const { projects: allProjectsForLookup } = useProjects({ bypassOwnerFilter: !isAdmin });
   const { assignments, loading: aLoading } = useAssignments({ bypassOwnerFilter: isAdmin });
   const { agencies, loading: agLoading } = useAgencies({ includeDeleted: true });
 
