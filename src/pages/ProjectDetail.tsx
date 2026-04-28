@@ -335,6 +335,7 @@ export default function ProjectDetail() {
                           <span className={cn("text-sm font-medium break-words", isDeleted && "text-muted-foreground line-through decoration-muted-foreground/40")}>
                             {c.name}
                           </span>
+                          <OwnerBadge agencyId={c.agency_id} agencyName={c.agency_id ? agencyNameMap.get(c.agency_id) : null} />
                           {isDeleted && (
                             <Badge variant="outline" className="text-[10px] uppercase tracking-wide border-muted-foreground/30 text-muted-foreground bg-muted/40">
                               Deleted
