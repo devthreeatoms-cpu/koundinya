@@ -561,9 +561,12 @@ export default function CandidatesPage() {
                             {initials(c.name)}
                           </div>
                           <div>
-                            <p className="font-medium text-sm group-hover/link:text-primary transition-colors">
-                              {c.name}
-                            </p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-medium text-sm group-hover/link:text-primary transition-colors">
+                                {c.name}
+                              </p>
+                              <OriginBadge agencyId={c.agency_id} agencyName={c.agency_id ? agencyMap.get(c.agency_id)?.name : null} />
+                            </div>
                             {c.has_bike && (
                               <p className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
                                 <Bike className="h-3 w-3" /> Has bike
