@@ -104,7 +104,18 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
         await updateCandidate(candidate.id, values);
         toast({ title: "Candidate updated" });
       } else {
-        await createCandidate(values, { agency_id: agencyId });
+        // Guard: agency users MUST have an agency_id, otherwise the candidate
+        // would be saved into the admin pool and they wouldn't see it.
+        if (!isAdmin && !agencyId) {
+          toast({
+            title: "Account not linked to an agency",
+            description:
+              "Your user profile is missing an agency link. Please contact admin to fix your account.",
+            variant: "destructive",
+          });
+          return;
+        }
+        await createCandidate(values, { agency_id: isAdmin ? null : agencyId });
         toast({ title: "Candidate added" });
       }
       onOpenChange(false);
