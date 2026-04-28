@@ -15,6 +15,9 @@ import {
   Trash2,
   Phone as PhoneIcon,
   RotateCcw,
+  Eye,
+  Calendar,
+  Hash,
 } from "lucide-react";
 
 import PageHeader from "@/components/PageHeader";
@@ -64,7 +67,7 @@ import {
 } from "@/hooks/useAgencies";
 import { formatDate } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
-import type { Agency } from "@/types";
+import type { Agency, AppUser } from "@/types";
 
 const agencySchema = z.object({
   name: z.string().trim().min(2, "Name is required").max(100),
@@ -91,6 +94,7 @@ export default function AgenciesPage() {
   const [presetAgencyId, setPresetAgencyId] = useState<string | null>(null);
   const [editAgency, setEditAgency] = useState<Agency | null>(null);
   const [deleteAgency, setDeleteAgency] = useState<Agency | null>(null);
+  const [viewUser, setViewUser] = useState<AppUser | null>(null);
 
   // Hooks must run unconditionally — guard render below.
   const usersByAgency = useMemo(() => {
@@ -372,6 +376,15 @@ export default function AgenciesPage() {
                       "Agency"
                     )}
                   </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="px-2.5 shrink-0"
+                    aria-label="View user details"
+                    onClick={() => setViewUser(u)}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
                 </li>
               );
             })}
@@ -408,6 +421,13 @@ export default function AgenciesPage() {
         }}
         agencies={activeAgencies.map((a) => ({ id: a.id, name: a.name }))}
         defaultAgencyId={presetAgencyId}
+      />
+      <UserDetailsDialog
+        user={viewUser}
+        agency={viewUser ? agencies.find((a) => a.id === viewUser.agency_id) ?? null : null}
+        onOpenChange={(open) => {
+          if (!open) setViewUser(null);
+        }}
       />
     </div>
   );
@@ -766,5 +786,153 @@ function InviteUserDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function UserDetailsDialog({
+  user,
+  agency,
+  onOpenChange,
+}: {
+  user: AppUser | null;
+  agency: Agency | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const isAdminUser = user?.role === "admin";
+  const inactive = !!agency?.is_deleted;
+  const created = (user?.created_at as any)?.toDate?.();
+
+  return (
+    <Dialog open={!!user} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>User details</DialogTitle>
+          <DialogDescription>
+            Full account information for this user.
+          </DialogDescription>
+        </DialogHeader>
+
+        {user && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border/60">
+              <div className="h-12 w-12 rounded-full bg-gradient-brand text-white grid place-items-center shrink-0">
+                <Mail className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold break-all">{user.email}</p>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  <Badge
+                    variant="outline"
+                    className={
+                      isAdminUser
+                        ? "border-primary/40 text-primary bg-primary-soft"
+                        : "border-border text-muted-foreground"
+                    }
+                  >
+                    {isAdminUser ? (
+                      <>
+                        <ShieldCheck className="h-3 w-3 mr-1" /> Admin
+                      </>
+                    ) : (
+                      "Agency"
+                    )}
+                  </Badge>
+                  {!isAdminUser && (
+                    <Badge
+                      variant="outline"
+                      className={
+                        inactive
+                          ? "border-muted-foreground/30 text-muted-foreground bg-muted/40"
+                          : "border-success/40 text-success bg-success/10"
+                      }
+                    >
+                      {inactive ? "Inactive" : "Active"}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-2 text-sm">
+              <DetailRow
+                icon={<Building2 className="h-3.5 w-3.5" />}
+                label="Agency"
+                value={
+                  isAdminUser
+                    ? "Global admin (no agency)"
+                    : agency
+                    ? agency.name
+                    : "Unassigned"
+                }
+              />
+              {agency?.email && (
+                <DetailRow
+                  icon={<Mail className="h-3.5 w-3.5" />}
+                  label="Agency email"
+                  value={agency.email}
+                />
+              )}
+              {agency?.phone && (
+                <DetailRow
+                  icon={<PhoneIcon className="h-3.5 w-3.5" />}
+                  label="Agency phone"
+                  value={agency.phone}
+                />
+              )}
+              <DetailRow
+                icon={<Calendar className="h-3.5 w-3.5" />}
+                label="Created"
+                value={created ? formatDate(created) : "—"}
+              />
+              <DetailRow
+                icon={<Hash className="h-3.5 w-3.5" />}
+                label="User ID"
+                value={user.id}
+                mono
+              />
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DetailRow({
+  icon,
+  label,
+  value,
+  mono,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="flex items-start gap-3 p-3 rounded-lg border border-border/60 bg-muted/20">
+      <div className="h-7 w-7 rounded-md bg-primary-soft text-primary grid place-items-center shrink-0 mt-0.5">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+          {label}
+        </p>
+        <p
+          className={cn(
+            "text-sm mt-0.5 break-all",
+            mono && "font-mono text-xs"
+          )}
+        >
+          {value}
+        </p>
+      </div>
+    </div>
   );
 }
