@@ -16,14 +16,20 @@ import {
 } from "@/components/ui/select";
 import { useProjects } from "@/hooks/useProjects";
 import { useAssignments } from "@/hooks/useAssignments";
+import { useAuth } from "@/context/AuthContext";
 import ProjectFormModal from "@/components/projects/ProjectFormModal";
 import type { Project } from "@/types";
 import { formatDate } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
 
 export default function ProjectsPage() {
-  const { projects, loading } = useProjects();
-  const { assignments } = useAssignments();
+  const { isAdmin } = useAuth();
+  // Admins should see ALL projects (admin-owned + every agency's projects) so
+  // the totals match the dashboard. Agency users keep their scoped view.
+  const { projects, loading } = useProjects({ bypassOwnerFilter: isAdmin });
+  // Same for assignments — bypass ownership so per-project counts are accurate
+  // across admin and agency-owned projects.
+  const { assignments } = useAssignments({ bypassOwnerFilter: true });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [modalOpen, setModalOpen] = useState(false);
