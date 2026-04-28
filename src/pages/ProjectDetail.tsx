@@ -11,12 +11,43 @@ import {
 import { useProjectById } from "@/hooks/useProjects";
 import { useAllCandidates } from "@/hooks/useCandidates";
 import { useAssignments, removeAssignment } from "@/hooks/useAssignments";
+import { useAgencies } from "@/hooks/useAgencies";
 import { useAuth } from "@/context/AuthContext";
 import ProjectFormModal from "@/components/projects/ProjectFormModal";
 import AssignCandidatesModal from "@/components/projects/AssignCandidatesModal";
 import { formatDate, initials } from "@/lib/utils-format";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { Building2, Shield } from "lucide-react";
+
+/** Small badge showing whether a candidate is owned by Admin or a specific agency. */
+function OwnerBadge({
+  agencyId,
+  agencyName,
+}: {
+  agencyId?: string | null;
+  agencyName?: string | null;
+}) {
+  if (!agencyId) {
+    return (
+      <Badge
+        variant="outline"
+        className="text-[10px] uppercase tracking-wide border-primary/30 text-primary bg-primary-soft inline-flex items-center gap-1"
+      >
+        <Shield className="h-2.5 w-2.5" /> Admin
+      </Badge>
+    );
+  }
+  return (
+    <Badge
+      variant="outline"
+      className="text-[10px] uppercase tracking-wide border-secondary/40 text-secondary bg-secondary/10 inline-flex items-center gap-1 max-w-[140px]"
+    >
+      <Building2 className="h-2.5 w-2.5 shrink-0" />
+      <span className="truncate">{agencyName || "Agency"}</span>
+    </Badge>
+  );
+}
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +59,7 @@ export default function ProjectDetail() {
   // whether the candidate sits in the admin pool or any agency pool.
   const { candidates: allCandidates } = useAllCandidates({ bypassOwnerFilter: true });
   const { assignments } = useAssignments({ project_id: id, bypassOwnerFilter: true });
+  const { agencies } = useAgencies({ includeDeleted: true });
   const { toast } = useToast();
 
   const [editOpen, setEditOpen] = useState(false);
@@ -36,6 +68,7 @@ export default function ProjectDetail() {
   // Use the full candidate list (incl. soft-deleted) so historical
   // assignments still show the candidate's name with a "(Deleted)" tag.
   const candidateMap = useMemo(() => new Map(allCandidates.map((c) => [c.id, c])), [allCandidates]);
+  const agencyNameMap = useMemo(() => new Map(agencies.map((a) => [a.id, a.name])), [agencies]);
 
   const active = assignments.filter((a) => a.status === "Active");
   const past = assignments.filter((a) => a.status !== "Active");
@@ -171,14 +204,18 @@ export default function ProjectDetail() {
                               <span className="text-sm font-medium text-muted-foreground line-through decoration-muted-foreground/40 break-words">
                                 {c.name}
                               </span>
+                              <OwnerBadge agencyId={c.agency_id} agencyName={c.agency_id ? agencyNameMap.get(c.agency_id) : null} />
                               <Badge variant="outline" className="text-[10px] uppercase tracking-wide border-muted-foreground/30 text-muted-foreground bg-muted/40">
                                 Deleted
                               </Badge>
                             </div>
                           ) : (
-                            <Link to={`/candidates/${c.id}`} className="text-sm font-semibold hover:text-primary break-words block">
-                              {c.name}
-                            </Link>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <Link to={`/candidates/${c.id}`} className="text-sm font-semibold hover:text-primary break-words">
+                                {c.name}
+                              </Link>
+                              <OwnerBadge agencyId={c.agency_id} agencyName={c.agency_id ? agencyNameMap.get(c.agency_id) : null} />
+                            </div>
                           )
                         ) : (
                           <span className="text-sm text-muted-foreground italic">Unknown candidate</span>
@@ -230,24 +267,28 @@ export default function ProjectDetail() {
                         <TableCell>
                           {c ? (
                             isDeleted ? (
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-3 flex-wrap">
                                 <div className="h-8 w-8 rounded-full bg-muted text-muted-foreground grid place-items-center text-xs font-semibold">
                                   {initials(c.name)}
                                 </div>
                                 <span className="text-sm font-medium text-muted-foreground line-through decoration-muted-foreground/40">
                                   {c.name}
                                 </span>
+                                <OwnerBadge agencyId={c.agency_id} agencyName={c.agency_id ? agencyNameMap.get(c.agency_id) : null} />
                                 <Badge variant="outline" className="text-[10px] uppercase tracking-wide border-muted-foreground/30 text-muted-foreground bg-muted/40">
                                   Deleted
                                 </Badge>
                               </div>
                             ) : (
-                              <Link to={`/candidates/${c.id}`} className="flex items-center gap-3 group/link">
-                                <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold">
-                                  {initials(c.name)}
-                                </div>
-                                <span className="text-sm font-medium group-hover/link:text-primary transition-colors">{c.name}</span>
-                              </Link>
+                              <div className="flex items-center gap-3 flex-wrap">
+                                <Link to={`/candidates/${c.id}`} className="flex items-center gap-3 group/link">
+                                  <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold">
+                                    {initials(c.name)}
+                                  </div>
+                                  <span className="text-sm font-medium group-hover/link:text-primary transition-colors">{c.name}</span>
+                                </Link>
+                                <OwnerBadge agencyId={c.agency_id} agencyName={c.agency_id ? agencyNameMap.get(c.agency_id) : null} />
+                              </div>
                             )
                           ) : <span className="text-sm text-muted-foreground italic">Unknown candidate</span>}
                         </TableCell>
@@ -294,6 +335,7 @@ export default function ProjectDetail() {
                           <span className={cn("text-sm font-medium break-words", isDeleted && "text-muted-foreground line-through decoration-muted-foreground/40")}>
                             {c.name}
                           </span>
+                          <OwnerBadge agencyId={c.agency_id} agencyName={c.agency_id ? agencyNameMap.get(c.agency_id) : null} />
                           {isDeleted && (
                             <Badge variant="outline" className="text-[10px] uppercase tracking-wide border-muted-foreground/30 text-muted-foreground bg-muted/40">
                               Deleted
@@ -338,8 +380,9 @@ export default function ProjectDetail() {
                     <TableRow key={a.id} className={cn("border-b border-border/60", idx % 2 === 1 && "bg-muted/20")}>
                       <TableCell className={cn("text-sm", isDeleted && "text-muted-foreground")}>
                         {c ? (
-                          <span className="inline-flex items-center gap-2">
+                          <span className="inline-flex items-center gap-2 flex-wrap">
                             <span className={cn(isDeleted && "line-through decoration-muted-foreground/40")}>{c.name}</span>
+                            <OwnerBadge agencyId={c.agency_id} agencyName={c.agency_id ? agencyNameMap.get(c.agency_id) : null} />
                             {isDeleted && (
                               <Badge variant="outline" className="text-[10px] uppercase tracking-wide border-muted-foreground/30 text-muted-foreground bg-muted/40">
                                 Deleted
