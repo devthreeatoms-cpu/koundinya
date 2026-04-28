@@ -214,6 +214,71 @@ export default function Dashboard() {
         })}
       </div>
 
+      {/* Agencies overview — admin only */}
+      {isAdmin && (
+        <Card className="glass-card p-4 sm:p-6 hover-lift animate-fade-in-up">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-primary-soft text-primary grid place-items-center">
+                <Building2 className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="font-semibold tracking-tight">Agencies overview</h3>
+                <p className="text-xs text-muted-foreground">
+                  {agencies.filter((a) => !a.is_deleted).length} active ·{" "}
+                  {agencies.filter((a) => a.is_deleted).length} inactive
+                </p>
+              </div>
+            </div>
+            <Button asChild variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary-soft">
+              <Link to="/agencies">Manage <ArrowRight className="h-3.5 w-3.5" /></Link>
+            </Button>
+          </div>
+          {agLoading ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-20 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : agencies.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">
+              No agencies yet. Create one from the Agencies page.
+            </p>
+          ) : (
+            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {agencies.slice(0, 6).map((a) => (
+                <li key={a.id}>
+                  <Link
+                    to={`/agencies/${a.id}`}
+                    className={cn(
+                      "block p-3 rounded-lg border border-border/60 hover:border-primary/40 hover:shadow-card transition-all group",
+                      a.is_deleted && "opacity-70"
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <p className="font-medium text-sm group-hover:text-primary truncate">
+                        {a.name}
+                      </p>
+                      {a.is_deleted && (
+                        <Badge
+                          variant="outline"
+                          className="border-muted-foreground/30 text-muted-foreground bg-muted/40 shrink-0"
+                        >
+                          Inactive
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {a.email || "No email"}
+                    </p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
+
       {/* Charts */}
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="glass-card p-4 sm:p-6 hover-lift lg:col-span-2 animate-fade-in-up">
