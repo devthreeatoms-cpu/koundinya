@@ -50,7 +50,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useCandidates, useAgencyOwnedCandidates, softDeleteCandidate } from "@/hooks/useCandidates";
+import {
+  useCandidates,
+  useAgencyOwnedCandidates,
+  useCombinedCandidatePool,
+  softDeleteCandidate,
+} from "@/hooks/useCandidates";
 import { useAssignments } from "@/hooks/useAssignments";
 import { useAgencies } from "@/hooks/useAgencies";
 import { useAuth } from "@/context/AuthContext";
