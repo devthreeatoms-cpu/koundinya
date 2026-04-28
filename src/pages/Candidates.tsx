@@ -89,7 +89,8 @@ export default function CandidatesPage() {
   const { isAdmin, agencyId } = useAuth();
   const { candidates: adminCandidates, loading: adminLoading } = useCandidates();
   const { candidates: agencyCandidates, loading: agencyLoading } = useAgencyOwnedCandidates();
-  // Agency users see admin pool + their own agency candidates combined.
+  // Combined pool: admin pool + every agency's candidates (used by the "All
+  // candidates" tab for admins, and by the unified view for agency users).
   const { candidates: combinedPool, loading: combinedLoading } = useCombinedCandidatePool();
   const { agencies } = useAgencies({ includeDeleted: true });
   const { assignments } = useAssignments({ bypassOwnerFilter: !isAdmin });
@@ -102,8 +103,9 @@ export default function CandidatesPage() {
     return v === "available" || v === "assigned" ? v : "all";
   })();
 
-  // Tab state — only used for admin. Agency users always see their combined pool.
-  const [tab, setTab] = useState<"admin" | "agency">("admin");
+  // Tab state — admins choose between All / Admin / Agency. Agency users
+  // always see their combined pool (admin + own agency).
+  const [tab, setTab] = useState<"all" | "admin" | "agency">("all");
   const [agencyFilter, setAgencyFilter] = useState<string>("all");
   // Origin filter for agency users: all | admin (admin pool) | mine (my agency)
   const [originFilter, setOriginFilter] = useState<"all" | "admin" | "mine">("all");
@@ -122,6 +124,7 @@ export default function CandidatesPage() {
       else if (originFilter === "mine") list = list.filter((c) => c.agency_id === agencyId);
       return list;
     }
+    if (tab === "all") return combinedPool.filter(dropDeactivated);
     if (tab === "admin") return adminCandidates;
     const base = agencyCandidates.filter(dropDeactivated);
     if (agencyFilter === "all") return base;
@@ -129,9 +132,11 @@ export default function CandidatesPage() {
   }, [isAdmin, tab, agencyFilter, originFilter, adminCandidates, agencyCandidates, combinedPool, agencyId, activeAgencyIds]);
 
   const loading = isAdmin
-    ? tab === "admin"
-      ? adminLoading
-      : agencyLoading
+    ? tab === "all"
+      ? combinedLoading
+      : tab === "admin"
+        ? adminLoading
+        : agencyLoading
     : combinedLoading;
 
   const [search, setSearch] = useState("");
@@ -224,7 +229,7 @@ export default function CandidatesPage() {
     setPage(1);
   }
 
-  const showAddButton = !isAdmin || tab === "admin";
+  const showAddButton = !isAdmin || tab === "admin" || tab === "all";
   const agencyMap = useMemo(
     () => new Map(agencies.map((a) => [a.id, a])),
     [agencies]
@@ -245,9 +250,10 @@ export default function CandidatesPage() {
       />
 
       {isAdmin && (
-        <Tabs value={tab} onValueChange={(v) => setTab(v as "admin" | "agency")}>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "all" | "admin" | "agency")}>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <TabsList className="grid grid-cols-2 sm:w-auto sm:inline-flex">
+            <TabsList className="grid grid-cols-3 sm:w-auto sm:inline-flex">
+              <TabsTrigger value="all">All Candidates</TabsTrigger>
               <TabsTrigger value="admin">Admin Candidates</TabsTrigger>
               <TabsTrigger value="agency">Agency Candidates</TabsTrigger>
             </TabsList>
@@ -268,6 +274,7 @@ export default function CandidatesPage() {
               </Select>
             )}
           </div>
+          <TabsContent value="all" />
           <TabsContent value="admin" />
           <TabsContent value="agency" />
         </Tabs>
