@@ -709,3 +709,31 @@ export default function CandidatesPage() {
     </div>
   );
 }
+
+function OriginBadge({
+  agencyId,
+  agencyName,
+}: {
+  agencyId: string | null | undefined;
+  agencyName?: string | null;
+}) {
+  if (agencyId == null) {
+    return (
+      <Badge
+        variant="outline"
+        className="border-primary/40 text-primary bg-primary-soft/50 text-[10px] gap-1 px-1.5 py-0 font-medium"
+      >
+        <ShieldCheck className="h-2.5 w-2.5" /> Admin
+      </Badge>
+    );
+  }
+  return (
+    <Badge
+      variant="outline"
+      className="border-secondary/40 text-secondary bg-secondary-soft/50 text-[10px] gap-1 px-1.5 py-0 font-medium max-w-[10rem] truncate"
+    >
+      <Building2 className="h-2.5 w-2.5 shrink-0" />
+      <span className="truncate">{agencyName || "Agency"}</span>
+    </Badge>
+  );
+}
