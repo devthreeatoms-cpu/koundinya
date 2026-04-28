@@ -229,7 +229,7 @@ export default function CandidatesPage() {
     setPage(1);
   }
 
-  const showAddButton = !isAdmin || tab === "admin";
+  const showAddButton = !isAdmin || tab === "admin" || tab === "all";
   const agencyMap = useMemo(
     () => new Map(agencies.map((a) => [a.id, a])),
     [agencies]
