@@ -108,17 +108,25 @@ export default function CandidatesPage() {
   // Origin filter for agency users: all | admin (admin pool) | mine (my agency)
   const [originFilter, setOriginFilter] = useState<"all" | "admin" | "mine">("all");
 
+  // Hide candidates whose owning agency has been deactivated.
+  const activeAgencyIds = useMemo(
+    () => new Set(agencies.filter((a) => !a.is_deleted).map((a) => a.id)),
+    [agencies]
+  );
   const candidates = useMemo(() => {
+    const dropDeactivated = (c: Candidate) =>
+      c.agency_id == null || activeAgencyIds.has(c.agency_id);
     if (!isAdmin) {
-      let list = combinedPool;
+      let list = combinedPool.filter(dropDeactivated);
       if (originFilter === "admin") list = list.filter((c) => c.agency_id == null);
       else if (originFilter === "mine") list = list.filter((c) => c.agency_id === agencyId);
       return list;
     }
     if (tab === "admin") return adminCandidates;
-    if (agencyFilter === "all") return agencyCandidates;
-    return agencyCandidates.filter((c) => c.agency_id === agencyFilter);
-  }, [isAdmin, tab, agencyFilter, originFilter, adminCandidates, agencyCandidates, combinedPool, agencyId]);
+    const base = agencyCandidates.filter(dropDeactivated);
+    if (agencyFilter === "all") return base;
+    return base.filter((c) => c.agency_id === agencyFilter);
+  }, [isAdmin, tab, agencyFilter, originFilter, adminCandidates, agencyCandidates, combinedPool, agencyId, activeAgencyIds]);
 
   const loading = isAdmin
     ? tab === "admin"
