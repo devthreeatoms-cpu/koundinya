@@ -94,69 +94,69 @@ export default function Dashboard() {
 
   const stats = isAdmin
     ? [
-        {
-          label: "Total candidates",
-          value: candidates.length,
-          icon: Users,
-          gradient: "bg-gradient-primary",
-          ring: "ring-primary/20",
-          hint: `${availableCount} available now`,
-          to: "/candidates",
-          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--primary)/0.45)]",
-        },
-        {
-          label: "Active projects",
-          value: activeProjects.length,
-          icon: Briefcase,
-          gradient: "bg-gradient-secondary",
-          ring: "ring-secondary/20",
-          hint: `${projects.length - activeProjects.length} completed`,
-          to: "/projects",
-          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--secondary)/0.45)]",
-        },
-        {
-          label: "Available candidates",
-          value: availableCount,
-          icon: UserCheck,
-          gradient: "bg-gradient-accent",
-          ring: "ring-accent/20",
-          hint: `${assignedIds.size} currently assigned`,
-          to: "/candidates?availability=available",
-          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--accent)/0.45)]",
-        },
-      ]
+      {
+        label: "Total candidates",
+        value: candidates.length,
+        icon: Users,
+        gradient: "bg-gradient-primary",
+        ring: "ring-primary/20",
+        hint: `${availableCount} available now`,
+        to: "/candidates",
+        hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--primary)/0.45)]",
+      },
+      {
+        label: "Active projects",
+        value: activeProjects.length,
+        icon: Briefcase,
+        gradient: "bg-gradient-secondary",
+        ring: "ring-secondary/20",
+        hint: `${projects.length - activeProjects.length} completed`,
+        to: "/projects",
+        hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--secondary)/0.45)]",
+      },
+      {
+        label: "Available candidates",
+        value: availableCount,
+        icon: UserCheck,
+        gradient: "bg-gradient-accent",
+        ring: "ring-accent/20",
+        hint: `${assignedIds.size} currently assigned`,
+        to: "/candidates?availability=available",
+        hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--accent)/0.45)]",
+      },
+    ]
     : [
-        {
-          label: "Total candidates",
-          value: candidates.length,
-          icon: Users,
-          gradient: "bg-gradient-primary",
-          ring: "ring-primary/20",
-          hint: "Your agency pool",
-          to: "/candidates",
-          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--primary)/0.45)]",
-        },
-        {
-          label: "Available candidates",
-          value: availableCount,
-          icon: UserCheck,
-          gradient: "bg-gradient-accent",
-          ring: "ring-accent/20",
-          hint: "Not currently assigned",
-          to: "/candidates?availability=available",
-          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--accent)/0.45)]",
-        },
-        {
-          label: "Assigned candidates",
-          value: assignedIds.size,
-          icon: Briefcase,
-          gradient: "bg-gradient-secondary",
-          ring: "ring-secondary/20",
-          hint: "On an active project",
-          to: "/candidates?availability=assigned",
-          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--secondary)/0.45)]",
-        },
-      ];
+      {
+        label: "Total candidates",
+        value: candidates.length,
+        icon: Users,
+        gradient: "bg-gradient-primary",
+        ring: "ring-primary/20",
+        hint: "Your agency pool",
+        to: "/candidates",
+        hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--primary)/0.45)]",
+      },
+      {
+        label: "Available candidates",
+        value: availableCount,
+        icon: UserCheck,
+        gradient: "bg-gradient-accent",
+        ring: "ring-accent/20",
+        hint: "Not currently assigned",
+        to: "/candidates?availability=available",
+        hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--accent)/0.45)]",
+      },
+      {
+        label: "Assigned candidates",
+        value: assignedIds.size,
+        icon: Briefcase,
+        gradient: "bg-gradient-secondary",
+        ring: "ring-secondary/20",
+        hint: "On an active project",
+        to: "/candidates?availability=assigned",
+        hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--secondary)/0.45)]",
+      },
+    ];
 
   // Candidate status breakdown for chart
   const statusData = useMemo(() => {
@@ -429,61 +429,61 @@ export default function Dashboard() {
         </Card>
 
         {isAdmin && (
-        <Card className="glass-card p-4 sm:p-6 hover-lift animate-fade-in-up">
-          <div className="mb-4">
-            <h3 className="font-semibold tracking-tight">Projects</h3>
-            <p className="text-xs text-muted-foreground">Active vs completed</p>
-          </div>
-          {loading ? (
-            <Skeleton className="h-64 w-full" />
-          ) : projects.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-12 text-center">No projects yet.</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <defs>
-                  <linearGradient id="pieGradActive" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--primary-glow))" />
-                    <stop offset="100%" stopColor="hsl(var(--secondary))" />
-                  </linearGradient>
-                  <linearGradient id="pieGradCompleted" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--muted-foreground) / 0.6)" />
-                    <stop offset="100%" stopColor="hsl(var(--muted-foreground) / 0.3)" />
-                  </linearGradient>
-                </defs>
-                <Pie
-                  data={projectData}
-                  innerRadius={55}
-                  outerRadius={90}
-                  paddingAngle={6}
-                  dataKey="value"
-                  stroke="hsl(var(--background))"
-                  strokeWidth={3}
-                  animationDuration={900}
-                  animationEasing="ease-out"
-                >
-                  {projectData.map((_, i) => (
-                    <Cell
-                      key={i}
-                      fill={i === 0 ? "url(#pieGradActive)" : "url(#pieGradCompleted)"}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    background: "hsl(var(--popover) / 0.95)",
-                    backdropFilter: "blur(12px)",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: 12,
-                    fontSize: 12,
-                    boxShadow: "var(--shadow-elevated)",
-                  }}
-                />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
-              </PieChart>
-            </ResponsiveContainer>
-          )}
-        </Card>
+          <Card className="glass-card p-4 sm:p-6 hover-lift animate-fade-in-up">
+            <div className="mb-4">
+              <h3 className="font-semibold tracking-tight">Projects</h3>
+              <p className="text-xs text-muted-foreground">Active vs completed</p>
+            </div>
+            {loading ? (
+              <Skeleton className="h-64 w-full" />
+            ) : projects.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-12 text-center">No projects yet.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <defs>
+                    <linearGradient id="pieGradActive" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--primary-glow))" />
+                      <stop offset="100%" stopColor="hsl(var(--secondary))" />
+                    </linearGradient>
+                    <linearGradient id="pieGradCompleted" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--muted-foreground) / 0.6)" />
+                      <stop offset="100%" stopColor="hsl(var(--muted-foreground) / 0.3)" />
+                    </linearGradient>
+                  </defs>
+                  <Pie
+                    data={projectData}
+                    innerRadius={55}
+                    outerRadius={90}
+                    paddingAngle={6}
+                    dataKey="value"
+                    stroke="hsl(var(--background))"
+                    strokeWidth={3}
+                    animationDuration={900}
+                    animationEasing="ease-out"
+                  >
+                    {projectData.map((_, i) => (
+                      <Cell
+                        key={i}
+                        fill={i === 0 ? "url(#pieGradActive)" : "url(#pieGradCompleted)"}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      background: "hsl(var(--popover) / 0.95)",
+                      backdropFilter: "blur(12px)",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 12,
+                      fontSize: 12,
+                      boxShadow: "var(--shadow-elevated)",
+                    }}
+                  />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </Card>
         )}
       </div>
 
@@ -625,55 +625,55 @@ export default function Dashboard() {
       </div>
 
       {isAdmin && (
-      <Card className="glass-card p-4 sm:p-6 hover-lift animate-fade-in-up">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold tracking-tight">Recent projects</h3>
-          <Link
-            to="/projects"
-            className="text-xs text-primary inline-flex items-center gap-1 hover:gap-1.5 transition-all"
-          >
-            View all <ArrowRight className="h-3 w-3" />
-          </Link>
-        </div>
-        {loading ? (
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-20 w-full" />
-            ))}
+        <Card className="glass-card p-4 sm:p-6 hover-lift animate-fade-in-up">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold tracking-tight">Recent projects</h3>
+            <Link
+              to="/projects"
+              className="text-xs text-primary inline-flex items-center gap-1 hover:gap-1.5 transition-all"
+            >
+              View all <ArrowRight className="h-3 w-3" />
+            </Link>
           </div>
-        ) : recentProjects.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-8 text-center">No projects yet.</p>
-        ) : (
-          <ul className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {recentProjects.map((p) => (
-              <li key={p.id}>
-                <Link
-                  to={`/projects/${p.id}`}
-                  className="block p-3 rounded-lg border border-border/60 hover:border-primary/40 hover:shadow-card transition-all group"
-                >
-                  <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <p className="font-medium text-sm group-hover:text-primary truncate">
-                      {p.name}
+          {loading ? (
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-20 w-full" />
+              ))}
+            </div>
+          ) : recentProjects.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">No projects yet.</p>
+          ) : (
+            <ul className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {recentProjects.map((p) => (
+                <li key={p.id}>
+                  <Link
+                    to={`/projects/${p.id}`}
+                    className="block p-3 rounded-lg border border-border/60 hover:border-primary/40 hover:shadow-card transition-all group"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <p className="font-medium text-sm group-hover:text-primary truncate">
+                        {p.name}
+                      </p>
+                      <Badge
+                        className={
+                          p.status === "Active"
+                            ? "bg-primary text-primary-foreground border-0 shrink-0"
+                            : "bg-muted text-muted-foreground border-0 shrink-0"
+                        }
+                      >
+                        {p.status}
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {p.client_name || "Internal"} • {formatDate((p.start_date as any)?.toDate?.())}
                     </p>
-                    <Badge
-                      className={
-                        p.status === "Active"
-                          ? "bg-primary text-primary-foreground border-0 shrink-0"
-                          : "bg-muted text-muted-foreground border-0 shrink-0"
-                      }
-                    >
-                      {p.status}
-                    </Badge>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    {p.client_name || "Internal"} • {formatDate((p.start_date as any)?.toDate?.())}
-                  </p>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
       )}
     </div>
   );
