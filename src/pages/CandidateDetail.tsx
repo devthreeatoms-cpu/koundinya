@@ -128,7 +128,9 @@ export default function CandidateDetail() {
                 </div>
                 <div>
                   <p className="text-[11px] text-muted-foreground leading-none">Phone</p>
-                  <p className="text-sm font-medium tabular-nums">{candidate.phone}</p>
+                  <p className={cn("text-sm font-medium tabular-nums mt-0.5", !candidate.phone && "text-muted-foreground italic")}>
+                    {candidate.phone || "Not provided"}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
@@ -137,7 +139,9 @@ export default function CandidateDetail() {
                 </div>
                 <div>
                   <p className="text-[11px] text-muted-foreground leading-none">Location</p>
-                  <p className="text-sm font-medium">{candidate.location}</p>
+                  <p className={cn("text-sm font-medium mt-0.5", !candidate.location && "text-muted-foreground italic")}>
+                    {candidate.location || "Not provided"}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
@@ -146,7 +150,7 @@ export default function CandidateDetail() {
                 </div>
                 <div>
                   <p className="text-[11px] text-muted-foreground leading-none">Transport</p>
-                  <p className="text-sm font-medium">{candidate.has_bike ? "Has bike" : "No bike"}</p>
+                  <p className="text-sm font-medium mt-0.5">{candidate.has_bike ? "Has bike" : "No bike"}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
@@ -155,43 +159,45 @@ export default function CandidateDetail() {
                 </div>
                 <div>
                   <p className="text-[11px] text-muted-foreground leading-none">Source</p>
-                  <p className="text-sm font-medium">{candidate.source}</p>
+                  <p className={cn("text-sm font-medium mt-0.5", !candidate.source && "text-muted-foreground italic")}>
+                    {candidate.source || "Not provided"}
+                  </p>
                 </div>
               </div>
 
-              {candidate.aadhar_number && (
-                <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="h-8 w-8 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 grid place-items-center">
-                    <ShieldCheck className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] text-muted-foreground leading-none flex items-center gap-1">
-                      Aadhar Number
-                      {candidate.aadhar_verified && (
-                        <span className="text-[9px] px-1 py-0.2 rounded bg-green-500/20 text-green-600 font-semibold">Verified</span>
-                      )}
-                    </p>
-                    <p className="text-sm font-medium">{candidate.aadhar_number}</p>
-                  </div>
+              <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="h-8 w-8 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 grid place-items-center">
+                  <ShieldCheck className="h-4 w-4" />
                 </div>
-              )}
+                <div>
+                  <p className="text-[11px] text-muted-foreground leading-none flex items-center gap-1">
+                    Aadhar Number
+                    {candidate.aadhar_verified && (
+                      <span className="text-[9px] px-1 py-0.2 rounded bg-green-500/20 text-green-600 font-semibold">Verified</span>
+                    )}
+                  </p>
+                  <p className={cn("text-sm font-medium mt-0.5", !candidate.aadhar_number && "text-muted-foreground italic")}>
+                    {candidate.aadhar_number || "Not provided"}
+                  </p>
+                </div>
+              </div>
               
-              {candidate.pan_number && (
-                <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="h-8 w-8 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 grid place-items-center">
-                    <ShieldCheck className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] text-muted-foreground leading-none flex items-center gap-1">
-                      PAN Number
-                      {candidate.pan_verified && (
-                        <span className="text-[9px] px-1 py-0.2 rounded bg-green-500/20 text-green-600 font-semibold">Verified</span>
-                      )}
-                    </p>
-                    <p className="text-sm font-medium tracking-wider">{candidate.pan_number}</p>
-                  </div>
+              <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="h-8 w-8 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 grid place-items-center">
+                  <ShieldCheck className="h-4 w-4" />
                 </div>
-              )}
+                <div>
+                  <p className="text-[11px] text-muted-foreground leading-none flex items-center gap-1">
+                    PAN Number
+                    {candidate.pan_verified && (
+                      <span className="text-[9px] px-1 py-0.2 rounded bg-green-500/20 text-green-600 font-semibold">Verified</span>
+                    )}
+                  </p>
+                  <p className={cn("text-sm font-medium tracking-wider mt-0.5", !candidate.pan_number && "text-muted-foreground italic")}>
+                    {candidate.pan_number || "Not provided"}
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="mt-5 pt-4 border-t border-border/60">
