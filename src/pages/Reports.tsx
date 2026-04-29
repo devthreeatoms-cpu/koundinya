@@ -525,89 +525,149 @@ export default function Reports() {
             <p className="text-sm text-muted-foreground">No candidates match this KYC filter.</p>
           </Card>
         ) : (
-          <div className="rounded-xl border border-border/60 bg-muted/10 overflow-hidden">
-            <Table>
-              <TableHeader className="bg-muted/50 backdrop-blur">
-                <TableRow className="hover:bg-transparent border-b border-border">
-                  <TableHead className="font-semibold text-foreground">Candidate</TableHead>
-                  <TableHead className="font-semibold text-foreground">Aadhar Details</TableHead>
-                  <TableHead className="font-semibold text-foreground">PAN Details</TableHead>
-                  <TableHead className="font-semibold text-foreground">Phone</TableHead>
-                  <TableHead className="font-semibold text-foreground">Source</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCandidates.map((c, idx) => (
-                  <TableRow
-                    key={c.id}
-                    className={cn(
-                      "border-b border-border/60 transition-colors hover:bg-primary-soft/40",
-                      idx % 2 === 1 && "bg-muted/20"
-                    )}
-                  >
-                    <TableCell className="font-medium">
-                      <Link
-                        to={`/candidates/${c.id}`}
-                        className="flex items-center gap-3 group"
-                      >
-                        <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-[11px] font-semibold shadow-sm shrink-0">
-                          {initials(c.name)}
-                        </div>
-                        <span className="group-hover:text-primary transition-colors text-sm">{c.name}</span>
+          <>
+            {/* Mobile View: Vertical Cards */}
+            <ul className="md:hidden space-y-3">
+              {filteredCandidates.map((c) => (
+                <li key={c.id} className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-3 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <Link to={`/candidates/${c.id}`} className="flex items-center gap-3 group">
+                      <div className="h-10 w-10 rounded-full bg-gradient-brand text-white grid place-items-center text-xs font-semibold shadow-sm shrink-0">
+                        {initials(c.name)}
+                      </div>
+                      <div>
+                        <span className="font-semibold group-hover:text-primary transition-colors text-sm text-foreground">{c.name}</span>
+                        <p className="text-xs text-muted-foreground mt-0.5">{c.phone}</p>
+                      </div>
+                    </Link>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary-soft text-primary shrink-0" asChild>
+                      <Link to={`/candidates/${c.id}`}>
+                        <Eye className="h-4 w-4" />
                       </Link>
-                    </TableCell>
-                    <TableCell>
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-3 border-t border-border/50 text-xs">
+                    <div className="space-y-1">
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold tracking-wider">Aadhar</span>
                       {c.aadhar_number ? (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-medium tabular-nums">{c.aadhar_number}</span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-medium tabular-nums text-foreground">{c.aadhar_number}</span>
                           {c.aadhar_verified && (
-                            <Badge className="h-4 text-[9px] px-1 py-0 bg-green-500/20 text-green-600 dark:text-green-400 border-0 font-semibold">
-                              Verified
-                            </Badge>
+                            <Badge className="h-3.5 text-[8px] px-1 py-0 bg-green-500/20 text-green-600 dark:text-green-400 border-0 font-bold">VER</Badge>
                           )}
                         </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-muted-foreground">—</span>
                       )}
-                    </TableCell>
-                    <TableCell>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold tracking-wider">PAN</span>
                       {c.pan_number ? (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-medium tracking-wider">{c.pan_number}</span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-medium tracking-wider text-foreground">{c.pan_number}</span>
                           {c.pan_verified && (
-                            <Badge className="h-4 text-[9px] px-1 py-0 bg-green-500/20 text-green-600 dark:text-green-400 border-0 font-semibold">
-                              Verified
-                            </Badge>
+                            <Badge className="h-3.5 text-[8px] px-1 py-0 bg-green-500/20 text-green-600 dark:text-green-400 border-0 font-bold">VER</Badge>
                           )}
                         </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-muted-foreground">—</span>
                       )}
-                    </TableCell>
-                    <TableCell className="text-xs tabular-nums text-muted-foreground">
-                      {c.phone}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {c.source || "None"}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-primary-soft text-primary"
-                        asChild
-                      >
-                        <Link to={`/candidates/${c.id}`}>
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </TableCell>
+                    </div>
+                  </div>
+                  {c.source && (
+                    <div className="pt-2">
+                      <Badge variant="outline" className="text-[10px] text-muted-foreground">Source: {c.source}</Badge>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+
+            {/* Desktop View: Table */}
+            <div className="hidden md:block rounded-xl border border-border/60 bg-muted/10 overflow-hidden">
+              <Table>
+                <TableHeader className="bg-muted/50 backdrop-blur">
+                  <TableRow className="hover:bg-transparent border-b border-border">
+                    <TableHead className="font-semibold text-foreground">Candidate</TableHead>
+                    <TableHead className="font-semibold text-foreground">Aadhar Details</TableHead>
+                    <TableHead className="font-semibold text-foreground">PAN Details</TableHead>
+                    <TableHead className="font-semibold text-foreground">Phone</TableHead>
+                    <TableHead className="font-semibold text-foreground">Source</TableHead>
+                    <TableHead className="w-12"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredCandidates.map((c, idx) => (
+                    <TableRow
+                      key={c.id}
+                      className={cn(
+                        "border-b border-border/60 transition-colors hover:bg-primary-soft/40",
+                        idx % 2 === 1 && "bg-muted/20"
+                      )}
+                    >
+                      <TableCell className="font-medium">
+                        <Link
+                          to={`/candidates/${c.id}`}
+                          className="flex items-center gap-3 group"
+                        >
+                          <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-[11px] font-semibold shadow-sm shrink-0">
+                            {initials(c.name)}
+                          </div>
+                          <span className="group-hover:text-primary transition-colors text-sm">{c.name}</span>
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        {c.aadhar_number ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-medium tabular-nums">{c.aadhar_number}</span>
+                            {c.aadhar_verified && (
+                              <Badge className="h-4 text-[9px] px-1 py-0 bg-green-500/20 text-green-600 dark:text-green-400 border-0 font-semibold">
+                                Verified
+                              </Badge>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {c.pan_number ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-medium tracking-wider">{c.pan_number}</span>
+                            {c.pan_verified && (
+                              <Badge className="h-4 text-[9px] px-1 py-0 bg-green-500/20 text-green-600 dark:text-green-400 border-0 font-semibold">
+                                Verified
+                              </Badge>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs tabular-nums text-muted-foreground">
+                        {c.phone}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {c.source || "None"}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 hover:bg-primary-soft text-primary"
+                          asChild
+                        >
+                          <Link to={`/candidates/${c.id}`}>
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </div>
 
