@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Phone, Globe, X } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -138,6 +139,8 @@ export default function AppLayout() {
     return window.localStorage.getItem(STORAGE_KEY) === "1";
   });
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [threeAtomsOpen, setThreeAtomsOpen] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, collapsed ? "1" : "0");
@@ -292,7 +295,97 @@ export default function AppLayout() {
         <main className="flex-1 px-3 sm:px-4 md:px-8 py-4 sm:py-6 animate-fade-in-up min-w-0">
           <Outlet />
         </main>
+
+        {/* ── ThreeAtoms Footer Watermark ── */}
+        <footer className="px-3 sm:px-4 md:px-8 py-3 border-t border-border/30 flex justify-center">
+          <button
+            onClick={() => setThreeAtomsOpen(true)}
+            className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground transition-colors duration-200 tracking-wide"
+          >
+            Developed by{" "}
+            <span className="font-bold tracking-widest text-muted-foreground/70 hover:text-primary transition-colors">
+              THREEATOMS
+            </span>
+          </button>
+        </footer>
       </div>
+
+      {/* ── ThreeAtoms Contact Modal ── */}
+      {threeAtomsOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+          onClick={(e) => { if (e.target === e.currentTarget) setThreeAtomsOpen(false); }}
+        >
+          <div
+            ref={modalRef}
+            className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-fade-in-up"
+            style={{ background: "hsl(var(--background))" }}
+          >
+            {/* Modal Header */}
+            <div className="relative px-6 py-5 flex items-center gap-4" style={{ background: "hsl(var(--primary))" }}>
+              <div className="flex flex-col">
+                <span className="text-white text-lg font-black tracking-tight leading-tight">ThreeAtoms</span>
+                <span className="text-white/60 text-[10px] font-semibold tracking-[0.2em] uppercase">Premium Software</span>
+              </div>
+              <button
+                onClick={() => setThreeAtomsOpen(false)}
+                className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 py-5 space-y-5">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                This particular website software is developed by{" "}
+                <strong className="text-foreground">ThreeAtoms</strong>. We specialize in building
+                custom software, <strong className="text-foreground">AI Agents</strong>, and{" "}
+                <strong className="text-foreground">AI Automations</strong>. Let&apos;s build something elite.
+              </p>
+
+              <div className="flex flex-col gap-2.5">
+                {/* Call Button */}
+                <a
+                  href="tel:+917981596550"
+                  className="flex items-center justify-center gap-2.5 w-full py-2.5 px-4 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                  style={{ background: "hsl(var(--primary))" }}
+                >
+                  <Phone className="h-4 w-4" />
+                  Call +91 79815 96550
+                </a>
+
+                {/* Website Button */}
+                <a
+                  href="https://www.threeatoms.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2.5 w-full py-2.5 px-4 rounded-xl text-sm font-semibold border border-border text-foreground hover:bg-muted transition-colors"
+                >
+                  <Globe className="h-4 w-4" />
+                  Visit Website
+                </a>
+
+                {/* WhatsApp Button */}
+                <a
+                  href="https://wa.me/917981596550?text=Hello%20ThreeAtoms!%20I%20have%20a%20website%20requirement.%20Please%20get%20in%20touch."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2.5 w-full py-2.5 px-4 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                  style={{ background: "#25D366" }}
+                >
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.489-1.761-1.663-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z" />
+                  </svg>
+                  Chat on WhatsApp
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
