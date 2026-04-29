@@ -663,12 +663,6 @@ export default function CandidatesPage() {
                             if (hasAadhar || hasPan) return <Badge variant="outline" className="font-semibold px-2.5 py-0.5 text-xs border-yellow-500/40 text-yellow-600 bg-yellow-500/10 dark:text-yellow-400">Partial KYC</Badge>;
                             return <Badge variant="outline" className="font-semibold px-2.5 py-0.5 text-xs border-red-500/40 text-red-600 bg-red-500/10 dark:text-red-400">KYC Pending</Badge>;
                           })()}
-                          {c.aadhar_number && (
-                            <span className="text-[10px] text-muted-foreground tabular-nums">AAD: {c.aadhar_number}</span>
-                          )}
-                          {c.pan_number && (
-                            <span className="text-[10px] text-muted-foreground tracking-wider">PAN: {c.pan_number}</span>
-                          )}
                         </div>
                       </TableCell>
                       <TableCell>

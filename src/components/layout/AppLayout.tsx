@@ -53,10 +53,12 @@ const STORAGE_KEY = "koundinya-sidebar-collapsed";
 function SidebarContent({
   collapsed,
   onItemClick,
+  onDesktopCollapse,
   items,
 }: {
   collapsed: boolean;
   onItemClick?: () => void;
+  onDesktopCollapse?: () => void;
   items: NavItem[];
 }) {
   return (
@@ -92,7 +94,10 @@ function SidebarContent({
             <NavLink
               key={item.to}
               to={item.to}
-              onClick={onItemClick}
+              onClick={() => {
+                if (onItemClick) onItemClick();
+                if (item.to === "/candidates" && onDesktopCollapse) onDesktopCollapse();
+              }}
               title={collapsed ? item.label : undefined}
               className={({ isActive }) =>
                 cn(
@@ -174,11 +179,11 @@ export default function AppLayout() {
       {/* Desktop Sidebar — fixed full-height, glass dark */}
       <aside
         className={cn(
-          "hidden md:flex flex-col fixed inset-y-0 left-0 z-30 glass-sidebar text-white transition-[width] duration-300 ease-out overflow-y-auto",
+          "hidden md:flex flex-col fixed inset-y-0 left-0 z-30 glass-sidebar text-white overflow-y-auto",
           collapsed ? "w-[76px]" : "w-64"
         )}
       >
-        <SidebarContent collapsed={collapsed} items={visibleNavItems} />
+        <SidebarContent collapsed={collapsed} items={visibleNavItems} onDesktopCollapse={() => setCollapsed(true)} />
 
         <div className="mt-auto p-3 border-t border-white/5 space-y-1">
           <button
@@ -230,7 +235,7 @@ export default function AppLayout() {
       {/* Main — offset by sidebar width on desktop */}
       <div
         className={cn(
-          "relative z-10 flex flex-col min-h-screen min-w-0 transition-[margin] duration-300 ease-out",
+          "relative z-10 flex flex-col min-h-screen min-w-0",
           collapsed ? "md:ml-[76px]" : "md:ml-64"
         )}
       >

@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, MapPin, Calendar, Briefcase, Edit, Plus, UserMinus, Users, Eye, Loader2 } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Briefcase, Edit, Plus, UserMinus, Users, Eye, Loader2, Search } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -72,6 +73,36 @@ export default function ProjectDetail() {
 
   const active = assignments.filter((a) => a.status === "Active");
   const past = assignments.filter((a) => a.status !== "Active");
+
+  const [search, setSearch] = useState("");
+
+  const filteredActive = useMemo(() => {
+    return active.filter((a) => {
+      const c = candidateMap.get(a.candidate_id);
+      if (!c) return false;
+      if (!search) return true;
+      const term = search.toLowerCase();
+      return (
+        c.name.toLowerCase().includes(term) ||
+        (c.phone || "").toLowerCase().includes(term) ||
+        (c.location || "").toLowerCase().includes(term)
+      );
+    });
+  }, [active, candidateMap, search]);
+
+  const filteredPast = useMemo(() => {
+    return past.filter((a) => {
+      const c = candidateMap.get(a.candidate_id);
+      if (!c) return false;
+      if (!search) return true;
+      const term = search.toLowerCase();
+      return (
+        c.name.toLowerCase().includes(term) ||
+        (c.phone || "").toLowerCase().includes(term) ||
+        (c.location || "").toLowerCase().includes(term)
+      );
+    });
+  }, [past, candidateMap, search]);
 
   async function handleRemove(assignmentId: string) {
     try {
@@ -173,6 +204,18 @@ export default function ProjectDetail() {
           </h3>
           <Badge variant="secondary" className="bg-primary-soft text-primary border-0 font-semibold">{active.length}</Badge>
         </div>
+        {active.length > 0 && (
+          <div className="mb-4 relative group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
+            <Input
+              placeholder="Search assigned candidates by name, phone, location…"
+              className="pl-9 h-10 shadow-sm"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        )}
+
         {active.length === 0 ? (
           <div className="flex flex-col items-center py-12 text-center">
             <div className="h-12 w-12 rounded-full bg-muted grid place-items-center mb-3">
@@ -186,9 +229,19 @@ export default function ProjectDetail() {
           </div>
         ) : (
           <>
-            {/* Mobile: stacked cards */}
-            <ul className="md:hidden space-y-3">
-              {active.map((a) => {
+            {filteredActive.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground">
+                <div className="h-12 w-12 rounded-full bg-muted grid place-items-center mx-auto mb-3">
+                  <Search className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium">No assigned candidates match your search</p>
+                <p className="text-xs text-muted-foreground mt-1">Try adjusting your search term.</p>
+              </div>
+            ) : (
+              <>
+                {/* Mobile: stacked cards */}
+                <ul className="md:hidden space-y-3">
+                  {filteredActive.map((a) => {
                 const c = candidateMap.get(a.candidate_id);
                 const isDeleted = !!c?.is_deleted;
                 return (
@@ -262,7 +315,7 @@ export default function ProjectDetail() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {active.map((a, idx) => {
+                  {filteredActive.map((a, idx) => {
                     const c = candidateMap.get(a.candidate_id);
                     const isDeleted = !!c?.is_deleted;
                     return (
@@ -317,6 +370,8 @@ export default function ProjectDetail() {
                 </TableBody>
               </Table>
             </div>
+              </>
+            )}
           </>
         )}
       </Card>

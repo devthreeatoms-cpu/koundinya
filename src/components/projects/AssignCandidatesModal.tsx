@@ -19,13 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Loader2, X, Sparkles, MapPin, Bike, Building2, ShieldCheck } from "lucide-react";
+import { Search, Loader2, X, Sparkles, MapPin, Bike, Building2, ShieldCheck, Briefcase } from "lucide-react";
 import { useCombinedCandidatePool, useAllCandidates } from "@/hooks/useCandidates";
 import { useAssignments, assignCandidates } from "@/hooks/useAssignments";
 import { useAgencies } from "@/hooks/useAgencies";
+import { useProjectById, updateProject } from "@/hooks/useProjects";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { initials } from "@/lib/utils-format";
+import { ToastAction } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -42,6 +44,7 @@ interface Props {
 }
 
 export default function AssignCandidatesModal({ open, onOpenChange, projectId, projectAgencyId }: Props) {
+  const { project } = useProjectById(projectId);
   const { isAdmin, agencyId } = useAuth();
   // Admin assigning into an agency project still needs the cross-agency bypass
   // for the candidate list AND the active-assignment lookup.
@@ -150,7 +153,12 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
         toast({ 
           title: "KYC Blocked", 
           description: `Candidate ${c.name} has pending KYC. Please provide Aadhar and PAN.`, 
-          variant: "destructive" 
+          variant: "destructive",
+          action: (
+            <ToastAction altText="Remove candidate" onClick={() => toggle(c.id)}>
+              Remove
+            </ToastAction>
+          )
         });
         setSubmitting(false);
         return;
@@ -158,7 +166,12 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
         toast({ 
           title: "KYC Blocked", 
           description: `Candidate ${c.name} has incomplete KYC. Please provide PAN.`, 
-          variant: "destructive" 
+          variant: "destructive",
+          action: (
+            <ToastAction altText="Remove candidate" onClick={() => toggle(c.id)}>
+              Remove
+            </ToastAction>
+          )
         });
         setSubmitting(false);
         return;
@@ -166,7 +179,12 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
         toast({ 
           title: "KYC Blocked", 
           description: `Candidate ${c.name} has incomplete KYC. Please provide Aadhar.`, 
-          variant: "destructive" 
+          variant: "destructive",
+          action: (
+            <ToastAction altText="Remove candidate" onClick={() => toggle(c.id)}>
+              Remove
+            </ToastAction>
+          )
         });
         setSubmitting(false);
         return;
@@ -187,6 +205,15 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
     }
   }
 
+  async function handleActivateProject() {
+    try {
+      await updateProject(projectId, { status: "Active" });
+      toast({ title: "Project Activated", description: "The project is now active." });
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message, variant: "destructive" });
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl h-[85vh] flex flex-col p-0 overflow-hidden gap-0">
@@ -204,7 +231,29 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
           </div>
         </DialogHeader>
 
-        <div className="p-4 sm:p-6 pb-3 space-y-3">
+        {project?.status === "Completed" ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4 bg-muted/10">
+            <div className="h-16 w-16 rounded-2xl bg-muted/30 grid place-items-center text-muted-foreground border border-border/40 shadow-sm">
+              <Briefcase className="h-8 w-8" />
+            </div>
+            <div className="max-w-md space-y-2">
+              <p className="text-lg font-semibold text-foreground">Project is Completed</p>
+              <p className="text-sm text-muted-foreground px-4">
+                This project is currently in a completed state. You must reactivate the project before you can assign candidates.
+              </p>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleActivateProject} variant="premium">
+                Activate Project
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="p-4 sm:p-6 pb-3 space-y-3">
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative group flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
@@ -351,6 +400,8 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
             </Button>
           </div>
         </DialogFooter>
+      </>
+    )}
       </DialogContent>
     </Dialog>
   );
