@@ -10,6 +10,7 @@ import {
   Briefcase,
   Calendar,
   Tag,
+  ShieldCheck,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -157,6 +158,40 @@ export default function CandidateDetail() {
                   <p className="text-sm font-medium">{candidate.source}</p>
                 </div>
               </div>
+
+              {candidate.aadhar_number && (
+                <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="h-8 w-8 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 grid place-items-center">
+                    <ShieldCheck className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground leading-none flex items-center gap-1">
+                      Aadhar Number
+                      {candidate.aadhar_verified && (
+                        <span className="text-[9px] px-1 py-0.2 rounded bg-green-500/20 text-green-600 font-semibold">Verified</span>
+                      )}
+                    </p>
+                    <p className="text-sm font-medium">{candidate.aadhar_number}</p>
+                  </div>
+                </div>
+              )}
+              
+              {candidate.pan_number && (
+                <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="h-8 w-8 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 grid place-items-center">
+                    <ShieldCheck className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground leading-none flex items-center gap-1">
+                      PAN Number
+                      {candidate.pan_verified && (
+                        <span className="text-[9px] px-1 py-0.2 rounded bg-green-500/20 text-green-600 font-semibold">Verified</span>
+                      )}
+                    </p>
+                    <p className="text-sm font-medium tracking-wider">{candidate.pan_number}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="mt-5 pt-4 border-t border-border/60">

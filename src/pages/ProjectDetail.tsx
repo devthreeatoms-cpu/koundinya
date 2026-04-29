@@ -180,6 +180,9 @@ export default function ProjectDetail() {
             </div>
             <p className="text-sm font-medium">No active assignments</p>
             <p className="text-xs text-muted-foreground mt-1">Assign available candidates to get started.</p>
+            <Button onClick={() => setAssignOpen(true)} variant="premium" size="sm" className="mt-4 shadow-brand">
+              <Plus className="h-4 w-4" /> Assign candidates
+            </Button>
           </div>
         ) : (
           <>

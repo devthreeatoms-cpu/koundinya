@@ -145,6 +145,7 @@ export default function CandidatesPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [availFilter, setAvailFilter] = useState<string>(initialAvail);
+  const [kycFilter, setKycFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
 
   // Reset pagination when tab/agency filter changes.
@@ -185,6 +186,14 @@ export default function CandidatesPage() {
       }
       if (statusFilter !== "all" && c.status !== statusFilter) return false;
       if (sourceFilter !== "all" && c.source !== sourceFilter) return false;
+      
+      const hasAadhar = !!c.aadhar_number;
+      const hasPan = !!c.pan_number;
+      if (kycFilter === "fully_verified" && (!hasAadhar || !hasPan)) return false;
+      if (kycFilter === "aadhar_only" && (!hasAadhar || hasPan)) return false;
+      if (kycFilter === "pan_only" && (hasAadhar || !hasPan)) return false;
+      if (kycFilter === "kyc_pending" && (hasAadhar || hasPan)) return false;
+
       if (availFilter !== "all") {
         const isAvail = !activeAssignedIds.has(c.id);
         if (availFilter === "available" && !isAvail) return false;
@@ -192,7 +201,7 @@ export default function CandidatesPage() {
       }
       return true;
     });
-  }, [candidates, search, statusFilter, sourceFilter, availFilter, activeAssignedIds]);
+  }, [candidates, search, statusFilter, sourceFilter, kycFilter, availFilter, activeAssignedIds]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount);
@@ -222,12 +231,14 @@ export default function CandidatesPage() {
   const activeFilterCount =
     (statusFilter !== "all" ? 1 : 0) +
     (sourceFilter !== "all" ? 1 : 0) +
-    (availFilter !== "all" ? 1 : 0);
+    (availFilter !== "all" ? 1 : 0) +
+    (kycFilter !== "all" ? 1 : 0);
 
   function clearFilters() {
     setStatusFilter("all");
     setSourceFilter("all");
     setAvailFilter("all");
+    setKycFilter("all");
     setPage(1);
   }
 
@@ -361,6 +372,24 @@ export default function CandidatesPage() {
                   <SelectItem value="assigned">Assigned</SelectItem>
                 </SelectContent>
               </Select>
+              <Select
+                value={kycFilter}
+                onValueChange={(v) => {
+                  setKycFilter(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue placeholder="KYC Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All KYC Statuses</SelectItem>
+                  <SelectItem value="fully_verified">Fully Verified</SelectItem>
+                  <SelectItem value="aadhar_only">Aadhar Only</SelectItem>
+                  <SelectItem value="pan_only">PAN Only</SelectItem>
+                  <SelectItem value="kyc_pending">KYC Pending</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -449,6 +478,12 @@ export default function CandidatesPage() {
                             <MapPin className="h-3 w-3 shrink-0" />
                             <span className="break-words">{c.location}</span>
                           </p>
+                          {(c.aadhar_number || c.pan_number) && (
+                            <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5 text-[10px] text-muted-foreground">
+                              {c.aadhar_number && <span className="tabular-nums">AAD: {c.aadhar_number}</span>}
+                              {c.pan_number && <span className="tracking-wider">PAN: {c.pan_number}</span>}
+                            </div>
+                          )}
                         </div>
                       </Link>
                       <div className="flex items-center gap-1 shrink-0">
@@ -499,6 +534,13 @@ export default function CandidatesPage() {
                         <span className={cn("h-1.5 w-1.5 rounded-full", statusDot[c.status])} />
                         {c.status}
                       </Badge>
+                      {(() => {
+                        const hasAadhar = !!c.aadhar_number;
+                        const hasPan = !!c.pan_number;
+                        if (hasAadhar && hasPan) return <Badge variant="outline" className="font-semibold px-2 py-0.5 text-[11px] border-green-500/40 text-green-600 bg-green-500/10 dark:text-green-400">KYC Verified</Badge>;
+                        if (hasAadhar || hasPan) return <Badge variant="outline" className="font-semibold px-2 py-0.5 text-[11px] border-yellow-500/40 text-yellow-600 bg-yellow-500/10 dark:text-yellow-400">Partial KYC</Badge>;
+                        return <Badge variant="outline" className="font-semibold px-2 py-0.5 text-[11px] border-red-500/40 text-red-600 bg-red-500/10 dark:text-red-400">KYC Pending</Badge>;
+                      })()}
                       <Badge
                         variant="outline"
                         className={cn(
@@ -536,6 +578,7 @@ export default function CandidatesPage() {
                 <TableHead className="font-semibold text-foreground">Location</TableHead>
                 <TableHead className="font-semibold text-foreground">Source</TableHead>
                 <TableHead className="font-semibold text-foreground">Status</TableHead>
+                <TableHead className="font-semibold text-foreground">KYC</TableHead>
                 <TableHead className="font-semibold text-foreground">Availability</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
@@ -544,14 +587,14 @@ export default function CandidatesPage() {
               {loading ? (
                 [...Array(6)].map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={7}>
+                    <TableCell colSpan={8}>
                       <Skeleton className="h-10 w-full" />
                     </TableCell>
                   </TableRow>
                 ))
               ) : paginated.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-16">
+                  <TableCell colSpan={8} className="text-center py-16">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <div className="h-12 w-12 rounded-full bg-muted grid place-items-center">
                         <UsersIcon className="h-5 w-5" />
@@ -610,6 +653,23 @@ export default function CandidatesPage() {
                           <span className={cn("h-1.5 w-1.5 rounded-full", statusDot[c.status])} />
                           {c.status}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col items-start gap-1">
+                          {(() => {
+                            const hasAadhar = !!c.aadhar_number;
+                            const hasPan = !!c.pan_number;
+                            if (hasAadhar && hasPan) return <Badge variant="outline" className="font-semibold px-2.5 py-0.5 text-xs border-green-500/40 text-green-600 bg-green-500/10 dark:text-green-400">KYC Verified</Badge>;
+                            if (hasAadhar || hasPan) return <Badge variant="outline" className="font-semibold px-2.5 py-0.5 text-xs border-yellow-500/40 text-yellow-600 bg-yellow-500/10 dark:text-yellow-400">Partial KYC</Badge>;
+                            return <Badge variant="outline" className="font-semibold px-2.5 py-0.5 text-xs border-red-500/40 text-red-600 bg-red-500/10 dark:text-red-400">KYC Pending</Badge>;
+                          })()}
+                          {c.aadhar_number && (
+                            <span className="text-[10px] text-muted-foreground tabular-nums">AAD: {c.aadhar_number}</span>
+                          )}
+                          {c.pan_number && (
+                            <span className="text-[10px] text-muted-foreground tracking-wider">PAN: {c.pan_number}</span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Badge

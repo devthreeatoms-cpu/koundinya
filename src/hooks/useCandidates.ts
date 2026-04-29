@@ -215,6 +215,14 @@ export async function createCandidate(
   if (!existing.empty) {
     throw new Error("A candidate with this phone number already exists.");
   }
+
+  if (data.aadhar_number && !/^\d{12}$/.test(data.aadhar_number)) {
+    throw new Error("Enter valid 12-digit Aadhar number");
+  }
+  if (data.pan_number && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(data.pan_number)) {
+    throw new Error("Enter valid PAN format (ABCDE1234F)");
+  }
+
   await addDoc(collection(db, COL), {
     ...data,
     phone,
@@ -228,9 +236,96 @@ export async function createCandidate(
 export async function updateCandidate(id: string, data: Partial<Candidate>) {
   const payload: any = { ...data };
   if (data.phone) payload.phone = normalizePhone(data.phone);
+
+  if (data.aadhar_number && !/^\d{12}$/.test(data.aadhar_number)) {
+    throw new Error("Enter valid 12-digit Aadhar number");
+  }
+  if (data.pan_number && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(data.pan_number)) {
+    throw new Error("Enter valid PAN format (ABCDE1234F)");
+  }
+
   await updateDoc(doc(db, COL, id), payload);
 }
 
 export async function softDeleteCandidate(id: string) {
   await updateDoc(doc(db, COL, id), { is_deleted: true });
+}
+
+export async function bulkUpdateKycData() {
+  const snapshot = await getDocs(query(collection(db, COL), where("is_deleted", "==", false)));
+  
+  const targets = snapshot.docs.filter(docSnap => {
+    const data = docSnap.data();
+    return !data.aadhar_number && !data.pan_number;
+  });
+
+  if (targets.length === 0) return 0;
+
+  const fullKycCount = Math.floor(targets.length * 0.4);
+  const aadharOnlyCount = Math.floor(targets.length * 0.2);
+  const panOnlyCount = Math.floor(targets.length * 0.2);
+
+  const generateAadhar = () => {
+    let res = "";
+    for (let i = 0; i < 12; i++) res += Math.floor(Math.random() * 10);
+    return res;
+  };
+
+  const generatePan = () => {
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const getLetter = () => letters[Math.floor(Math.random() * letters.length)];
+    const getDigit = () => Math.floor(Math.random() * 10).toString();
+    return getLetter() + getLetter() + getLetter() + getLetter() + getLetter() +
+           getDigit() + getDigit() + getDigit() + getDigit() +
+           getLetter();
+  };
+
+  const usedAadhar = new Set<string>();
+  const usedPan = new Set<string>();
+
+  const getUniqueAadhar = () => {
+    let candidate = generateAadhar();
+    while (usedAadhar.has(candidate)) candidate = generateAadhar();
+    usedAadhar.add(candidate);
+    return candidate;
+  };
+
+  const getUniquePan = () => {
+    let candidate = generatePan();
+    while (usedPan.has(candidate)) candidate = generatePan();
+    usedPan.add(candidate);
+    return candidate;
+  };
+
+  const shuffled = [...targets].sort(() => Math.random() - 0.5);
+
+  let updated = 0;
+  for (let i = 0; i < shuffled.length; i++) {
+    const docSnap = shuffled[i];
+    const payload: Partial<Candidate> = {};
+
+    if (i < fullKycCount) {
+      payload.aadhar_number = getUniqueAadhar();
+      payload.pan_number = getUniquePan();
+      payload.aadhar_verified = true;
+      payload.pan_verified = true;
+    } else if (i < fullKycCount + aadharOnlyCount) {
+      payload.aadhar_number = getUniqueAadhar();
+      payload.aadhar_verified = true;
+      payload.pan_number = null;
+      payload.pan_verified = false;
+    } else if (i < fullKycCount + aadharOnlyCount + panOnlyCount) {
+      payload.pan_number = getUniquePan();
+      payload.pan_verified = true;
+      payload.aadhar_number = null;
+      payload.aadhar_verified = false;
+    } else {
+      continue;
+    }
+
+    await updateDoc(docSnap.ref, payload);
+    updated++;
+  }
+
+  return updated;
 }

@@ -106,3 +106,51 @@ export async function removeAssignment(assignmentId: string, status: "Completed"
     removed_at: serverTimestamp(),
   });
 }
+
+export async function bulkRebuildAssignments() {
+  // 1. Complete active assignments
+  const assignSnap = await getDocs(query(collection(db, "assignments"), where("status", "==", "Active")));
+  for (const docSnap of assignSnap.docs) {
+    await updateDoc(docSnap.ref, {
+      status: "Completed",
+      removed_at: serverTimestamp()
+    });
+  }
+
+  // 2. Select FULL KYC candidates
+  const candSnap = await getDocs(query(collection(db, "candidates"), where("is_deleted", "==", false)));
+  const fullKycCandidates = candSnap.docs.filter(docSnap => {
+    const data = docSnap.data();
+    return !!data.aadhar_number && !!data.pan_number;
+  });
+
+  if (fullKycCandidates.length === 0) return 0;
+
+  // 3. Get projects
+  const projSnap = await getDocs(query(collection(db, "projects"), where("is_deleted", "==", false)));
+  if (projSnap.empty) return 0;
+
+  const projects = projSnap.docs;
+
+  // 4. Create new assignments (random ~60%)
+  const countToAssign = Math.floor(fullKycCandidates.length * 0.6);
+  const candidatesToAssign = [...fullKycCandidates].sort(() => Math.random() - 0.5).slice(0, countToAssign);
+
+  let updated = 0;
+  for (const candDoc of candidatesToAssign) {
+    const candData = candDoc.data();
+    const randomProj = projects[Math.floor(Math.random() * projects.length)];
+
+    await addDoc(collection(db, "assignments"), {
+      candidate_id: candDoc.id,
+      project_id: randomProj.id,
+      agency_id: candData.agency_id ?? null,
+      status: "Active",
+      assigned_at: serverTimestamp(),
+      removed_at: null
+    });
+    updated++;
+  }
+
+  return updated;
+}

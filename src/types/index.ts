@@ -17,6 +17,10 @@ export interface Candidate {
   is_deleted?: boolean;
   created_at?: Timestamp | null;
   agency_id?: string | null;
+  aadhar_number?: string | null;
+  pan_number?: string | null;
+  aadhar_verified?: boolean;
+  pan_verified?: boolean;
 }
 
 export interface Project {

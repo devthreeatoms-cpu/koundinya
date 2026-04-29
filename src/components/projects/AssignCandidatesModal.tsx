@@ -12,6 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Search, Loader2, X, Sparkles, MapPin, Bike, Building2, ShieldCheck } from "lucide-react";
 import { useCombinedCandidatePool, useAllCandidates } from "@/hooks/useCandidates";
 import { useAssignments, assignCandidates } from "@/hooks/useAssignments";
@@ -75,6 +82,7 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
   const { assignments } = useAssignments({ bypassOwnerFilter: true });
   const { toast } = useToast();
   const [search, setSearch] = useState("");
+  const [kycFilter, setKycFilter] = useState<string>("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
 
@@ -82,6 +90,7 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
     if (!open) {
       setSearch("");
       setSelected(new Set());
+      setKycFilter("all");
     }
   }, [open]);
 
@@ -94,14 +103,23 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
     const term = search.trim().toLowerCase();
     return candidates
       .filter((c) => !activeAssignedIds.has(c.id))
-      .filter(
-        (c) =>
-          !term ||
-          c.name.toLowerCase().includes(term) ||
-          c.phone.toLowerCase().includes(term) ||
-          c.location.toLowerCase().includes(term)
-      );
-  }, [candidates, activeAssignedIds, search]);
+      .filter((c) => {
+        if (term && 
+            !c.name.toLowerCase().includes(term) && 
+            !c.phone.toLowerCase().includes(term) && 
+            !c.location.toLowerCase().includes(term)) {
+          return false;
+        }
+
+        const hasAadhar = !!c.aadhar_number;
+        const hasPan = !!c.pan_number;
+        if (kycFilter === "fully_verified" && (!hasAadhar || !hasPan)) return false;
+        if (kycFilter === "partial" && ((hasAadhar && hasPan) || (!hasAadhar && !hasPan))) return false;
+        if (kycFilter === "kyc_pending" && (hasAadhar || hasPan)) return false;
+
+        return true;
+      });
+  }, [candidates, activeAssignedIds, search, kycFilter]);
 
   const selectedCandidates = useMemo(
     () => candidates.filter((c) => selected.has(c.id)),
@@ -120,6 +138,41 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
   async function handleAssign() {
     if (selected.size === 0) return;
     setSubmitting(true);
+    
+    // KYC Checks
+    for (const cId of selected) {
+      const c = candidates.find(cand => cand.id === cId);
+      if (!c) continue;
+      const hasAadhar = !!c.aadhar_number;
+      const hasPan = !!c.pan_number;
+      
+      if (!hasAadhar && !hasPan) {
+        toast({ 
+          title: "KYC Blocked", 
+          description: `Candidate ${c.name} has pending KYC. Please provide Aadhar and PAN.`, 
+          variant: "destructive" 
+        });
+        setSubmitting(false);
+        return;
+      } else if (hasAadhar && !hasPan) {
+        toast({ 
+          title: "KYC Blocked", 
+          description: `Candidate ${c.name} has incomplete KYC. Please provide PAN.`, 
+          variant: "destructive" 
+        });
+        setSubmitting(false);
+        return;
+      } else if (!hasAadhar && hasPan) {
+        toast({ 
+          title: "KYC Blocked", 
+          description: `Candidate ${c.name} has incomplete KYC. Please provide Aadhar.`, 
+          variant: "destructive" 
+        });
+        setSubmitting(false);
+        return;
+      }
+    }
+
     try {
       await assignCandidates(projectId, Array.from(selected), {
         agency_id: ownerAgencyForAssign,
@@ -136,7 +189,7 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 overflow-hidden gap-0">
+      <DialogContent className="max-w-2xl h-[85vh] flex flex-col p-0 overflow-hidden gap-0">
         <DialogHeader className="p-4 sm:p-6 pb-4 border-b border-border bg-gradient-soft">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-gradient-brand text-white grid place-items-center shadow-brand">
@@ -152,26 +205,40 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
         </DialogHeader>
 
         <div className="p-4 sm:p-6 pb-3 space-y-3">
-          <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
-            <Input
-              placeholder="Search by name, phone, location…"
-              className="pl-9 h-11"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative group flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
+              <Input
+                placeholder="Search by name, phone, location…"
+                className="pl-9 h-11"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            
+            <Select value={kycFilter} onValueChange={setKycFilter}>
+              <SelectTrigger className="w-full sm:w-[180px] h-11">
+                <SelectValue placeholder="KYC Filter" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Candidates</SelectItem>
+                <SelectItem value="fully_verified">Fully Verified</SelectItem>
+                <SelectItem value="partial">Partial KYC</SelectItem>
+                <SelectItem value="kyc_pending">KYC Pending</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {selectedCandidates.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap p-2 rounded-lg bg-primary-soft/60 border border-primary/20">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+            <div className="max-h-24 overflow-y-auto flex items-center gap-2 flex-wrap p-2 rounded-lg bg-primary-soft/60 border border-primary/20">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-primary sticky top-0 bg-primary-soft/60 py-0.5">
                 Selected ({selectedCandidates.length})
               </span>
               {selectedCandidates.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => toggle(c.id)}
-                  className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-white border border-primary/30 text-foreground hover:bg-destructive/10 hover:border-destructive/40 hover:text-destructive transition-colors group/chip"
+                  className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 hover:bg-destructive/10 hover:border-destructive/40 hover:text-destructive transition-colors group/chip"
                 >
                   <div className="h-4 w-4 rounded-full bg-gradient-brand text-white grid place-items-center text-[8px] font-semibold">
                     {initials(c.name)}
@@ -184,7 +251,7 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
           )}
         </div>
 
-        <ScrollArea className="h-80 px-6">
+        <ScrollArea className="flex-1 px-6">
           {available.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="h-12 w-12 rounded-full bg-muted grid place-items-center mb-3">
@@ -264,7 +331,7 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
           )}
         </ScrollArea>
 
-        <DialogFooter className="flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 p-4 sm:p-6 pt-4 border-t border-border bg-muted/20">
+        <DialogFooter className="flex-shrink-0 flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 p-4 sm:p-6 pt-4 border-t border-border bg-muted/20">
           <p className="text-xs text-muted-foreground text-center sm:text-left">
             <span className="font-semibold text-foreground tabular-nums">{selected.size}</span> of{" "}
             <span className="tabular-nums">{available.length}</span> selected

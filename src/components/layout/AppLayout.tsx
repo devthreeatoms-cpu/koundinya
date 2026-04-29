@@ -45,6 +45,7 @@ const navItems: NavItem[] = [
   { to: "/candidates", label: "Candidates", icon: Users },
   { to: "/projects", label: "Projects", icon: Briefcase, hideForAgency: true },
   { to: "/agencies", label: "Agencies", icon: Building2, adminOnly: true },
+  { to: "/reports", label: "Reports", icon: BarChart3 },
 ];
 
 const STORAGE_KEY = "koundinya-sidebar-collapsed";

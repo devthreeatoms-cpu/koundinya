@@ -9,6 +9,8 @@ import {
   Filter,
   Activity,
   TrendingUp,
+  Eye,
+  Loader2,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -52,11 +54,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { useCandidates, useAllCandidates } from "@/hooks/useCandidates";
+import { useCombinedCandidatePool, useAllCandidates, bulkUpdateKycData } from "@/hooks/useCandidates";
 import { useProjects } from "@/hooks/useProjects";
-import { useAssignments } from "@/hooks/useAssignments";
+import { useAssignments, bulkRebuildAssignments } from "@/hooks/useAssignments";
+import { useAuth } from "@/context/AuthContext";
 import { formatDate, initials } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 const STATUS_COLORS: Record<string, string> = {
   New: "hsl(var(--secondary))",
@@ -77,16 +81,42 @@ const SOURCE_PALETTE = [
 ];
 
 export default function Reports() {
-  const { candidates, loading: cLoading } = useCandidates();
+  const { isAdmin, agencyId } = useAuth();
+  const { candidates: rawCandidates, loading: cLoading } = useCombinedCandidatePool();
   const { candidates: allCandidates } = useAllCandidates();
   const { projects, loading: pLoading } = useProjects();
   const { assignments, loading: aLoading } = useAssignments();
+  const { toast } = useToast();
+
+  async function handleSeedKycData() {
+    try {
+      const updated = await bulkUpdateKycData();
+      toast({ title: "Seeding complete", description: `Updated ${updated} candidates.` });
+    } catch (err: any) {
+      toast({ title: "Error seeding data", description: err?.message, variant: "destructive" });
+    }
+  }
+
+  async function handleRebuildAssignments() {
+    try {
+      const updated = await bulkRebuildAssignments();
+      toast({ title: "Rebuild complete", description: `Assigned ${updated} candidates.` });
+    } catch (err: any) {
+      toast({ title: "Error rebuilding assignments", description: err?.message, variant: "destructive" });
+    }
+  }
+
+  const candidates = useMemo(() => {
+    if (isAdmin) return rawCandidates;
+    return rawCandidates.filter((c) => c.agency_id === agencyId);
+  }, [rawCandidates, isAdmin, agencyId]);
 
   const loading = cLoading || pLoading || aLoading;
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [kycFilter, setKycFilter] = useState<string>("all");
 
   const sources = useMemo(() => {
     const set = new Set<string>();
@@ -94,7 +124,7 @@ export default function Reports() {
     return Array.from(set).sort();
   }, [candidates]);
 
-  const filteredCandidates = useMemo(() => {
+  const kycStatsCandidates = useMemo(() => {
     return candidates.filter((c) => {
       if (sourceFilter !== "all" && c.source !== sourceFilter) return false;
       if (statusFilter !== "all" && c.status !== statusFilter) return false;
@@ -104,6 +134,25 @@ export default function Reports() {
       return true;
     });
   }, [candidates, sourceFilter, statusFilter, dateRange]);
+
+  const filteredCandidates = useMemo(() => {
+    return candidates.filter((c) => {
+      if (sourceFilter !== "all" && c.source !== sourceFilter) return false;
+      if (statusFilter !== "all" && c.status !== statusFilter) return false;
+
+      const hasAadhar = !!c.aadhar_number;
+      const hasPan = !!c.pan_number;
+      if (kycFilter === "fully_verified" && (!hasAadhar || !hasPan)) return false;
+      if (kycFilter === "aadhar_only" && (!hasAadhar || hasPan)) return false;
+      if (kycFilter === "pan_only" && (hasAadhar || !hasPan)) return false;
+      if (kycFilter === "kyc_pending" && (hasAadhar || hasPan)) return false;
+
+      const created = (c.created_at as any)?.toDate?.() as Date | undefined;
+      if (dateRange?.from && created && created < dateRange.from) return false;
+      if (dateRange?.to && created && created > dateRange.to) return false;
+      return true;
+    });
+  }, [candidates, sourceFilter, statusFilter, kycFilter, dateRange]);
 
   const activeAssignments = useMemo(
     () => assignments.filter((a) => a.status === "Active"),
@@ -141,7 +190,37 @@ export default function Reports() {
       ring: "ring-accent/20",
       hint: `${assignedIds.size} currently assigned`,
     },
-  ];
+  ].filter((s) => isAdmin || s.label !== "Active projects");
+
+  const kycStats = useMemo(() => {
+    let fullKyc = 0;
+    let aadharOnly = 0;
+    let panOnly = 0;
+    let pending = 0;
+
+    for (const c of kycStatsCandidates) {
+      const hasAadhar = !!c.aadhar_number;
+      const hasPan = !!c.pan_number;
+
+      if (hasAadhar && hasPan) {
+        fullKyc++;
+      } else if (hasAadhar && !hasPan) {
+        aadharOnly++;
+      } else if (!hasAadhar && hasPan) {
+        panOnly++;
+      } else {
+        pending++;
+      }
+    }
+
+    return {
+      total: kycStatsCandidates.length,
+      fullKyc,
+      aadharOnly,
+      panOnly,
+      pending,
+    };
+  }, [filteredCandidates]);
 
   // Candidates by status
   const statusData = useMemo(() => {
@@ -200,6 +279,7 @@ export default function Reports() {
     setDateRange(undefined);
     setSourceFilter("all");
     setStatusFilter("all");
+    setKycFilter("all");
   }
 
   return (
@@ -281,7 +361,20 @@ export default function Reports() {
             </SelectContent>
           </Select>
 
-          {(dateRange || sourceFilter !== "all" || statusFilter !== "all") && (
+          <Select value={kycFilter} onValueChange={setKycFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="KYC Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All KYC Statuses</SelectItem>
+              <SelectItem value="fully_verified">Fully Verified</SelectItem>
+              <SelectItem value="aadhar_only">Aadhar Only</SelectItem>
+              <SelectItem value="pan_only">PAN Only</SelectItem>
+              <SelectItem value="kyc_pending">KYC Pending</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {(dateRange || sourceFilter !== "all" || statusFilter !== "all" || kycFilter !== "all") && (
             <Button variant="ghost" size="sm" onClick={clearFilters}>
               Clear
             </Button>
@@ -290,7 +383,7 @@ export default function Reports() {
       </Card>
 
       {/* Summary cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className={cn("grid gap-4 sm:grid-cols-2", isAdmin ? "lg:grid-cols-3" : "lg:grid-cols-2")}>
         {stats.map((s, idx) => {
           const Icon = s.icon;
           return (
@@ -335,6 +428,187 @@ export default function Reports() {
             </Card>
           );
         })}
+      </div>
+
+      {/* Candidate KYC Summary */}
+      <div className="space-y-3 mt-8">
+        <div>
+          <h3 className="text-lg font-semibold tracking-tight">Candidate KYC Summary</h3>
+          <p className="text-xs text-muted-foreground">Overview of identity verification status</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <Card
+            onClick={() => setKycFilter("all")}
+            className={cn(
+              "relative overflow-hidden p-5 border shadow-card hover:shadow-elevated transition-all duration-300 hover:-translate-y-0.5 animate-fade-in-up cursor-pointer",
+              kycFilter === "all" ? "border-primary ring-2 ring-primary/20 bg-muted/5" : "border-border/60"
+            )}
+          >
+            <p className="text-sm font-medium text-muted-foreground">Total Candidates</p>
+            <p className="text-4xl font-bold mt-2 tracking-tight tabular-nums">{kycStats.total}</p>
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mt-3">Platform Pool</div>
+          </Card>
+
+          <Card
+            onClick={() => setKycFilter("fully_verified")}
+            className={cn(
+              "relative overflow-hidden p-5 border shadow-card hover:shadow-elevated transition-all duration-300 hover:-translate-y-0.5 animate-fade-in-up cursor-pointer",
+              kycFilter === "fully_verified" ? "border-green-500 ring-2 ring-green-500/20 bg-green-500/5" : "border-border/60"
+            )}
+          >
+            <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full opacity-20 blur-2xl bg-green-500" />
+            <p className="text-sm font-medium text-muted-foreground">Fully Verified</p>
+            <p className="text-4xl font-bold mt-2 tracking-tight tabular-nums text-green-600 dark:text-green-400">{kycStats.fullKyc}</p>
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-green-600 dark:text-green-400 mt-3">Full KYC</div>
+          </Card>
+
+          <Card
+            onClick={() => setKycFilter("aadhar_only")}
+            className={cn(
+              "relative overflow-hidden p-5 border shadow-card hover:shadow-elevated transition-all duration-300 hover:-translate-y-0.5 animate-fade-in-up cursor-pointer",
+              kycFilter === "aadhar_only" ? "border-yellow-500 ring-2 ring-yellow-500/20 bg-yellow-500/5" : "border-border/60"
+            )}
+          >
+            <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full opacity-20 blur-2xl bg-yellow-500" />
+            <p className="text-sm font-medium text-muted-foreground">Aadhar Only</p>
+            <p className="text-4xl font-bold mt-2 tracking-tight tabular-nums text-yellow-600 dark:text-yellow-400">{kycStats.aadharOnly}</p>
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-yellow-600 dark:text-yellow-400 mt-3">Partial KYC</div>
+          </Card>
+
+          <Card
+            onClick={() => setKycFilter("pan_only")}
+            className={cn(
+              "relative overflow-hidden p-5 border shadow-card hover:shadow-elevated transition-all duration-300 hover:-translate-y-0.5 animate-fade-in-up cursor-pointer",
+              kycFilter === "pan_only" ? "border-yellow-500 ring-2 ring-yellow-500/20 bg-yellow-500/5" : "border-border/60"
+            )}
+          >
+            <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full opacity-20 blur-2xl bg-yellow-500" />
+            <p className="text-sm font-medium text-muted-foreground">PAN Only</p>
+            <p className="text-4xl font-bold mt-2 tracking-tight tabular-nums text-yellow-600 dark:text-yellow-400">{kycStats.panOnly}</p>
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-yellow-600 dark:text-yellow-400 mt-3">Partial KYC</div>
+          </Card>
+
+          <Card
+            onClick={() => setKycFilter("kyc_pending")}
+            className={cn(
+              "relative overflow-hidden p-5 border shadow-card hover:shadow-elevated transition-all duration-300 hover:-translate-y-0.5 animate-fade-in-up cursor-pointer",
+              kycFilter === "kyc_pending" ? "border-red-500 ring-2 ring-red-500/20 bg-red-500/5" : "border-border/60"
+            )}
+          >
+            <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full opacity-20 blur-2xl bg-red-500" />
+            <p className="text-sm font-medium text-muted-foreground">KYC Pending</p>
+            <p className="text-4xl font-bold mt-2 tracking-tight tabular-nums text-red-600 dark:text-red-400">{kycStats.pending}</p>
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-red-600 dark:text-red-400 mt-3">Pending KYC</div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Filtered KYC Candidates List */}
+      <div className="space-y-3 mt-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold tracking-tight">
+              {kycFilter === "all" && "All Candidates"}
+              {kycFilter === "fully_verified" && "Fully Verified Candidates"}
+              {kycFilter === "aadhar_only" && "Aadhar Only Candidates"}
+              {kycFilter === "pan_only" && "PAN Only Candidates"}
+              {kycFilter === "kyc_pending" && "KYC Pending Candidates"}
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Showing {filteredCandidates.length} matching candidate profile{filteredCandidates.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+        </div>
+
+        {filteredCandidates.length === 0 ? (
+          <Card className="glass-card p-8 text-center border-border/60">
+            <p className="text-sm text-muted-foreground">No candidates match this KYC filter.</p>
+          </Card>
+        ) : (
+          <div className="rounded-xl border border-border/60 bg-muted/10 overflow-hidden">
+            <Table>
+              <TableHeader className="bg-muted/50 backdrop-blur">
+                <TableRow className="hover:bg-transparent border-b border-border">
+                  <TableHead className="font-semibold text-foreground">Candidate</TableHead>
+                  <TableHead className="font-semibold text-foreground">Aadhar Details</TableHead>
+                  <TableHead className="font-semibold text-foreground">PAN Details</TableHead>
+                  <TableHead className="font-semibold text-foreground">Phone</TableHead>
+                  <TableHead className="font-semibold text-foreground">Source</TableHead>
+                  <TableHead className="w-12"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredCandidates.map((c, idx) => (
+                  <TableRow
+                    key={c.id}
+                    className={cn(
+                      "border-b border-border/60 transition-colors hover:bg-primary-soft/40",
+                      idx % 2 === 1 && "bg-muted/20"
+                    )}
+                  >
+                    <TableCell className="font-medium">
+                      <Link
+                        to={`/candidates/${c.id}`}
+                        className="flex items-center gap-3 group"
+                      >
+                        <div className="h-8 w-8 rounded-full bg-gradient-brand text-white grid place-items-center text-[11px] font-semibold shadow-sm shrink-0">
+                          {initials(c.name)}
+                        </div>
+                        <span className="group-hover:text-primary transition-colors text-sm">{c.name}</span>
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      {c.aadhar_number ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-medium tabular-nums">{c.aadhar_number}</span>
+                          {c.aadhar_verified && (
+                            <Badge className="h-4 text-[9px] px-1 py-0 bg-green-500/20 text-green-600 dark:text-green-400 border-0 font-semibold">
+                              Verified
+                            </Badge>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {c.pan_number ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-medium tracking-wider">{c.pan_number}</span>
+                          {c.pan_verified && (
+                            <Badge className="h-4 text-[9px] px-1 py-0 bg-green-500/20 text-green-600 dark:text-green-400 border-0 font-semibold">
+                              Verified
+                            </Badge>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs tabular-nums text-muted-foreground">
+                      {c.phone}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {c.source || "None"}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-primary-soft text-primary"
+                        asChild
+                      >
+                        <Link to={`/candidates/${c.id}`}>
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
 
       {/* Charts */}
@@ -670,11 +944,11 @@ export default function Reports() {
                             variant="outline"
                             className={cn(
                               a.status === "Active" &&
-                                "border-primary/40 text-primary bg-primary-soft",
+                              "border-primary/40 text-primary bg-primary-soft",
                               a.status === "Completed" &&
-                                "border-muted-foreground/30 text-muted-foreground",
+                              "border-muted-foreground/30 text-muted-foreground",
                               a.status === "Dropped" &&
-                                "border-destructive/40 text-destructive bg-destructive/10"
+                              "border-destructive/40 text-destructive bg-destructive/10"
                             )}
                           >
                             {a.status}
