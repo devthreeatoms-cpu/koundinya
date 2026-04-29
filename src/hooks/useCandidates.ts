@@ -10,9 +10,17 @@ import { useAuth } from "@/context/AuthContext";
 
 const COL = "candidates";
 
+function sortByCreated(list: Candidate[]) {
+  return list.sort((a, b) => {
+    const ta = (a.created_at as any)?.toMillis?.() ?? 0;
+    const tb = (b.created_at as any)?.toMillis?.() ?? 0;
+    return tb - ta;
+  });
+}
+
 /**
  * Returns candidates the current user is allowed to see.
- * - Admin: all non-deleted candidates.
+ * - Admin: all non-deleted admin-owned candidates (agency_id == null).
  * - Agency: only candidates whose agency_id == current user's agency_id.
  * - Anyone with no profile/agency_id and not admin: nothing.
  */
@@ -22,29 +30,28 @@ export function useCandidates() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return;
-    // Agency user without agency_id sees nothing.
+    // While auth is resolving, keep loading=true so downstream
+    // consumers never see a flash of empty/stale data.
+    if (authLoading) { setLoading(true); return; }
+
     if (!isAdmin && !agencyId) {
       setCandidates([]);
       setLoading(false);
       return;
     }
+
     const constraints: QueryConstraint[] = [where("is_deleted", "==", false)];
-    // Strict separation: admin sees ONLY admin-owned data (agency_id == null).
-    // Agency users see only their own data.
     if (isAdmin) constraints.push(where("agency_id", "==", null));
     else constraints.push(where("agency_id", "==", agencyId));
     const q = query(collection(db, COL), ...constraints);
+
+    // Reset loading BEFORE subscribing so we never display stale data
+    // during the window between starting the subscription and first snapshot.
+    setLoading(true);
     const unsub = onSnapshot(
       q,
       (snap) => {
-        const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Candidate[];
-        list.sort((a, b) => {
-          const ta = (a.created_at as any)?.toMillis?.() ?? 0;
-          const tb = (b.created_at as any)?.toMillis?.() ?? 0;
-          return tb - ta;
-        });
-        setCandidates(list);
+        setCandidates(sortByCreated(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Candidate[]));
         setLoading(false);
       },
       () => setLoading(false)
@@ -66,35 +73,26 @@ export function useAllCandidates(opts?: { bypassOwnerFilter?: boolean }) {
   const bypass = !!opts?.bypassOwnerFilter;
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading) { setLoading(true); return; }
+
     if (!bypass && !isAdmin && !agencyId) {
       setCandidates([]);
       setLoading(false);
       return;
     }
-    // Admin sees only admin-owned (agency_id == null); agency sees only own.
-    // bypass=true returns the full collection (used by detail pages where the
-    // parent record is already access-checked).
+
     const constraints: QueryConstraint[] = bypass
       ? []
-      : [
-          isAdmin
-            ? where("agency_id", "==", null)
-            : where("agency_id", "==", agencyId),
-        ];
+      : [isAdmin ? where("agency_id", "==", null) : where("agency_id", "==", agencyId)];
     const q = constraints.length
       ? query(collection(db, COL), ...constraints)
       : query(collection(db, COL));
+
+    setLoading(true);
     const unsub = onSnapshot(
       q,
       (snap) => {
-        const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Candidate[];
-        list.sort((a, b) => {
-          const ta = (a.created_at as any)?.toMillis?.() ?? 0;
-          const tb = (b.created_at as any)?.toMillis?.() ?? 0;
-          return tb - ta;
-        });
-        setCandidates(list);
+        setCandidates(sortByCreated(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Candidate[]));
         setLoading(false);
       },
       () => setLoading(false)
@@ -110,8 +108,7 @@ export function useAllCandidates(opts?: { bypassOwnerFilter?: boolean }) {
  * - Admin: all non-deleted candidates (admin-owned + every agency).
  * - Agency: own agency candidates + admin pool (agency_id == null).
  *
- * Each candidate keeps its real `agency_id`, so callers can label origin
- * (Admin pool vs. specific agency name).
+ * Each candidate keeps its real `agency_id`, so callers can label origin.
  */
 export function useCombinedCandidatePool() {
   const { isAdmin, agencyId, loading: authLoading } = useAuth();
@@ -119,29 +116,24 @@ export function useCombinedCandidatePool() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading) { setLoading(true); return; }
+
     if (!isAdmin && !agencyId) {
       setCandidates([]);
       setLoading(false);
       return;
     }
+
     const q = query(collection(db, COL), where("is_deleted", "==", false));
+    setLoading(true);
     const unsub = onSnapshot(
       q,
       (snap) => {
         let list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Candidate[];
         if (!isAdmin) {
-          // Agency users see admin-owned (null) + their own agency.
-          list = list.filter(
-            (c) => c.agency_id == null || c.agency_id === agencyId
-          );
+          list = list.filter((c) => c.agency_id == null || c.agency_id === agencyId);
         }
-        list.sort((a, b) => {
-          const ta = (a.created_at as any)?.toMillis?.() ?? 0;
-          const tb = (b.created_at as any)?.toMillis?.() ?? 0;
-          return tb - ta;
-        });
-        setCandidates(list);
+        setCandidates(sortByCreated(list));
         setLoading(false);
       },
       () => setLoading(false)
@@ -154,7 +146,7 @@ export function useCombinedCandidatePool() {
 
 /**
  * Admin-only: returns all non-deleted candidates that BELONG to an agency
- * (agency_id != null). Used for the "Agency Candidates" tab.
+ * (agency_id != null). Used for the "Agency Candidates" tab and dashboard totals.
  */
 export function useAgencyOwnedCandidates() {
   const { isAdmin, loading: authLoading } = useAuth();
@@ -162,23 +154,24 @@ export function useAgencyOwnedCandidates() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!isAdmin) { setCandidates([]); setLoading(false); return; }
+    if (authLoading) { setLoading(true); return; }
+
+    if (!isAdmin) {
+      setCandidates([]);
+      setLoading(false);
+      return;
+    }
+
     const q = query(
       collection(db, COL),
       where("is_deleted", "==", false),
       where("agency_id", "!=", null)
     );
+    setLoading(true);
     const unsub = onSnapshot(
       q,
       (snap) => {
-        const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Candidate[];
-        list.sort((a, b) => {
-          const ta = (a.created_at as any)?.toMillis?.() ?? 0;
-          const tb = (b.created_at as any)?.toMillis?.() ?? 0;
-          return tb - ta;
-        });
-        setCandidates(list);
+        setCandidates(sortByCreated(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Candidate[]));
         setLoading(false);
       },
       () => setLoading(false)
@@ -191,8 +184,6 @@ export function useAgencyOwnedCandidates() {
 
 /**
  * Live single-candidate fetch by ID, bypassing list-level agency filters.
- * Useful for detail pages so admins can drill into agency-owned candidates
- * via /agencies/:id without being blocked by the strict admin filter.
  */
 export function useCandidateById(id: string | undefined) {
   const [candidate, setCandidate] = useState<Candidate | null>(null);
@@ -220,7 +211,6 @@ export async function createCandidate(
   ctx: { agency_id: string | null }
 ) {
   const phone = normalizePhone(data.phone);
-  // uniqueness check (client-side; Firestore rules should enforce as well)
   const existing = await getDocs(query(collection(db, COL), where("phone", "==", phone)));
   if (!existing.empty) {
     throw new Error("A candidate with this phone number already exists.");

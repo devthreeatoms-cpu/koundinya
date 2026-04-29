@@ -34,7 +34,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
-      if (!u) setProfile(null);
+      if (!u) {
+        setProfile(null);
+      } else {
+        // Set profileLoading=true in the SAME batch so that authLoading
+        // stays true until the profile doc is fetched. Without this there
+        // is a one-render window where loading=false but profile=null,
+        // causing all hooks to run with isAdmin=false and wrong queries.
+        setProfileLoading(true);
+      }
     });
     return () => unsub();
   }, []);

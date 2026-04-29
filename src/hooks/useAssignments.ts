@@ -25,7 +25,7 @@ export function useAssignments(filter?: {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading) { setLoading(true); return; }
     if (!isAdmin && !agencyId) {
       setAssignments([]);
       setLoading(false);
