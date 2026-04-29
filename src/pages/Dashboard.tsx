@@ -27,7 +27,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { useCandidates, useAllCandidates, useAgencyOwnedCandidates } from "@/hooks/useCandidates";
+import { useCandidates, useAllCandidates, useAgencyOwnedCandidates, useCombinedCandidatePool } from "@/hooks/useCandidates";
 import { useProjects } from "@/hooks/useProjects";
 import { useAssignments } from "@/hooks/useAssignments";
 import { useAgencies } from "@/hooks/useAgencies";
@@ -38,25 +38,14 @@ import { Building2 } from "lucide-react";
 
 export default function Dashboard() {
   const { isAdmin } = useAuth();
-  const { candidates: ownCandidates, loading: cLoading } = useCandidates();
+  const { candidates: combinedCandidates, loading: cLoading } = useCombinedCandidatePool();
   const { candidates: allCandidates } = useAllCandidates({ bypassOwnerFilter: isAdmin });
-  // Admin: include agency-owned candidates so the dashboard reflects the
-  // entire workforce across the platform, not just admin-owned records.
-  const { candidates: agencyOwnedCandidates, loading: agencyOwnedLoading } = useAgencyOwnedCandidates();
-  const { projects, loading: pLoading } = useProjects();
-  // Always bypass the owner filter on assignments — we intersect with the
-  // visible candidate set below, which is the source of truth for ownership.
-  // This avoids missing an active assignment if its agency_id ever drifts
-  // from the candidate's agency_id.
+  const { projects, loading: pLoading } = useProjects({ bypassOwnerFilter: isAdmin });
   const { assignments, loading: aLoading } = useAssignments({ bypassOwnerFilter: true });
   const { agencies, loading: agLoading } = useAgencies({ includeDeleted: true });
 
-  const loading = cLoading || pLoading || aLoading || agLoading || agencyOwnedLoading;
+  const loading = cLoading || pLoading || aLoading || agLoading;
 
-  // For admins, the "candidates" view is the union of admin-owned + every
-  // agency's candidates. For agency users it's their own scoped list.
-  // Candidates whose owning agency has been deactivated are excluded so
-  // dashboard totals match what's visible elsewhere in the app.
   const activeAgencyIds = useMemo(
     () => new Set(agencies.filter((a) => !a.is_deleted).map((a) => a.id)),
     [agencies]
@@ -64,12 +53,8 @@ export default function Dashboard() {
   const candidates = useMemo(() => {
     const dropDeactivated = (c: { agency_id?: string | null }) =>
       c.agency_id == null || activeAgencyIds.has(c.agency_id);
-    if (!isAdmin) return ownCandidates.filter(dropDeactivated);
-    const map = new Map<string, (typeof ownCandidates)[number]>();
-    for (const c of ownCandidates) map.set(c.id, c);
-    for (const c of agencyOwnedCandidates) map.set(c.id, c);
-    return Array.from(map.values()).filter(dropDeactivated);
-  }, [isAdmin, ownCandidates, agencyOwnedCandidates, activeAgencyIds]);
+    return combinedCandidates.filter(dropDeactivated);
+  }, [combinedCandidates, activeAgencyIds]);
 
   // Only count active assignments whose candidate is currently visible.
   // Stale assignments (deleted candidates, deactivated agencies) would

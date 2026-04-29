@@ -84,8 +84,8 @@ export default function Reports() {
   const { isAdmin, agencyId } = useAuth();
   const { candidates: rawCandidates, loading: cLoading } = useCombinedCandidatePool();
   const { candidates: allCandidates } = useAllCandidates();
-  const { projects, loading: pLoading } = useProjects();
-  const { assignments, loading: aLoading } = useAssignments();
+  const { projects, loading: pLoading } = useProjects({ bypassOwnerFilter: isAdmin });
+  const { assignments, loading: aLoading } = useAssignments({ bypassOwnerFilter: isAdmin });
   const { toast } = useToast();
 
   async function handleSeedKycData() {
