@@ -7,6 +7,7 @@ export type UserRole = "admin" | "agency";
 
 export interface Candidate {
   id: string;
+  kisfs_id?: string | null;
   name: string;
   phone: string;
   location: string;
@@ -21,6 +22,10 @@ export interface Candidate {
   pan_number?: string | null;
   aadhar_verified?: boolean;
   pan_verified?: boolean;
+  bank_account_name?: string | null;
+  bank_name?: string | null;
+  bank_account_number?: string | null;
+  bank_ifsc?: string | null;
 }
 
 export interface Project {

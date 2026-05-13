@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
-  collection, query, where, onSnapshot, addDoc, updateDoc, doc, serverTimestamp,
-  getDocs, QueryConstraint,
+  collection, query, where, onSnapshot, updateDoc, doc, serverTimestamp,
+  getDocs, QueryConstraint, runTransaction,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Candidate } from "@/types";
@@ -223,13 +223,24 @@ export async function createCandidate(
     throw new Error("Enter valid PAN format (ABCDE1234F)");
   }
 
-  await addDoc(collection(db, COL), {
-    ...data,
-    phone,
-    is_deleted: false,
-    status: data.status || "New",
-    agency_id: ctx.agency_id ?? null,
-    created_at: serverTimestamp(),
+  const counterRef = doc(db, "counters", "candidates");
+  const candidateRef = doc(collection(db, COL));
+
+  await runTransaction(db, async (tx) => {
+    const counterSnap = await tx.get(counterRef);
+    const nextCount = (counterSnap.exists() ? (counterSnap.data().count as number) : 0) + 1;
+    const kisfs_id = `KISFS${String(nextCount).padStart(4, "0")}`;
+
+    tx.set(counterRef, { count: nextCount }, { merge: true });
+    tx.set(candidateRef, {
+      ...data,
+      phone,
+      kisfs_id,
+      is_deleted: false,
+      status: data.status || "New",
+      agency_id: ctx.agency_id ?? null,
+      created_at: serverTimestamp(),
+    });
   });
 }
 

@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userRole() {
+      return userDoc().exists ? userDoc().data.role : 'agency';
+    }
+
+    function userAgencyId() {
+      return userDoc().exists ? userDoc().data.agency_id : null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && userRole() == 'admin';
+    }
+
+    // ── users ──────────────────────────────────────────────────────────────
+    // Admins can read/write all profiles; users can read/write their own.
+    match /users/{uid} {
+      allow read:  if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+    }
+
+    // ── agencies ───────────────────────────────────────────────────────────
+    // All signed-in users can READ agencies (needed for name resolution in
+    // Dashboard, ProjectDetail, etc. which query the full collection without
+    // an agency_id filter). Only admins can write.
+    match /agencies/{agencyId} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ── candidates ─────────────────────────────────────────────────────────
+    // READ: all signed-in users. The app queries candidates without
+    // agency_id filters in several hooks (useCombinedCandidatePool,
+    // useAllCandidates) and applies client-side filtering — Firestore
+    // security rules that depend on resource.data would reject those
+    // queries entirely, so we keep reads open for authenticated users.
+    // WRITE: admins own agency_id==null docs; agencies own their own.
+    match /candidates/{candidateId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && (
+        isAdmin()
+          ? request.resource.data.agency_id == null
+          : request.resource.data.agency_id == userAgencyId()
+      );
+      allow update: if isSignedIn() && (
+        isAdmin()
+          ? resource.data.agency_id == null
+          : resource.data.agency_id == userAgencyId()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ── projects ───────────────────────────────────────────────────────────
+    match /projects/{projectId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && (
+        isAdmin()
+          ? request.resource.data.agency_id == null
+          : request.resource.data.agency_id == userAgencyId()
+      );
+      allow update: if isSignedIn() && (
+        isAdmin()
+          ? resource.data.agency_id == null
+          : resource.data.agency_id == userAgencyId()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ── assignments ────────────────────────────────────────────────────────
+    // READ: open to all signed-in users — hooks like useAssignments with
+    // bypassOwnerFilter=true query all assignments without an agency_id
+    // WHERE clause, which requires open read access.
+    match /assignments/{assignmentId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && (
+        isAdmin() || request.resource.data.agency_id == userAgencyId()
+      );
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        resource.data.agency_id == userAgencyId() ||
+        resource.data.agency_id == null
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ── counters ───────────────────────────────────────────────────────────
+    // Used for atomic sequential ID generation (KISFS IDs).
+    // All signed-in users need read+write to participate in the transaction.
+    match /counters/{counterId} {
+      allow read, write: if isSignedIn();
+    }
+  }
+}

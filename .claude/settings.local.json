@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(firebase --version)",
+      "Bash(npx firebase-tools *)",
+      "mcp__mcp-registry__search_mcp_registry",
+      "PowerShell(npm root -g)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(firebase deploy *)",
+      "Bash(node scripts/backfill-kisfs.cjs)",
+      "WebFetch(domain:docs.google.com)",
+      "Bash(npx tsc *)",
+      "Bash(firebase apps:list --project workforce-management-sys-f3960)",
+      "Bash(firebase apps:sdkconfig WEB 1:1037583336811:web:3df5db05441e1c231a782e --project workforce-management-sys-f3960)",
+      "Bash(node -e ' *)",
+      "Bash(node scripts/reseed-candidates.cjs)",
+      "Bash(node scripts/patch-bank-details.cjs)"
+    ]
+  }
+}

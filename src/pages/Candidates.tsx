@@ -181,7 +181,12 @@ export default function CandidatesPage() {
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return candidates.filter((c) => {
-      if (term && !c.name.toLowerCase().includes(term) && !c.phone.toLowerCase().includes(term)) {
+      if (
+        term &&
+        !c.name.toLowerCase().includes(term) &&
+        !c.phone.toLowerCase().includes(term) &&
+        !(c.kisfs_id?.toLowerCase().includes(term))
+      ) {
         return false;
       }
       if (statusFilter !== "all" && c.status !== statusFilter) return false;
@@ -309,7 +314,7 @@ export default function CandidatesPage() {
             <div className="relative flex-1 group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
               <Input
-                placeholder="Search by name or phone…"
+                placeholder="Search by name, phone or KISFS ID…"
                 className="pl-9"
                 value={search}
                 onChange={(e) => {
@@ -473,6 +478,9 @@ export default function CandidatesPage() {
                             <p className="font-medium text-sm break-words">{c.name}</p>
                             <OriginBadge agencyId={c.agency_id} agencyName={c.agency_id ? agencyMap.get(c.agency_id)?.name : null} />
                           </div>
+                          {c.kisfs_id && (
+                            <p className="text-[10px] font-mono font-semibold text-primary/70 tracking-wider">{c.kisfs_id}</p>
+                          )}
                           <p className="text-xs text-muted-foreground tabular-nums break-all">{c.phone}</p>
                           <p className="text-xs text-muted-foreground inline-flex items-center gap-1 mt-0.5">
                             <MapPin className="h-3 w-3 shrink-0" />
@@ -628,6 +636,9 @@ export default function CandidatesPage() {
                               </p>
                               <OriginBadge agencyId={c.agency_id} agencyName={c.agency_id ? agencyMap.get(c.agency_id)?.name : null} />
                             </div>
+                            {c.kisfs_id && (
+                              <p className="text-[10px] font-mono font-semibold text-primary/70 tracking-wider">{c.kisfs_id}</p>
+                            )}
                             {c.has_bike && (
                               <p className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
                                 <Bike className="h-3 w-3" /> Has bike

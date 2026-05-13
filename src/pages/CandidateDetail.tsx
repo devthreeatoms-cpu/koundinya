@@ -11,6 +11,7 @@ import {
   Calendar,
   Tag,
   ShieldCheck,
+  Landmark,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -120,6 +121,11 @@ export default function CandidateDetail() {
                 {candidate.status}
               </Badge>
             </div>
+            {candidate.kisfs_id && (
+              <p className="mt-1 text-xs font-mono font-semibold text-primary tracking-widest">
+                {candidate.kisfs_id}
+              </p>
+            )}
 
             <div className="mt-5 space-y-3 text-sm">
               <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
@@ -225,17 +231,34 @@ export default function CandidateDetail() {
           </div>
         </Card>
 
-        <Card className="glass-card p-4 sm:p-6 hover-lift lg:col-span-2">
-          <h3 className="font-semibold inline-flex items-center gap-2 mb-3">
-            <div className="h-7 w-7 rounded-lg bg-primary-soft text-primary grid place-items-center">
-              <FileText className="h-3.5 w-3.5" />
-            </div>
-            Notes
-          </h3>
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-            {candidate.notes?.trim() || "No notes yet."}
-          </p>
-        </Card>
+        <div className="flex flex-col gap-4 lg:col-span-2">
+          <Card className="glass-card p-4 sm:p-6 hover-lift">
+            <h3 className="font-semibold inline-flex items-center gap-2 mb-3">
+              <div className="h-7 w-7 rounded-lg bg-primary-soft text-primary grid place-items-center">
+                <FileText className="h-3.5 w-3.5" />
+              </div>
+              Notes
+            </h3>
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+              {candidate.notes?.trim() || "No notes yet."}
+            </p>
+          </Card>
+
+          <Card className="glass-card p-4 sm:p-6 hover-lift">
+              <h3 className="font-semibold inline-flex items-center gap-2 mb-4">
+                <div className="h-7 w-7 rounded-lg bg-primary-soft text-primary grid place-items-center">
+                  <Landmark className="h-3.5 w-3.5" />
+                </div>
+                Bank Details
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <BankField label="Name as per bank account" value={candidate.bank_account_name} />
+                <BankField label="Bank name" value={candidate.bank_name} />
+                <BankField label="Account number" value={candidate.bank_account_number} mono />
+                <BankField label="IFSC code" value={candidate.bank_ifsc} mono />
+              </div>
+            </Card>
+        </div>
       </div>
 
       <Card className="glass-card p-4 sm:p-6 hover-lift">
@@ -360,6 +383,39 @@ export default function CandidateDetail() {
       </Card>
 
       <CandidateFormModal open={editOpen} onOpenChange={setEditOpen} candidate={candidate} />
+    </div>
+  );
+}
+
+function BankField({
+  label,
+  value,
+  mono = false,
+}: {
+  label: string;
+  value?: string | null;
+  mono?: boolean;
+}) {
+  const filled = !!value;
+  return (
+    <div
+      className={cn(
+        "p-3 rounded-lg border",
+        filled
+          ? "border-border/60 bg-muted/30"
+          : "border-dashed border-border/40 bg-transparent"
+      )}
+    >
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+        {label}
+      </p>
+      {filled ? (
+        <p className={cn("text-sm font-medium mt-0.5", mono && "font-mono tracking-wider")}>
+          {value}
+        </p>
+      ) : (
+        <p className="text-sm text-muted-foreground/50 mt-0.5 italic">Not filled yet</p>
+      )}
     </div>
   );
 }

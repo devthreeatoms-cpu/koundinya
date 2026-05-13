@@ -26,7 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { createCandidate, updateCandidate } from "@/hooks/useCandidates";
 import { useAuth } from "@/context/AuthContext";
 import type { Candidate, CandidateStatus } from "@/types";
-import { Loader2, UserPlus, AlertCircle, CheckCircle } from "lucide-react";
+import { Loader2, UserPlus, AlertCircle, CheckCircle, Landmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const schema = z.object({
@@ -43,6 +43,14 @@ const schema = z.object({
   pan_number: z.string().refine(val => !val || /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(val), {
     message: "Enter valid PAN format (ABCDE1234F)",
   }).optional().or(z.literal("")),
+  bank_account_name: z.string().trim().max(100).optional().or(z.literal("")),
+  bank_name: z.string().trim().max(100).optional().or(z.literal("")),
+  bank_account_number: z.string().trim().refine(val => !val || /^\d{9,18}$/.test(val), {
+    message: "Enter valid account number (9–18 digits)",
+  }).optional().or(z.literal("")),
+  bank_ifsc: z.string().trim().refine(val => !val || /^[A-Z]{4}0[A-Z0-9]{6}$/.test(val), {
+    message: "Enter valid IFSC code (e.g. SBIN0001234)",
+  }).optional().or(z.literal("")),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -54,7 +62,7 @@ interface Props {
 }
 
 const STATUSES: CandidateStatus[] = ["New", "Contacted", "Assigned", "Rejected"];
-const SOURCES = ["Referral", "Walk-in", "Job Portal", "Social Media", "Agency", "Other"];
+const SOURCES = ["Internal Team", "Supplier Partners"];
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -85,11 +93,15 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
       phone: "",
       location: "",
       has_bike: false,
-      source: "Referral",
+      source: "Internal Team",
       status: "New",
       notes: "",
       aadhar_number: "",
       pan_number: "",
+      bank_account_name: "",
+      bank_name: "",
+      bank_account_number: "",
+      bank_ifsc: "",
     },
   });
 
@@ -106,11 +118,15 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
         phone: candidate?.phone ?? "",
         location: candidate?.location ?? "",
         has_bike: candidate?.has_bike ?? false,
-        source: candidate?.source ?? "Referral",
+        source: candidate?.source ?? "Internal Team",
         status: candidate?.status ?? "New",
         notes: candidate?.notes ?? "",
         aadhar_number: candidate?.aadhar_number ?? "",
         pan_number: candidate?.pan_number ?? "",
+        bank_account_name: candidate?.bank_account_name ?? "",
+        bank_name: candidate?.bank_name ?? "",
+        bank_account_number: candidate?.bank_account_number ?? "",
+        bank_ifsc: candidate?.bank_ifsc ?? "",
       });
     }
   }, [open, candidate, reset]);
@@ -119,10 +135,14 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
     try {
       const finalPayload = {
         ...values,
-        aadhar_number: values.aadhar_number ? values.aadhar_number : null,
-        pan_number: values.pan_number ? values.pan_number : null,
+        aadhar_number: values.aadhar_number || null,
+        pan_number: values.pan_number || null,
         aadhar_verified: !!values.aadhar_number && isAadharValid,
         pan_verified: !!values.pan_number && isPanValid,
+        bank_account_name: values.bank_account_name || null,
+        bank_name: values.bank_name || null,
+        bank_account_number: values.bank_account_number || null,
+        bank_ifsc: values.bank_ifsc ? values.bank_ifsc.toUpperCase() : null,
       };
 
       if (isEdit && candidate) {
@@ -152,7 +172,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl p-0 overflow-hidden gap-0">
+      <DialogContent className="max-w-3xl p-0 gap-0 flex flex-col max-h-[90vh]">
         <DialogHeader className="p-4 sm:p-6 pb-4 border-b border-border bg-gradient-soft">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-gradient-brand text-white grid place-items-center shadow-brand">
@@ -168,10 +188,15 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
                   : "Create a new candidate record. Phone numbers must be unique."}
               </DialogDescription>
             </div>
+            {isEdit && candidate?.kisfs_id && (
+              <span className="ml-auto text-xs font-mono font-bold text-primary tracking-widest bg-primary-soft px-2 py-1 rounded-lg">
+                {candidate.kisfs_id}
+              </span>
+            )}
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 space-y-4">
+        <form id="candidate-form" onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-1">
               <Label htmlFor="name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -326,30 +351,107 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
               />
             </div>
 
-            <div className="sm:col-span-3">
-              <Label htmlFor="notes" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Notes
-              </Label>
-              <Textarea
-                id="notes"
-                rows={3}
-                placeholder="Optional notes about the candidate…"
-                className="mt-1.5 resize-none"
-                {...register("notes")}
-              />
+          </div>
+
+          {/* Bank Details */}
+          <div className="rounded-xl border border-border/60 bg-muted/30 p-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="h-7 w-7 rounded-lg bg-primary-soft text-primary grid place-items-center">
+                <Landmark className="h-3.5 w-3.5" />
+              </div>
+              <p className="text-sm font-semibold">Bank Details</p>
+              <span className="text-xs text-muted-foreground">(optional)</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="bank_account_name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Name as per bank account
+                </Label>
+                <Input
+                  id="bank_account_name"
+                  placeholder="Full name on bank account"
+                  className="mt-1.5"
+                  {...register("bank_account_name")}
+                />
+              </div>
+              <div>
+                <Label htmlFor="bank_name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Bank name
+                </Label>
+                <Input
+                  id="bank_name"
+                  placeholder="e.g. State Bank of India"
+                  className="mt-1.5"
+                  {...register("bank_name")}
+                />
+              </div>
+              <div>
+                <Label htmlFor="bank_account_number" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Account number
+                </Label>
+                <Input
+                  id="bank_account_number"
+                  inputMode="numeric"
+                  placeholder="9–18 digit account number"
+                  className={cn(
+                    "mt-1.5",
+                    errors.bank_account_number && "border-destructive focus-visible:ring-destructive/20"
+                  )}
+                  {...register("bank_account_number")}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, "").slice(0, 18);
+                    setValue("bank_account_number", val, { shouldValidate: true });
+                  }}
+                />
+                <FieldError message={errors.bank_account_number?.message} />
+              </div>
+              <div>
+                <Label htmlFor="bank_ifsc" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  IFSC code
+                </Label>
+                <Input
+                  id="bank_ifsc"
+                  placeholder="e.g. SBIN0001234"
+                  className={cn(
+                    "mt-1.5 uppercase",
+                    errors.bank_ifsc && "border-destructive focus-visible:ring-destructive/20"
+                  )}
+                  {...register("bank_ifsc")}
+                  onChange={(e) => {
+                    const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 11);
+                    setValue("bank_ifsc", val, { shouldValidate: true });
+                  }}
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">Format: SBIN0001234 (11 characters)</p>
+                <FieldError message={errors.bank_ifsc?.message} />
+              </div>
             </div>
           </div>
 
-          <DialogFooter className="pt-2 gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
-              Cancel
-            </Button>
-            <Button type="submit" variant="premium" disabled={isSubmitting} className="w-full sm:w-auto">
-              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isEdit ? "Save changes" : "Add candidate"}
-            </Button>
-          </DialogFooter>
+          {/* Notes — always last */}
+          <div>
+            <Label htmlFor="notes" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Notes
+            </Label>
+            <Textarea
+              id="notes"
+              rows={3}
+              placeholder="Optional notes about the candidate…"
+              className="mt-1.5 resize-none"
+              {...register("notes")}
+            />
+          </div>
+
         </form>
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 p-4 sm:p-6 pt-0 border-t border-border/60 bg-background shrink-0">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
+            Cancel
+          </Button>
+          <Button form="candidate-form" type="submit" variant="premium" disabled={isSubmitting} className="w-full sm:w-auto">
+            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {isEdit ? "Save changes" : "Add candidate"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
