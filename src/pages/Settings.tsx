@@ -43,7 +43,7 @@ import { initials } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
 
 const APP_VERSION = "1.0.0";
-const FIREBASE_PROJECT_ID = "workforce-management-sys-f3960";
+const FIREBASE_PROJECT_ID = "koundinya-wms";
 const PREFS_KEY = "koundinya-preferences";
 
 interface Preferences {
