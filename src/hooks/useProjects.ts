@@ -85,6 +85,7 @@ export async function createProject(
   data: {
     name: string;
     client_name?: string;
+    client_id?: string | null;
     location: string;
     start_date?: Date | null;
     status: "Active" | "Completed";

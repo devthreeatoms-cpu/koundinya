@@ -18,6 +18,7 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Agencies from "./pages/Agencies";
 import AgencyDetail from "./pages/AgencyDetail";
+import Clients from "./pages/Clients";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
                 <Route path="/projects/:id" element={<ProjectDetail />} />
                 <Route path="/agencies" element={<Agencies />} />
                 <Route path="/agencies/:id" element={<AgencyDetail />} />
+                <Route path="/clients" element={<Clients />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/settings" element={<Settings />} />
               </Route>

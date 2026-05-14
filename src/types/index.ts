@@ -32,11 +32,21 @@ export interface Project {
   id: string;
   name: string;
   client_name?: string;
+  client_id?: string | null;
   location: string;
   start_date?: Timestamp | null;
   status: ProjectStatus;
   created_at?: Timestamp | null;
   agency_id?: string | null;
+}
+
+export interface Client {
+  id: string;
+  name: string;
+  company_name: string;
+  company_address: string;
+  gst_number: string;
+  created_at?: Timestamp | null;
 }
 
 export interface Assignment {

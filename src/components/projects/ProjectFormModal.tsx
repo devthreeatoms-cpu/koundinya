@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { createProject, updateProject } from "@/hooks/useProjects";
+import { useClients } from "@/hooks/useClients";
 import { useAuth } from "@/context/AuthContext";
 import type { Project, ProjectStatus } from "@/types";
 import { Loader2, Briefcase, AlertCircle } from "lucide-react";
@@ -29,6 +30,7 @@ import { cn } from "@/lib/utils";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Project name is required").max(100),
+  client_id: z.string().optional().or(z.literal("")),
   client_name: z.string().trim().max(100).optional().or(z.literal("")),
   location: z.string().trim().min(1, "Location is required").max(100),
   start_date: z.string().optional(),
@@ -55,7 +57,12 @@ function FieldError({ message }: { message?: string }) {
 export default function ProjectFormModal({ open, onOpenChange, project }: Props) {
   const { toast } = useToast();
   const { agencyId } = useAuth();
+  const { clients } = useClients();
   const isEdit = !!project;
+
+  const [showManualClient, setShowManualClient] = useState(false);
+
+  const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
 
   const {
     register,
@@ -66,27 +73,47 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: "", client_name: "", location: "", start_date: "", status: "Active" },
+    defaultValues: { name: "", client_id: "", client_name: "", location: "", start_date: "", status: "Active" },
   });
+
+  const selectedClientId = watch("client_id");
 
   useEffect(() => {
     if (open) {
       const sd = (project?.start_date as any)?.toDate?.() as Date | undefined;
+      const hasLinkedClient = !!project?.client_id && clientMap.has(project.client_id);
       reset({
         name: project?.name ?? "",
-        client_name: project?.client_name ?? "",
+        client_id: hasLinkedClient ? project.client_id! : "",
+        client_name: hasLinkedClient ? "" : (project?.client_name ?? ""),
         location: project?.location ?? "",
         start_date: sd ? sd.toISOString().slice(0, 10) : "",
         status: project?.status ?? "Active",
       });
+      setShowManualClient(!hasLinkedClient);
     }
-  }, [open, project, reset]);
+  }, [open, project, reset, clientMap]);
+
+  useEffect(() => {
+    if (selectedClientId && selectedClientId !== "__manual__") {
+      const client = clientMap.get(selectedClientId);
+      if (client) {
+        setValue("client_name", client.name);
+        setShowManualClient(false);
+      }
+    } else if (selectedClientId === "__manual__") {
+      setValue("client_name", "");
+      setShowManualClient(true);
+    }
+  }, [selectedClientId, clientMap, setValue]);
 
   async function onSubmit(values: FormValues) {
     try {
+      const clientId = values.client_id && values.client_id !== "__manual__" ? values.client_id : null;
       const payload = {
         name: values.name,
         client_name: values.client_name || "",
+        client_id: clientId,
         location: values.location,
         start_date: values.start_date ? new Date(values.start_date) : null,
         status: values.status as ProjectStatus,
@@ -139,29 +166,54 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
             />
             <FieldError message={errors.name?.message} />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div>
-              <Label htmlFor="client_name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Client
               </Label>
-              <Input id="client_name" className="mt-1.5" {...register("client_name")} />
+              <Select
+                value={watch("client_id")}
+                onValueChange={(v) => setValue("client_id", v)}
+              >
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue placeholder="Select an existing client…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name} — {c.company_name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="__manual__">Other / Enter manually</SelectItem>
+                </SelectContent>
+              </Select>
+              {showManualClient && (
+                <Input
+                  id="client_name"
+                  placeholder="Enter client name"
+                  className="mt-2"
+                  {...register("client_name")}
+                />
+              )}
             </div>
-            <div>
-              <Label htmlFor="location" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Location
-              </Label>
-              <Input
-                id="location"
-                className={cn("mt-1.5", errors.location && "border-destructive focus-visible:ring-destructive/20")}
-                {...register("location")}
-              />
-              <FieldError message={errors.location?.message} />
-            </div>
-            <div>
-              <Label htmlFor="start_date" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Start date
-              </Label>
-              <Input id="start_date" type="date" className="mt-1.5" {...register("start_date")} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="location" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Location
+                </Label>
+                <Input
+                  id="location"
+                  className={cn("mt-1.5", errors.location && "border-destructive focus-visible:ring-destructive/20")}
+                  {...register("location")}
+                />
+                <FieldError message={errors.location?.message} />
+              </div>
+              <div>
+                <Label htmlFor="start_date" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Start date
+                </Label>
+                <Input id="start_date" type="date" className="mt-1.5" {...register("start_date")} />
+              </div>
             </div>
             <div>
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -171,7 +223,7 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
                 value={watch("status")}
                 onValueChange={(v) => setValue("status", v as ProjectStatus)}
               >
-                <SelectTrigger className="mt-1.5">
+                <SelectTrigger className="mt-1.5 w-full sm:w-40">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

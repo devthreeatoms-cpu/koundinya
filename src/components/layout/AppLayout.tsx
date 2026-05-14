@@ -15,6 +15,7 @@ import {
   Sun,
   Moon,
   Building2,
+  UsersRound,
 } from "lucide-react";
 import logo from "@/assets/koundinya-logo.jpeg";
 import { useAuth } from "@/context/AuthContext";
@@ -44,6 +45,7 @@ const navItems: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/candidates", label: "Candidates", icon: Users },
   { to: "/projects", label: "Projects", icon: Briefcase, hideForAgency: true },
+  { to: "/clients", label: "Clients", icon: UsersRound, adminOnly: true },
   { to: "/agencies", label: "Agencies", icon: Building2, adminOnly: true },
   { to: "/reports", label: "Reports", icon: BarChart3 },
 ];
