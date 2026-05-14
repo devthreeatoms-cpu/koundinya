@@ -44,6 +44,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useClients, createClient, updateClient } from "@/hooks/useClients";
+import { seedTestData } from "@/lib/seed";
 import { formatDate } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
 import type { Client } from "@/types";
@@ -60,11 +61,13 @@ type ClientForm = z.infer<typeof clientSchema>;
 export default function ClientsPage() {
   const { isAdmin, loading: authLoading } = useAuth();
   const { clients, loading: cLoading } = useClients();
+  const { toast } = useToast();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editClient, setEditClient] = useState<Client | null>(null);
   const [deleteClient, setDeleteClient] = useState<Client | null>(null);
   const [search, setSearch] = useState("");
+  const [seeding, setSeeding] = useState(false);
 
   if (authLoading) {
     return (
@@ -86,15 +89,40 @@ export default function ClientsPage() {
     );
   }, [clients, search]);
 
+  async function handleSeed() {
+    setSeeding(true);
+    try {
+      const result = await seedTestData();
+      toast({
+        title: "Test data created",
+        description: `${result.clientCount} clients and ${result.projectCount} projects added.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err?.message ?? "Failed to seed test data",
+        variant: "destructive",
+      });
+    } finally {
+      setSeeding(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Clients"
         description="Manage client companies and their GST details."
         actions={
-          <Button variant="premium" onClick={() => { setEditClient(null); setModalOpen(true); }}>
-            <Plus className="h-4 w-4" /> <span className="truncate">Add client</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleSeed} disabled={seeding}>
+              {seeding && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Seed test data
+            </Button>
+            <Button variant="premium" onClick={() => { setEditClient(null); setModalOpen(true); }}>
+              <Plus className="h-4 w-4" /> <span className="truncate">Add client</span>
+            </Button>
+          </div>
         }
       />
 
