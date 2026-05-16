@@ -143,11 +143,21 @@ export default function CandidateDetail() {
                 <div className="h-8 w-8 rounded-lg bg-secondary-soft text-secondary grid place-items-center">
                   <MapPin className="h-4 w-4" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[11px] text-muted-foreground leading-none">Location</p>
-                  <p className={cn("text-sm font-medium mt-0.5", !candidate.location && "text-muted-foreground italic")}>
+                  <p className={cn("text-sm font-medium mt-0.5 break-words", !candidate.location && "text-muted-foreground italic")}>
                     {candidate.location || "Not provided"}
                   </p>
+                  {candidate.latitude != null && candidate.longitude != null && (
+                    <a
+                      href={`https://www.google.com/maps?q=${candidate.latitude},${candidate.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-primary hover:underline mt-0.5 inline-block"
+                    >
+                      View on Google Maps
+                    </a>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">

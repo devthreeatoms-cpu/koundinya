@@ -75,7 +75,6 @@ export default function Dashboard() {
     [activeAssignments]
   );
   const availableCount = candidates.filter((c) => !assignedIds.has(c.id)).length;
-  const activeProjects = projects.filter((p) => p.status === "Active");
 
   const stats = isAdmin
     ? [
@@ -90,12 +89,12 @@ export default function Dashboard() {
           hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--primary)/0.45)]",
         },
         {
-          label: "Active projects",
-          value: activeProjects.length,
+          label: "Total projects",
+          value: projects.length,
           icon: Briefcase,
           gradient: "bg-gradient-secondary",
           ring: "ring-secondary/20",
-          hint: `${projects.length - activeProjects.length} completed`,
+          hint: `${projects.length} total`,
           to: "/projects",
           hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--secondary)/0.45)]",
         },
@@ -152,17 +151,6 @@ export default function Dashboard() {
     return Object.entries(map).map(([name, value]) => ({ name, value }));
   }, [candidates]);
 
-  // Project status pie
-  const projectData = useMemo(() => {
-    const active = projects.filter((p) => p.status === "Active").length;
-    const completed = projects.filter((p) => p.status === "Completed").length;
-    return [
-      { name: "Active", value: active },
-      { name: "Completed", value: completed },
-    ];
-  }, [projects]);
-
-  const PIE_COLORS = ["hsl(var(--primary))", "hsl(var(--muted-foreground) / 0.5)"];
   const BAR_COLORS: Record<string, string> = {
     New: "hsl(var(--secondary))",
     Contacted: "hsl(var(--warning))",
@@ -417,56 +405,23 @@ export default function Dashboard() {
         <Card className="glass-card p-4 sm:p-6 hover-lift animate-fade-in-up">
           <div className="mb-4">
             <h3 className="font-semibold tracking-tight">Projects</h3>
-            <p className="text-xs text-muted-foreground">Active vs completed</p>
+            <p className="text-xs text-muted-foreground">Overview</p>
           </div>
           {loading ? (
             <Skeleton className="h-64 w-full" />
           ) : projects.length === 0 ? (
             <p className="text-sm text-muted-foreground py-12 text-center">No projects yet.</p>
           ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <defs>
-                  <linearGradient id="pieGradActive" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--primary-glow))" />
-                    <stop offset="100%" stopColor="hsl(var(--secondary))" />
-                  </linearGradient>
-                  <linearGradient id="pieGradCompleted" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--muted-foreground) / 0.6)" />
-                    <stop offset="100%" stopColor="hsl(var(--muted-foreground) / 0.3)" />
-                  </linearGradient>
-                </defs>
-                <Pie
-                  data={projectData}
-                  innerRadius={55}
-                  outerRadius={90}
-                  paddingAngle={6}
-                  dataKey="value"
-                  stroke="hsl(var(--background))"
-                  strokeWidth={3}
-                  animationDuration={900}
-                  animationEasing="ease-out"
-                >
-                  {projectData.map((_, i) => (
-                    <Cell
-                      key={i}
-                      fill={i === 0 ? "url(#pieGradActive)" : "url(#pieGradCompleted)"}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    background: "hsl(var(--popover) / 0.95)",
-                    backdropFilter: "blur(12px)",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: 12,
-                    fontSize: 12,
-                    boxShadow: "var(--shadow-elevated)",
-                  }}
-                />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-primary-soft/50">
+                <span className="text-sm font-medium">Total projects</span>
+                <span className="text-lg font-bold">{projects.length}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                <span className="text-sm font-medium">Active assignments</span>
+                <span className="text-lg font-bold">{activeAssignments.length}</span>
+              </div>
+            </div>
           )}
         </Card>
         )}
@@ -640,13 +595,7 @@ export default function Dashboard() {
                     <p className="font-medium text-sm group-hover:text-primary truncate">
                       {p.name}
                     </p>
-                    <Badge
-                      className={
-                        p.status === "Active"
-                          ? "bg-primary text-primary-foreground border-0 shrink-0"
-                          : "bg-muted text-muted-foreground border-0 shrink-0"
-                      }
-                    >
+                    <Badge className="bg-primary/15 text-primary border border-primary/30 shrink-0">
                       {p.status}
                     </Badge>
                   </div>

@@ -1,7 +1,7 @@
 import type { Timestamp } from "firebase/firestore";
 
 export type CandidateStatus = "New" | "Contacted" | "Assigned" | "Rejected";
-export type ProjectStatus = "Active" | "Completed";
+export type ProjectStatus = string;
 export type AssignmentStatus = "Active" | "Completed" | "Dropped";
 export type UserRole = "admin" | "agency";
 
@@ -11,6 +11,8 @@ export interface Candidate {
   name: string;
   phone: string;
   location: string;
+  latitude?: number | null;
+  longitude?: number | null;
   has_bike: boolean;
   source: string;
   status: CandidateStatus;

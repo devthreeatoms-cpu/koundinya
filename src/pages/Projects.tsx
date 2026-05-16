@@ -43,6 +43,11 @@ export default function ProjectsPage() {
     return m;
   }, [assignments]);
 
+  const uniqueStatuses = useMemo(
+    () => [...new Set(projects.map((p) => p.status))].sort(),
+    [projects]
+  );
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return projects.filter((p) => {
@@ -93,8 +98,9 @@ export default function ProjectsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Completed">Completed</SelectItem>
+              {uniqueStatuses.map((s) => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -130,7 +136,6 @@ export default function ProjectsPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((p, idx) => {
             const activeCount = counts.get(p.id) ?? 0;
-            const isActive = p.status === "Active";
             return (
               <Link to={`/projects/${p.id}`} key={p.id} className="group block animate-fade-in-up" style={{ animationDelay: `${idx * 40}ms` }}>
                 <Card
@@ -140,36 +145,14 @@ export default function ProjectsPage() {
                   )}
                 >
                   {/* Gradient strip */}
-                  <div
-                    className={cn(
-                      "h-1.5 w-full",
-                      isActive ? "bg-gradient-brand" : "bg-muted-foreground/30"
-                    )}
-                  />
+                  <div className="h-1.5 w-full bg-gradient-brand" />
                   <div className="p-5">
                     <div className="flex items-start justify-between mb-4">
-                      <div
-                        className={cn(
-                          "h-11 w-11 rounded-xl grid place-items-center text-white shadow-sm transition-transform duration-300 group-hover:scale-110",
-                          isActive ? "bg-gradient-brand" : "bg-muted-foreground/60"
-                        )}
-                      >
+                      <div className="h-11 w-11 rounded-xl bg-gradient-brand text-white grid place-items-center shadow-sm transition-transform duration-300 group-hover:scale-110">
                         <Briefcase className="h-5 w-5" />
                       </div>
-                      <Badge
-                        className={cn(
-                          "font-medium",
-                          isActive
-                            ? "bg-primary/15 text-primary border border-primary/30"
-                            : "bg-muted text-muted-foreground border border-border"
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            "h-1.5 w-1.5 rounded-full mr-1.5",
-                            isActive ? "bg-primary animate-pulse" : "bg-muted-foreground/60"
-                          )}
-                        />
+                      <Badge className="font-medium bg-primary/15 text-primary border border-primary/30">
+                        <span className="h-1.5 w-1.5 rounded-full mr-1.5 bg-primary animate-pulse" />
                         {p.status}
                       </Badge>
                     </div>

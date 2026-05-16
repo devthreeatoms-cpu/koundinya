@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -23,9 +24,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { createProject, updateProject } from "@/hooks/useProjects";
 import { useClients } from "@/hooks/useClients";
+import { useProjectStatuses } from "@/hooks/useProjectStatuses";
 import { useAuth } from "@/context/AuthContext";
-import type { Project, ProjectStatus } from "@/types";
-import { Loader2, Briefcase, AlertCircle } from "lucide-react";
+import type { Project } from "@/types";
+import { Loader2, Briefcase, AlertCircle, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const schema = z.object({
@@ -34,7 +36,7 @@ const schema = z.object({
   client_name: z.string().trim().max(100).optional().or(z.literal("")),
   location: z.string().trim().min(1, "Location is required").max(100),
   start_date: z.string().optional(),
-  status: z.enum(["Active", "Completed"]),
+  status: z.string().trim().min(1, "Status is required"),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -56,11 +58,14 @@ function FieldError({ message }: { message?: string }) {
 
 export default function ProjectFormModal({ open, onOpenChange, project }: Props) {
   const { toast } = useToast();
-  const { agencyId } = useAuth();
+  const { agencyId, isAdmin } = useAuth();
   const { clients } = useClients();
+  const { statuses, addStatus, removeStatus } = useProjectStatuses();
   const isEdit = !!project;
 
   const [showManualClient, setShowManualClient] = useState(false);
+  const [newStatusInput, setNewStatusInput] = useState("");
+  const [addingStatus, setAddingStatus] = useState(false);
 
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
 
@@ -73,7 +78,7 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: "", client_id: "", client_name: "", location: "", start_date: "", status: "Active" },
+    defaultValues: { name: "", client_id: "", client_name: "", location: "", start_date: "", status: "" },
   });
 
   const selectedClientId = watch("client_id");
@@ -88,7 +93,7 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
         client_name: hasLinkedClient ? "" : (project?.client_name ?? ""),
         location: project?.location ?? "",
         start_date: sd ? sd.toISOString().slice(0, 10) : "",
-        status: project?.status ?? "Active",
+        status: project?.status ?? "",
       });
       setShowManualClient(!hasLinkedClient);
     }
@@ -116,7 +121,7 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
         client_id: clientId,
         location: values.location,
         start_date: values.start_date ? new Date(values.start_date) : null,
-        status: values.status as ProjectStatus,
+        status: values.status,
       };
       if (isEdit && project) {
         await updateProject(project.id, payload);
@@ -166,7 +171,9 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
             />
             <FieldError message={errors.name?.message} />
           </div>
+
           <div className="grid grid-cols-1 gap-4">
+            {/* Client selector */}
             <div>
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Client
@@ -196,6 +203,8 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
                 />
               )}
             </div>
+
+            {/* Location + Start date */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="location" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -215,22 +224,96 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
                 <Input id="start_date" type="date" className="mt-1.5" {...register("start_date")} />
               </div>
             </div>
+
+            {/* Status — admin-managed chips */}
             <div>
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Status
               </Label>
-              <Select
-                value={watch("status")}
-                onValueChange={(v) => setValue("status", v as ProjectStatus)}
-              >
-                <SelectTrigger className="mt-1.5 w-full sm:w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="mt-1.5 space-y-2">
+                {/* Existing statuses as selectable chips */}
+                <div className="flex flex-wrap gap-1.5">
+                  {statuses.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setValue("status", s.name, { shouldValidate: true })}
+                      className={cn(
+                        "inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border transition-all",
+                        watch("status") === s.name
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-muted/50 text-muted-foreground border-border hover:border-primary/50"
+                      )}
+                    >
+                      {s.name}
+                      {isAdmin && (
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeStatus(s.id);
+                          }}
+                          className="ml-0.5 hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Add new status */}
+                {isAdmin && (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Add new status…"
+                      value={newStatusInput}
+                      onChange={(e) => setNewStatusInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && newStatusInput.trim()) {
+                          e.preventDefault();
+                          setAddingStatus(true);
+                          addStatus(newStatusInput)
+                            .then(() => {
+                              setValue("status", newStatusInput.trim(), { shouldValidate: true });
+                              setNewStatusInput("");
+                            })
+                            .catch((err: any) => {
+                              toast({ title: "Error", description: err.message, variant: "destructive" });
+                            })
+                            .finally(() => setAddingStatus(false));
+                        }
+                      }}
+                      className="h-8 text-xs"
+                      disabled={addingStatus}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-3 text-xs shrink-0"
+                      disabled={!newStatusInput.trim() || addingStatus}
+                      onClick={() => {
+                        setAddingStatus(true);
+                        addStatus(newStatusInput)
+                          .then(() => {
+                            setValue("status", newStatusInput.trim(), { shouldValidate: true });
+                            setNewStatusInput("");
+                          })
+                          .catch((err: any) => {
+                            toast({ title: "Error", description: err.message, variant: "destructive" });
+                          })
+                          .finally(() => setAddingStatus(false));
+                      }}
+                    >
+                      {addingStatus ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                      Add
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <FieldError message={errors.status?.message} />
             </div>
           </div>
 

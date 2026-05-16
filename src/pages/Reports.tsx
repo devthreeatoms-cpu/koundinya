@@ -163,7 +163,6 @@ export default function Reports() {
     [activeAssignments]
   );
   const availableCount = filteredCandidates.filter((c) => !assignedIds.has(c.id)).length;
-  const activeProjects = projects.filter((p) => p.status === "Active");
 
   const stats = [
     {
@@ -175,8 +174,8 @@ export default function Reports() {
       hint: `${availableCount} available now`,
     },
     {
-      label: "Active projects",
-      value: activeProjects.length,
+      label: "Total projects",
+      value: projects.length,
       icon: Briefcase,
       gradient: "bg-gradient-secondary",
       ring: "ring-secondary/20",
@@ -190,7 +189,7 @@ export default function Reports() {
       ring: "ring-accent/20",
       hint: `${assignedIds.size} currently assigned`,
     },
-  ].filter((s) => isAdmin || s.label !== "Active projects");
+  ];
 
   const kycStats = useMemo(() => {
     let fullKyc = 0;
@@ -233,13 +232,23 @@ export default function Reports() {
       .map(([name, value]) => ({ name, value }));
   }, [filteredCandidates]);
 
-  // Projects by status
+  // Projects by status (dynamic)
   const projectData = useMemo(() => {
-    return [
-      { name: "Active", value: projects.filter((p) => p.status === "Active").length },
-      { name: "Completed", value: projects.filter((p) => p.status === "Completed").length },
-    ];
+    const map: Record<string, number> = {};
+    for (const p of projects) {
+      map[p.status] = (map[p.status] || 0) + 1;
+    }
+    return Object.entries(map).map(([name, value]) => ({ name, value }));
   }, [projects]);
+
+  const PROJECT_COLORS = [
+    "hsl(var(--primary))",
+    "hsl(var(--secondary))",
+    "hsl(var(--accent))",
+    "hsl(var(--warning))",
+    "hsl(var(--destructive))",
+    "hsl(var(--muted-foreground) / 0.5)",
+  ];
 
   // Source distribution
   const sourceData = useMemo(() => {
@@ -732,23 +741,13 @@ export default function Reports() {
         <Card className="glass-card p-4 sm:p-6 hover-lift animate-fade-in-up">
           <div className="mb-4">
             <h3 className="font-semibold tracking-tight">Projects by status</h3>
-            <p className="text-xs text-muted-foreground">Active vs completed</p>
+            <p className="text-xs text-muted-foreground">Distribution across all statuses</p>
           </div>
           {loading ? (
             <Skeleton className="h-64 w-full" />
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={projectData} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
-                <defs>
-                  <linearGradient id="projBarActive" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--primary-glow))" stopOpacity={1} />
-                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.7} />
-                  </linearGradient>
-                  <linearGradient id="projBarCompleted" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--muted-foreground) / 0.7)" stopOpacity={1} />
-                    <stop offset="100%" stopColor="hsl(var(--muted-foreground) / 0.3)" stopOpacity={0.6} />
-                  </linearGradient>
-                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.5} />
                 <XAxis
                   dataKey="name"
@@ -775,7 +774,7 @@ export default function Reports() {
                 />
                 <Bar dataKey="value" radius={[12, 12, 4, 4]} animationDuration={900}>
                   {projectData.map((_, i) => (
-                    <Cell key={i} fill={i === 0 ? "url(#projBarActive)" : "url(#projBarCompleted)"} />
+                    <Cell key={i} fill={PROJECT_COLORS[i % PROJECT_COLORS.length]} />
                   ))}
                 </Bar>
               </BarChart>

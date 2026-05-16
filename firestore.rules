@@ -6,16 +6,20 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function userPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
     function userDoc() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return get(userPath());
     }
 
     function userRole() {
-      return userDoc().exists ? userDoc().data.role : 'agency';
+      return exists(userPath()) ? userDoc().data.role : 'agency';
     }
 
     function userAgencyId() {
-      return userDoc().exists ? userDoc().data.agency_id : null;
+      return exists(userPath()) ? userDoc().data.agency_id : null;
     }
 
     function isAdmin() {
@@ -34,6 +38,22 @@ service cloud.firestore {
     // Dashboard, ProjectDetail, etc. which query the full collection without
     // an agency_id filter). Only admins can write.
     match /agencies/{agencyId} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ── clients ───────────────────────────────────────────────────────────
+    // All signed-in users can READ clients (needed for dropdown in project
+    // form). Only admins can write.
+    match /clients/{clientId} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ── project_statuses ───────────────────────────────────────────────────
+    // All signed-in users can READ statuses (needed for project form dropdown).
+    // Only admins can add/remove statuses.
+    match /project_statuses/{statusId} {
       allow read:  if isSignedIn();
       allow write: if isAdmin();
     }

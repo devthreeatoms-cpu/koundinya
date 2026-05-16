@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PlacesAutocomplete } from "@/components/ui/places-autocomplete";
 import { useToast } from "@/hooks/use-toast";
 import { createCandidate, updateCandidate } from "@/hooks/useCandidates";
 import { useAuth } from "@/context/AuthContext";
@@ -32,7 +33,9 @@ import { cn } from "@/lib/utils";
 const schema = z.object({
   name: z.string().trim().min(2, "Name is required").max(100),
   phone: z.string().trim().min(6, "Phone is required").max(20),
-  location: z.string().trim().min(1, "Location is required").max(100),
+  location: z.string().trim().min(1, "Location is required").max(200),
+  latitude: z.number().optional().nullable(),
+  longitude: z.number().optional().nullable(),
   has_bike: z.boolean(),
   source: z.string().trim().min(1, "Source is required").max(50),
   status: z.enum(["New", "Contacted", "Assigned", "Rejected"]),
@@ -92,6 +95,8 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
       name: "",
       phone: "",
       location: "",
+      latitude: null,
+      longitude: null,
       has_bike: false,
       source: "Internal Team",
       status: "New",
@@ -117,6 +122,8 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
         name: candidate?.name ?? "",
         phone: candidate?.phone ?? "",
         location: candidate?.location ?? "",
+        latitude: candidate?.latitude ?? null,
+        longitude: candidate?.longitude ?? null,
         has_bike: candidate?.has_bike ?? false,
         source: candidate?.source ?? "Internal Team",
         status: candidate?.status ?? "New",
@@ -143,6 +150,8 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
         bank_name: values.bank_name || null,
         bank_account_number: values.bank_account_number || null,
         bank_ifsc: values.bank_ifsc ? values.bank_ifsc.toUpperCase() : null,
+        latitude: values.latitude ?? null,
+        longitude: values.longitude ?? null,
       };
 
       if (isEdit && candidate) {
@@ -225,11 +234,27 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
               <Label htmlFor="location" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Location
               </Label>
-              <Input
+              <PlacesAutocomplete
+                key={`loc-${open}-${candidate?.id || "new"}`}
                 id="location"
-                className={cn("mt-1.5", errors.location && "border-destructive focus-visible:ring-destructive/20")}
-                {...register("location")}
+                initialValue={watch("location")}
+                onChange={(addr, place) => {
+                  setValue("location", addr, { shouldValidate: true });
+                  if (place) {
+                    setValue("latitude", place.lat);
+                    setValue("longitude", place.lng);
+                  }
+                }}
+                onBlur={() => setValue("location", watch("location"), { shouldValidate: true })}
+                error={!!errors.location}
+                placeholder="Search for a location…"
+                className="mt-1.5"
               />
+              {watch("latitude") != null && (
+                <p className="text-[10px] text-green-600 dark:text-green-400 mt-1">
+                  GPS: {watch("latitude")?.toFixed(6)}, {watch("longitude")?.toFixed(6)}
+                </p>
+              )}
               <FieldError message={errors.location?.message} />
             </div>
             <div className="sm:col-span-1">

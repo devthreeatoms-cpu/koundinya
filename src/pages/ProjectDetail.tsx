@@ -132,8 +132,6 @@ export default function ProjectDetail() {
     );
   }
 
-  const isActive = project.status === "Active";
-
   return (
     <div className="space-y-6">
       <Link to="/projects" className="text-sm text-muted-foreground inline-flex items-center gap-1 hover:text-foreground transition-colors w-fit">
@@ -158,13 +156,13 @@ export default function ProjectDetail() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="glass-card p-4 sm:p-6 hover-lift">
           <div className="flex items-center gap-3">
-            <div className={cn("h-10 w-10 rounded-xl grid place-items-center text-white shadow-sm", isActive ? "bg-gradient-brand" : "bg-muted-foreground/60")}>
+            <div className="h-10 w-10 rounded-xl bg-gradient-brand text-white grid place-items-center shadow-sm">
               <Briefcase className="h-5 w-5" />
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Status</p>
-              <Badge className={cn("mt-1 font-medium", isActive ? "bg-primary/15 text-primary border border-primary/30" : "bg-muted text-muted-foreground border border-border")}>
-                <span className={cn("h-1.5 w-1.5 rounded-full mr-1.5", isActive ? "bg-primary animate-pulse" : "bg-muted-foreground/60")} />
+              <Badge className="mt-1 font-medium bg-primary/15 text-primary border border-primary/30">
+                <span className="h-1.5 w-1.5 rounded-full mr-1.5 bg-primary animate-pulse" />
                 {project.status}
               </Badge>
             </div>
