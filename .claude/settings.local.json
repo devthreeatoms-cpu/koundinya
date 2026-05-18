@@ -14,7 +14,16 @@
       "Bash(firebase apps:sdkconfig WEB 1:1037583336811:web:3df5db05441e1c231a782e --project workforce-management-sys-f3960)",
       "Bash(node -e ' *)",
       "Bash(node scripts/reseed-candidates.cjs)",
-      "Bash(node scripts/patch-bank-details.cjs)"
+      "Bash(node scripts/patch-bank-details.cjs)",
+      "Bash(Get-ChildItem -Path \"C:\\\\CODING PROJECTS\\\\koundinya\\\\src\" -Name)",
+      "Bash(Select-Object -First 20)",
+      "PowerShell(head *)",
+      "Bash(npx tsx *)",
+      "Bash(firebase firestore:rules)",
+      "Bash(node *)"
     ]
+  },
+  "enabledPlugins": {
+    "firebase@claude-plugins-official": true
   }
 }

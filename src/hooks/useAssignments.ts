@@ -107,6 +107,10 @@ export async function removeAssignment(assignmentId: string, status: "Completed"
   });
 }
 
+export async function updateAssignmentProjectStatus(assignmentId: string, projectStatus: string | null) {
+  await updateDoc(doc(db, COL, assignmentId), { project_status: projectStatus });
+}
+
 export async function bulkRebuildAssignments() {
   // 1. Complete active assignments
   const assignSnap = await getDocs(query(collection(db, "assignments"), where("status", "==", "Active")));

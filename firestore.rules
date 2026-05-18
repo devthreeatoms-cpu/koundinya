@@ -113,6 +113,12 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ── internal_partners ─────────────────────────────────────────────────
+    // Admin-only: internal team member directory.
+    match /internal_partners/{partnerId} {
+      allow read, write: if isAdmin();
+    }
+
     // ── counters ───────────────────────────────────────────────────────────
     // Used for atomic sequential ID generation (KISFS IDs).
     // All signed-in users need read+write to participate in the transaction.

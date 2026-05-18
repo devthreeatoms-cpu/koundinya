@@ -15,7 +15,9 @@ import CandidateDetail from "./pages/CandidateDetail";
 import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
 import Reports from "./pages/Reports";
+import WorkLog from "./pages/WorkLog";
 import Settings from "./pages/Settings";
+import InternalPartners from "./pages/InternalPartners";
 import Agencies from "./pages/Agencies";
 import AgencyDetail from "./pages/AgencyDetail";
 import Clients from "./pages/Clients";
@@ -46,10 +48,12 @@ const App = () => (
                 <Route path="/candidates/:id" element={<CandidateDetail />} />
                 <Route path="/projects" element={<Projects />} />
                 <Route path="/projects/:id" element={<ProjectDetail />} />
-                <Route path="/agencies" element={<Agencies />} />
-                <Route path="/agencies/:id" element={<AgencyDetail />} />
+                <Route path="/internal-partners" element={<InternalPartners />} />
+                <Route path="/supply-partners" element={<Agencies />} />
+                <Route path="/supply-partners/:id" element={<AgencyDetail />} />
                 <Route path="/clients" element={<Clients />} />
                 <Route path="/reports" element={<Reports />} />
+                <Route path="/work-log" element={<WorkLog />} />
                 <Route path="/settings" element={<Settings />} />
               </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

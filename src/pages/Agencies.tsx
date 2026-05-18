@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useMemo, type ReactNode } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -12,6 +12,11 @@ import {
   Trash2,
   Phone as PhoneIcon,
   RotateCcw,
+  MapPin,
+  UserCircle2,
+  CreditCard,
+  Landmark,
+  BadgeCheck,
 } from "lucide-react";
 
 import PageHeader from "@/components/PageHeader";
@@ -19,9 +24,17 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -54,20 +67,91 @@ import { formatDate } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
 import type { Agency } from "@/types";
 
-const agencySchema = z.object({
-  name: z.string().trim().min(2, "Name is required").max(100),
+const PARTNER_TYPES = [
+  "Individual",
+  "Proprietorship",
+  "Partnership Firm",
+  "Private Limited Company",
+  "LLP",
+  "Other",
+];
+
+const ACCOUNT_TYPES = ["Savings", "Current"];
+
+const partnerSchema = z.object({
+  // ID
+  kissp_suffix: z.string().regex(/^\d{1,4}$/, "Must be 1–4 digits").optional().or(z.literal("")),
+  // Basic
+  name: z.string().trim().min(2, "Partner name is required").max(100),
+  full_name: z.string().trim().max(100).optional().or(z.literal("")),
   email: z.string().trim().email("Enter a valid email").max(255),
   phone: z.string().trim().max(30).optional().or(z.literal("")),
+  partner_type: z.string().optional().or(z.literal("")),
+  city_name: z.string().trim().max(100).optional().or(z.literal("")),
   password: z.string().min(6, "Password must be at least 6 characters").max(100),
+  // Aadhaar
+  aadhar_number: z.string().refine(val => !val || /^\d{12}$/.test(val), {
+    message: "Must be exactly 12 digits",
+  }).optional().or(z.literal("")),
+  aadhar_name: z.string().trim().max(100).optional().or(z.literal("")),
+  aadhar_dob: z.string().trim().max(50).optional().or(z.literal("")),
+  aadhar_address: z.string().trim().max(500).optional().or(z.literal("")),
+  // PAN
+  pan_number: z.string().refine(val => !val || /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(val), {
+    message: "Invalid PAN format (e.g. ABCDE1234F)",
+  }).optional().or(z.literal("")),
+  pan_name: z.string().trim().max(100).optional().or(z.literal("")),
+  // Bank
+  bank_account_name: z.string().trim().max(100).optional().or(z.literal("")),
+  bank_name: z.string().trim().max(100).optional().or(z.literal("")),
+  bank_account_number: z.string().refine(val => !val || /^\d{9,18}$/.test(val), {
+    message: "Must be 9–18 digits",
+  }).optional().or(z.literal("")),
+  bank_ifsc: z.string().refine(val => !val || /^[A-Z]{4}0[A-Z0-9]{6}$/.test(val), {
+    message: "Invalid IFSC (e.g. SBIN0001234)",
+  }).optional().or(z.literal("")),
+  bank_branch_name: z.string().trim().max(100).optional().or(z.literal("")),
+  bank_account_type: z.string().optional().or(z.literal("")),
+  // Company
+  company_name: z.string().trim().max(100).optional().or(z.literal("")),
+  company_gst: z.string().trim().max(50).optional().or(z.literal("")),
 });
-type AgencyForm = z.infer<typeof agencySchema>;
 
-const editSchema = z.object({
-  name: z.string().trim().min(2, "Name is required").max(100),
-  email: z.string().trim().email("Enter a valid email").max(255).optional().or(z.literal("")),
-  phone: z.string().trim().max(30).optional().or(z.literal("")),
-});
-type EditAgencyForm = z.infer<typeof editSchema>;
+const editSchema = partnerSchema.omit({ password: true });
+
+type PartnerForm = z.infer<typeof partnerSchema>;
+type EditPartnerForm = z.infer<typeof editSchema>;
+
+const EMPTY_BASE = {
+  kissp_suffix: "",
+  name: "", full_name: "", email: "", phone: "", partner_type: "", city_name: "",
+  aadhar_number: "", aadhar_name: "", aadhar_dob: "", aadhar_address: "",
+  pan_number: "", pan_name: "",
+  bank_account_name: "", bank_name: "", bank_account_number: "",
+  bank_ifsc: "", bank_branch_name: "", bank_account_type: "",
+  company_name: "", company_gst: "",
+};
+
+// ─── small helpers ───────────────────────────────────────────────────────────
+
+function FE({ message }: { message?: string }) {
+  if (!message) return null;
+  return <p className="text-xs text-destructive mt-1">{message}</p>;
+}
+
+function Sec({ icon, title, sub }: { icon: ReactNode; title: string; sub?: string }) {
+  return (
+    <div className="flex items-center gap-2.5 mb-3">
+      <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary grid place-items-center shrink-0">{icon}</div>
+      <div>
+        <p className="text-sm font-semibold">{title}</p>
+        {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function AgenciesPage() {
   const { isAdmin, loading: authLoading } = useAuth();
@@ -90,27 +174,26 @@ export default function AgenciesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Agencies"
-        description="Create agencies with sign-in credentials. Each agency only sees its own data."
+        title="Supply Partners"
+        description="Create supply partners with sign-in credentials. Each supply partner only sees its own data."
         actions={
           <Button variant="premium" onClick={() => setAgencyOpen(true)}>
-            <Plus className="h-4 w-4" /> <span className="truncate">New agency</span>
+            <Plus className="h-4 w-4" /> <span className="truncate">New supply partner</span>
           </Button>
         }
       />
 
-      {/* Filter toggle */}
       <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 px-3 sm:px-4 py-3">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium">Show inactive agencies</p>
+          <p className="text-sm font-medium">Show inactive supply partners</p>
           <p className="text-[11px] text-muted-foreground mt-0.5 hidden sm:block">
-            Deactivated agencies stay in the database with all their data preserved.
+            Deactivated supply partners stay in the database with all their data preserved.
           </p>
         </div>
         <Switch
           checked={showInactive}
           onCheckedChange={setShowInactive}
-          aria-label="Show inactive agencies"
+          aria-label="Show inactive supply partners"
           className="shrink-0"
         />
       </div>
@@ -127,15 +210,15 @@ export default function AgenciesPage() {
             <Building2 className="h-7 w-7 text-primary" />
           </div>
           <p className="font-semibold">
-            {showInactive ? "No agencies found" : "No active agencies"}
+            {showInactive ? "No supply partners found" : "No active supply partners"}
           </p>
           <p className="text-sm text-muted-foreground mt-1">
             {showInactive
-              ? "Create your first agency to get started."
-              : "Toggle \"Show inactive\" to see deactivated ones, or create a new agency."}
+              ? "Create your first supply partner to get started."
+              : "Toggle \"Show inactive\" to see deactivated ones, or create a new supply partner."}
           </p>
           <Button variant="premium" className="mt-5" onClick={() => setAgencyOpen(true)}>
-            <Plus className="h-4 w-4" /> New agency
+            <Plus className="h-4 w-4" /> New supply partner
           </Button>
         </Card>
       ) : (
@@ -145,43 +228,40 @@ export default function AgenciesPage() {
             return (
               <Card
                 key={a.id}
-                className={cn(
-                  "glass-card p-5 hover-lift relative group",
-                  inactive && "opacity-75"
-                )}
+                className={cn("glass-card p-5 hover-lift relative group", inactive && "opacity-75")}
               >
                 <Link
-                  to={`/agencies/${a.id}`}
+                  to={`/supply-partners/${a.id}`}
                   className="absolute inset-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   aria-label={`Open ${a.name}`}
                 />
                 <div className="flex items-start justify-between gap-3">
-                  <div
-                    className={cn(
-                      "h-11 w-11 rounded-xl text-white grid place-items-center shadow-sm",
-                      inactive ? "bg-muted-foreground/60" : "bg-gradient-brand"
-                    )}
-                  >
+                  <div className={cn("h-11 w-11 rounded-xl text-white grid place-items-center shadow-sm", inactive ? "bg-muted-foreground/60" : "bg-gradient-brand")}>
                     <Building2 className="h-5 w-5" />
                   </div>
-                  {inactive && (
-                    <Badge
-                      variant="outline"
-                      className="border-muted-foreground/30 text-muted-foreground bg-muted/40"
-                    >
-                      Inactive
-                    </Badge>
-                  )}
+                  <div className="flex flex-col items-end gap-1">
+                    {inactive && (
+                      <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground bg-muted/40">Inactive</Badge>
+                    )}
+                    {a.partner_type && (
+                      <Badge variant="outline" className="text-[10px] border-primary/30 text-primary bg-primary/5">{a.partner_type}</Badge>
+                    )}
+                  </div>
                 </div>
 
-                <h3
-                  className={cn(
-                    "font-semibold tracking-tight text-base mt-4 break-words transition-colors",
-                    inactive ? "text-muted-foreground" : "group-hover:text-primary"
+                <div className="mt-4 flex items-center gap-2 flex-wrap">
+                  <h3 className={cn("font-semibold tracking-tight text-base break-words transition-colors", inactive ? "text-muted-foreground" : "group-hover:text-primary")}>
+                    {a.name}
+                  </h3>
+                  {a.kissp_id && (
+                    <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 shrink-0">
+                      {a.kissp_id}
+                    </span>
                   )}
-                >
-                  {a.name}
-                </h3>
+                </div>
+                {a.full_name && a.full_name !== a.name && (
+                  <p className="text-xs text-muted-foreground mt-0.5">{a.full_name}</p>
+                )}
 
                 <div className="mt-2 space-y-1 text-xs text-muted-foreground">
                   {a.email && (
@@ -194,51 +274,37 @@ export default function AgenciesPage() {
                       <PhoneIcon className="h-3 w-3 shrink-0" /> {a.phone}
                     </p>
                   )}
-                  <p>Created {formatDate((a.created_at as any)?.toDate?.()) || "—"}</p>
+                  {a.city_name && (
+                    <p className="inline-flex items-center gap-1.5">
+                      <MapPin className="h-3 w-3 shrink-0" /> {a.city_name}
+                    </p>
+                  )}
+                  <p>Added {formatDate((a.created_at as any)?.toDate?.()) || "—"}</p>
                 </div>
 
-                {/* Action row — keep above the click overlay. */}
                 <div className="mt-4 flex items-center gap-2 relative z-10">
                   <Button
-                    variant="outline"
-                    size="sm"
-                    className="px-2.5"
-                    aria-label="Edit agency"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setEditAgency(a);
-                    }}
+                    variant="outline" size="sm" className="px-2.5"
+                    aria-label="Edit supply partner"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditAgency(a); }}
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
                   {inactive ? (
                     <Button
-                      variant="outline"
-                      size="sm"
+                      variant="outline" size="sm"
                       className="px-2.5 text-primary hover:text-primary hover:bg-primary-soft"
-                      aria-label="Reactivate agency"
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        try {
-                          await restoreAgency(a.id);
-                        } catch {/* noop */}
-                      }}
+                      aria-label="Reactivate supply partner"
+                      onClick={async (e) => { e.preventDefault(); e.stopPropagation(); try { await restoreAgency(a.id); } catch {/* noop */} }}
                     >
                       <RotateCcw className="h-4 w-4" />
                     </Button>
                   ) : (
                     <Button
-                      variant="outline"
-                      size="sm"
+                      variant="outline" size="sm"
                       className="px-2.5 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      aria-label="Deactivate agency"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setDeleteAgency(a);
-                      }}
+                      aria-label="Deactivate supply partner"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteAgency(a); }}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -250,171 +316,380 @@ export default function AgenciesPage() {
         </div>
       )}
 
-      <CreateAgencyDialog open={agencyOpen} onOpenChange={setAgencyOpen} />
-      <EditAgencyDialog
-        agency={editAgency}
-        onOpenChange={(open) => {
-          if (!open) setEditAgency(null);
-        }}
-      />
-      <DeleteAgencyDialog
-        agency={deleteAgency}
-        onOpenChange={(open) => {
-          if (!open) setDeleteAgency(null);
-        }}
-      />
+      <CreatePartnerDialog open={agencyOpen} onOpenChange={setAgencyOpen} agencies={agencies} />
+      <EditPartnerDialog agency={editAgency} onOpenChange={(o) => { if (!o) setEditAgency(null); }} />
+      <DeletePartnerDialog agency={deleteAgency} onOpenChange={(o) => { if (!o) setDeleteAgency(null); }} />
     </div>
   );
 }
 
-function CreateAgencyDialog({
-  open,
-  onOpenChange,
+// ─── Shared form body ─────────────────────────────────────────────────────────
+
+function PartnerFormFields<T extends Record<string, any>>({
+  register, watch, setValue, errors, showPassword,
 }: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
+  register: any; watch: any; setValue: any; errors: any; showPassword?: boolean;
 }) {
+  const aadharVal = watch("aadhar_number") || "";
+  const panVal = watch("pan_number") || "";
+  const isAadharValid = /^\d{12}$/.test(aadharVal);
+  const isPanValid = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(panVal);
+
+  const kisspSuffix = watch("kissp_suffix") || "";
+
+  return (
+    <div className="space-y-4">
+      {/* ── Basic Info ── */}
+      <div className="rounded-xl border border-border/70 bg-card p-4">
+        <Sec icon={<UserCircle2 className="h-3.5 w-3.5" />} title="Basic Information" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* KISSP ID */}
+          <div className="sm:col-span-2">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Partner ID</Label>
+            <div className="flex items-center mt-1.5">
+              <span className="inline-flex items-center h-10 px-3 rounded-l-md border border-r-0 border-input bg-muted text-sm font-mono font-semibold text-muted-foreground select-none">
+                KISSP
+              </span>
+              <Input
+                id="kissp_suffix"
+                inputMode="numeric"
+                placeholder="001"
+                maxLength={4}
+                className={cn("rounded-l-none font-mono w-28", errors.kissp_suffix && "border-destructive")}
+                {...register("kissp_suffix")}
+                onChange={(e) => setValue("kissp_suffix", e.target.value.replace(/\D/g, "").slice(0, 4), { shouldValidate: true })}
+              />
+              {kisspSuffix && (
+                <span className="ml-3 text-xs font-mono text-primary font-semibold bg-primary/10 px-2 py-1 rounded-md">
+                  KISSP{kisspSuffix.padStart(3, "0")}
+                </span>
+              )}
+            </div>
+            <FE message={errors.kissp_suffix?.message} />
+          </div>
+          <div>
+            <Label htmlFor="name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Partner Name *</Label>
+            <Input id="name" placeholder="e.g. ABC Suppliers" className="mt-1.5" {...register("name")} />
+            <FE message={errors.name?.message} />
+          </div>
+          <div>
+            <Label htmlFor="full_name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Full Name</Label>
+            <Input id="full_name" placeholder="Contact person's full name" className="mt-1.5" {...register("full_name")} />
+            <FE message={errors.full_name?.message} />
+          </div>
+          <div>
+            <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email Address *</Label>
+            <Input id="email" type="email" placeholder="partner@email.com" className="mt-1.5" {...register("email")} />
+            <FE message={errors.email?.message} />
+          </div>
+          <div>
+            <Label htmlFor="phone" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone Number</Label>
+            <Input id="phone" placeholder="+91 98765 43210" className="mt-1.5" {...register("phone")} />
+            <FE message={errors.phone?.message} />
+          </div>
+          <div>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Partner Type</Label>
+            <Select value={watch("partner_type") || ""} onValueChange={(v) => setValue("partner_type", v)}>
+              <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select type…" /></SelectTrigger>
+              <SelectContent>
+                {PARTNER_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="city_name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">City Name</Label>
+            <Input id="city_name" placeholder="e.g. Hyderabad" className="mt-1.5" {...register("city_name")} />
+          </div>
+          {showPassword && (
+            <div className="sm:col-span-2">
+              <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Login Password *</Label>
+              <Input id="password" type="text" placeholder="At least 6 characters" className="mt-1.5" {...register("password")} />
+              <p className="text-[11px] text-muted-foreground mt-1">Share this with the supply partner — they can change it later.</p>
+              <FE message={errors.password?.message} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Aadhaar ── */}
+      <div className="rounded-xl border border-border/70 bg-card p-4">
+        <Sec icon={<BadgeCheck className="h-3.5 w-3.5" />} title="Aadhaar Details" sub="Optional" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="aadhar_number" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Aadhaar Number</Label>
+            <Input
+              id="aadhar_number"
+              inputMode="numeric"
+              placeholder="12 digits"
+              className={cn("mt-1.5",
+                aadharVal && !isAadharValid && "border-destructive",
+                aadharVal && isAadharValid && "border-green-500"
+              )}
+              {...register("aadhar_number")}
+              onChange={(e) => setValue("aadhar_number", e.target.value.replace(/\D/g, "").slice(0, 12), { shouldValidate: true })}
+            />
+            {aadharVal && (
+              <p className={cn("text-[11px] font-medium mt-1", isAadharValid ? "text-green-600" : "text-amber-600")}>
+                {isAadharValid ? "Valid" : "Must be 12 digits"}
+              </p>
+            )}
+            <FE message={errors.aadhar_number?.message} />
+          </div>
+          <div>
+            <Label htmlFor="aadhar_name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name As Per Aadhaar</Label>
+            <Input id="aadhar_name" placeholder="Name on Aadhaar card" className="mt-1.5" {...register("aadhar_name")} />
+          </div>
+          <div>
+            <Label htmlFor="aadhar_dob" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date of Birth (As Per Aadhaar)</Label>
+            <Input id="aadhar_dob" type="date" className="mt-1.5" {...register("aadhar_dob")} />
+          </div>
+          <div className="sm:col-span-2">
+            <Label htmlFor="aadhar_address" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Address (As Per Aadhaar)</Label>
+            <Textarea id="aadhar_address" rows={2} placeholder="Full address as on Aadhaar" className="mt-1.5 resize-none" {...register("aadhar_address")} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── PAN ── */}
+      <div className="rounded-xl border border-border/70 bg-card p-4">
+        <Sec icon={<CreditCard className="h-3.5 w-3.5" />} title="PAN Details" sub="Optional" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="pan_number" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">PAN Number</Label>
+            <Input
+              id="pan_number"
+              placeholder="ABCDE1234F"
+              className={cn("mt-1.5 uppercase",
+                panVal && !isPanValid && "border-destructive",
+                panVal && isPanValid && "border-green-500"
+              )}
+              {...register("pan_number")}
+              onChange={(e) => setValue("pan_number", e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10), { shouldValidate: true })}
+            />
+            {panVal && (
+              <p className={cn("text-[11px] font-medium mt-1", isPanValid ? "text-green-600" : "text-amber-600")}>
+                {isPanValid ? "Valid" : "Invalid PAN format"}
+              </p>
+            )}
+            <FE message={errors.pan_number?.message} />
+          </div>
+          <div>
+            <Label htmlFor="pan_name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name As Per PAN</Label>
+            <Input id="pan_name" placeholder="Name on PAN card" className="mt-1.5" {...register("pan_name")} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Bank ── */}
+      <div className="rounded-xl border border-border/70 bg-card p-4">
+        <Sec icon={<Landmark className="h-3.5 w-3.5" />} title="Bank Details" sub="Optional" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="bank_account_name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name As Per Bank Account</Label>
+            <Input id="bank_account_name" placeholder="Account holder name" className="mt-1.5" {...register("bank_account_name")} />
+          </div>
+          <div>
+            <Label htmlFor="bank_name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name of the Bank</Label>
+            <Input id="bank_name" placeholder="e.g. State Bank of India" className="mt-1.5" {...register("bank_name")} />
+          </div>
+          <div>
+            <Label htmlFor="bank_account_number" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Bank Account Number</Label>
+            <Input
+              id="bank_account_number"
+              inputMode="numeric"
+              placeholder="9–18 digit account number"
+              className="mt-1.5"
+              {...register("bank_account_number")}
+              onChange={(e) => setValue("bank_account_number", e.target.value.replace(/\D/g, "").slice(0, 18), { shouldValidate: true })}
+            />
+            <FE message={errors.bank_account_number?.message} />
+          </div>
+          <div>
+            <Label htmlFor="bank_ifsc" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">IFSC Code</Label>
+            <Input
+              id="bank_ifsc"
+              placeholder="e.g. SBIN0001234"
+              className="mt-1.5 uppercase"
+              {...register("bank_ifsc")}
+              onChange={(e) => setValue("bank_ifsc", e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 11), { shouldValidate: true })}
+            />
+            <FE message={errors.bank_ifsc?.message} />
+          </div>
+          <div>
+            <Label htmlFor="bank_branch_name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Bank Branch Name</Label>
+            <Input id="bank_branch_name" placeholder="e.g. MG Road Branch" className="mt-1.5" {...register("bank_branch_name")} />
+          </div>
+          <div>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Account Type</Label>
+            <Select value={watch("bank_account_type") || ""} onValueChange={(v) => setValue("bank_account_type", v)}>
+              <SelectTrigger className="mt-1.5"><SelectValue placeholder="Savings / Current" /></SelectTrigger>
+              <SelectContent>
+                {ACCOUNT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Company ── */}
+      <div className="rounded-xl border border-border/70 bg-card p-4">
+        <Sec icon={<Building2 className="h-3.5 w-3.5" />} title="Company Details" sub="Optional" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="company_name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Company Name</Label>
+            <Input id="company_name" placeholder="Registered company name" className="mt-1.5" {...register("company_name")} />
+          </div>
+          <div>
+            <Label htmlFor="company_gst" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Company Registration / GST Number</Label>
+            <Input id="company_gst" placeholder="GST or registration number" className="mt-1.5 uppercase" {...register("company_gst")} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Create dialog ────────────────────────────────────────────────────────────
+
+function CreatePartnerDialog({ open, onOpenChange, agencies }: { open: boolean; onOpenChange: (v: boolean) => void; agencies: Agency[] }) {
   const { toast } = useToast();
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<AgencyForm>({
-    resolver: zodResolver(agencySchema),
-    defaultValues: { name: "", email: "", phone: "", password: "" },
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm<PartnerForm>({
+    resolver: zodResolver(partnerSchema),
+    defaultValues: { ...EMPTY_BASE, password: "" },
   });
 
-  async function onSubmit(values: AgencyForm) {
+  const nextSuffix = useMemo(() => {
+    const nums = agencies
+      .map((a) => a.kissp_id)
+      .filter(Boolean)
+      .map((id) => { const m = id!.match(/^KISSP(\d+)$/); return m ? parseInt(m[1], 10) : 0; });
+    return String((nums.length > 0 ? Math.max(...nums) : 0) + 1).padStart(3, "0");
+  }, [agencies]);
+
+  useEffect(() => {
+    if (open) reset({ ...EMPTY_BASE, password: "", kissp_suffix: nextSuffix });
+  }, [open, reset, nextSuffix]);
+
+  async function onSubmit(v: PartnerForm) {
     try {
       await createAgencyWithUser({
-        name: values.name,
-        email: values.email,
-        phone: values.phone || null,
-        password: values.password,
+        kissp_id: v.kissp_suffix ? `KISSP${v.kissp_suffix.padStart(3, "0")}` : null,
+        name: v.name,
+        full_name: v.full_name || null,
+        email: v.email,
+        phone: v.phone || null,
+        partner_type: v.partner_type || null,
+        city_name: v.city_name || null,
+        aadhar_number: v.aadhar_number || null,
+        aadhar_name: v.aadhar_name || null,
+        aadhar_dob: v.aadhar_dob || null,
+        aadhar_address: v.aadhar_address || null,
+        pan_number: v.pan_number || null,
+        pan_name: v.pan_name || null,
+        bank_account_name: v.bank_account_name || null,
+        bank_name: v.bank_name || null,
+        bank_account_number: v.bank_account_number || null,
+        bank_ifsc: v.bank_ifsc || null,
+        bank_branch_name: v.bank_branch_name || null,
+        bank_account_type: v.bank_account_type || null,
+        company_name: v.company_name || null,
+        company_gst: v.company_gst || null,
+        password: v.password,
       });
-      toast({
-        title: "Agency created",
-        description: `${values.email} can now sign in to access this agency.`,
-      });
+      toast({ title: "Supply partner created", description: `${v.email} can now sign in.` });
       reset();
       onOpenChange(false);
     } catch (err: any) {
-      toast({
-        title: "Could not create agency",
-        description: err?.message ?? "Something went wrong",
-        variant: "destructive",
-      });
+      toast({ title: "Could not create supply partner", description: err?.message ?? "Something went wrong", variant: "destructive" });
     }
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        onOpenChange(o);
-        if (!o) reset();
-      }}
-    >
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>New agency</DialogTitle>
-          <DialogDescription>
-            Creates the agency and a sign-in user in one step. Share the email and password with the agency.
-          </DialogDescription>
+    <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) reset(); }}>
+      <DialogContent className="max-w-2xl p-0 gap-0 flex flex-col max-h-[90vh]">
+        <DialogHeader className="p-4 sm:p-5 border-b border-border shrink-0">
+          <DialogTitle>New supply partner</DialogTitle>
+          <DialogDescription>Fill in the partner's details. Only Partner Name, Email, and Password are required.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <Label htmlFor="name">Agency name</Label>
-            <Input id="name" className="mt-1.5" {...register("name")} />
-            {errors.name && (
-              <p className="text-xs text-destructive mt-1">{errors.name.message}</p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="email">Email (sign-in)</Label>
-            <Input id="email" type="email" className="mt-1.5" {...register("email")} />
-            {errors.email && (
-              <p className="text-xs text-destructive mt-1">{errors.email.message}</p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="phone">
-              Phone <span className="text-muted-foreground font-normal">(optional)</span>
-            </Label>
-            <Input id="phone" className="mt-1.5" {...register("phone")} />
-            {errors.phone && (
-              <p className="text-xs text-destructive mt-1">{errors.phone.message}</p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="text"
-              className="mt-1.5"
-              placeholder="At least 6 characters"
-              {...register("password")}
-            />
-            {errors.password && (
-              <p className="text-xs text-destructive mt-1">{errors.password.message}</p>
-            )}
-            <p className="text-[11px] text-muted-foreground mt-1.5">
-              Share this with the agency — they can change it later.
-            </p>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="premium" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              Create agency
-            </Button>
-          </DialogFooter>
+        <form id="create-partner-form" onSubmit={handleSubmit(onSubmit)} className="overflow-y-auto flex-1 p-4 sm:p-5 space-y-4">
+          <PartnerFormFields register={register} watch={watch} setValue={setValue} errors={errors} showPassword />
         </form>
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 p-4 sm:p-5 pt-0 border-t border-border/60 bg-background shrink-0">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button form="create-partner-form" type="submit" variant="premium" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            Create supply partner
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
 }
 
-function EditAgencyDialog({
-  agency,
-  onOpenChange,
-}: {
-  agency: Agency | null;
-  onOpenChange: (open: boolean) => void;
-}) {
+// ─── Edit dialog ──────────────────────────────────────────────────────────────
+
+function EditPartnerDialog({ agency, onOpenChange }: { agency: Agency | null; onOpenChange: (o: boolean) => void }) {
   const { toast } = useToast();
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<EditAgencyForm>({
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm<EditPartnerForm>({
     resolver: zodResolver(editSchema),
-    defaultValues: { name: "", email: "", phone: "" },
+    defaultValues: EMPTY_BASE,
   });
 
   useEffect(() => {
     if (agency) {
       reset({
+        kissp_suffix: agency.kissp_id?.replace(/^KISSP/, "") ?? "",
         name: agency.name ?? "",
+        full_name: agency.full_name ?? "",
         email: agency.email ?? "",
         phone: agency.phone ?? "",
+        partner_type: agency.partner_type ?? "",
+        city_name: agency.city_name ?? "",
+        aadhar_number: agency.aadhar_number ?? "",
+        aadhar_name: agency.aadhar_name ?? "",
+        aadhar_dob: agency.aadhar_dob ?? "",
+        aadhar_address: agency.aadhar_address ?? "",
+        pan_number: agency.pan_number ?? "",
+        pan_name: agency.pan_name ?? "",
+        bank_account_name: agency.bank_account_name ?? "",
+        bank_name: agency.bank_name ?? "",
+        bank_account_number: agency.bank_account_number ?? "",
+        bank_ifsc: agency.bank_ifsc ?? "",
+        bank_branch_name: agency.bank_branch_name ?? "",
+        bank_account_type: agency.bank_account_type ?? "",
+        company_name: agency.company_name ?? "",
+        company_gst: agency.company_gst ?? "",
       });
     }
   }, [agency, reset]);
 
-  async function onSubmit(values: EditAgencyForm) {
+  async function onSubmit(v: EditPartnerForm) {
     if (!agency) return;
     try {
       await updateAgency(agency.id, {
-        name: values.name,
-        email: values.email || null,
-        phone: values.phone || null,
+        kissp_id: v.kissp_suffix ? `KISSP${v.kissp_suffix.padStart(3, "0")}` : null,
+        name: v.name,
+        full_name: v.full_name || null,
+        email: v.email || null,
+        phone: v.phone || null,
+        partner_type: v.partner_type || null,
+        city_name: v.city_name || null,
+        aadhar_number: v.aadhar_number || null,
+        aadhar_name: v.aadhar_name || null,
+        aadhar_dob: v.aadhar_dob || null,
+        aadhar_address: v.aadhar_address || null,
+        pan_number: v.pan_number || null,
+        pan_name: v.pan_name || null,
+        bank_account_name: v.bank_account_name || null,
+        bank_name: v.bank_name || null,
+        bank_account_number: v.bank_account_number || null,
+        bank_ifsc: v.bank_ifsc || null,
+        bank_branch_name: v.bank_branch_name || null,
+        bank_account_type: v.bank_account_type || null,
+        company_name: v.company_name || null,
+        company_gst: v.company_gst || null,
       });
-      toast({ title: "Agency updated" });
+      toast({ title: "Supply partner updated" });
       onOpenChange(false);
     } catch (err: any) {
       toast({ title: "Error", description: err?.message, variant: "destructive" });
@@ -423,57 +698,29 @@ function EditAgencyDialog({
 
   return (
     <Dialog open={!!agency} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Edit agency</DialogTitle>
-          <DialogDescription>
-            Update the agency's details. Existing candidates, projects, and assignments are preserved.
-          </DialogDescription>
+      <DialogContent className="max-w-2xl p-0 gap-0 flex flex-col max-h-[90vh]">
+        <DialogHeader className="p-4 sm:p-5 border-b border-border shrink-0">
+          <DialogTitle>Edit supply partner</DialogTitle>
+          <DialogDescription>Update this supply partner's details.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <Label htmlFor="edit-name">Agency name</Label>
-            <Input id="edit-name" className="mt-1.5" {...register("name")} />
-            {errors.name && (
-              <p className="text-xs text-destructive mt-1">{errors.name.message}</p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="edit-email">Email</Label>
-            <Input id="edit-email" type="email" className="mt-1.5" {...register("email")} />
-            {errors.email && (
-              <p className="text-xs text-destructive mt-1">{errors.email.message}</p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="edit-phone">Phone</Label>
-            <Input id="edit-phone" className="mt-1.5" {...register("phone")} />
-            {errors.phone && (
-              <p className="text-xs text-destructive mt-1">{errors.phone.message}</p>
-            )}
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="premium" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              Save changes
-            </Button>
-          </DialogFooter>
+        <form id="edit-partner-form" onSubmit={handleSubmit(onSubmit)} className="overflow-y-auto flex-1 p-4 sm:p-5 space-y-4">
+          <PartnerFormFields register={register} watch={watch} setValue={setValue} errors={errors} />
         </form>
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 p-4 sm:p-5 pt-0 border-t border-border/60 bg-background shrink-0">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button form="edit-partner-form" type="submit" variant="premium" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            Save changes
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
 }
 
-function DeleteAgencyDialog({
-  agency,
-  onOpenChange,
-}: {
-  agency: Agency | null;
-  onOpenChange: (open: boolean) => void;
-}) {
+// ─── Deactivate dialog ────────────────────────────────────────────────────────
+
+function DeletePartnerDialog({ agency, onOpenChange }: { agency: Agency | null; onOpenChange: (o: boolean) => void }) {
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
 
@@ -482,10 +729,7 @@ function DeleteAgencyDialog({
     setSubmitting(true);
     try {
       await softDeleteAgency(agency.id);
-      toast({
-        title: "Agency deactivated",
-        description: `${agency.name} can no longer sign in. Their data is preserved.`,
-      });
+      toast({ title: "Supply partner deactivated", description: `${agency.name} can no longer sign in. Their data is preserved.` });
       onOpenChange(false);
     } catch (err: any) {
       toast({ title: "Error", description: err?.message, variant: "destructive" });
@@ -498,24 +742,17 @@ function DeleteAgencyDialog({
     <AlertDialog open={!!agency} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you sure you want to deactivate this agency?</AlertDialogTitle>
+          <AlertDialogTitle>Deactivate this supply partner?</AlertDialogTitle>
           <AlertDialogDescription>
-            {agency ? (
-              <>
-                <span className="font-medium text-foreground">{agency.name}</span> will be marked
-                inactive. Their users will no longer be able to sign in. All candidates, projects,
-                and assignments are preserved and remain visible to admins.
-              </>
-            ) : null}
+            {agency && (
+              <><span className="font-medium text-foreground">{agency.name}</span> will be marked inactive. Their users will no longer be able to sign in. All candidates, projects, and assignments are preserved and remain visible to admins.</>
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={submitting}>Cancel</AlertDialogCancel>
           <AlertDialogAction
-            onClick={(e) => {
-              e.preventDefault();
-              handleConfirm();
-            }}
+            onClick={(e) => { e.preventDefault(); handleConfirm(); }}
             disabled={submitting}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >

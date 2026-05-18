@@ -66,6 +66,8 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
   const [showManualClient, setShowManualClient] = useState(false);
   const [newStatusInput, setNewStatusInput] = useState("");
   const [addingStatus, setAddingStatus] = useState(false);
+  const [customStatuses, setCustomStatuses] = useState<string[]>([]);
+  const [newCustomStatusInput, setNewCustomStatusInput] = useState("");
 
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
 
@@ -96,6 +98,8 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
         status: project?.status ?? "",
       });
       setShowManualClient(!hasLinkedClient);
+      setCustomStatuses(project?.custom_statuses ?? []);
+      setNewCustomStatusInput("");
     }
   }, [open, project, reset, clientMap]);
 
@@ -122,6 +126,7 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
         location: values.location,
         start_date: values.start_date ? new Date(values.start_date) : null,
         status: values.status,
+        custom_statuses: customStatuses,
       };
       if (isEdit && project) {
         await updateProject(project.id, payload);
@@ -314,6 +319,73 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
                 )}
               </div>
               <FieldError message={errors.status?.message} />
+            </div>
+
+            {/* Candidate Workflow Statuses — per-project internal tags */}
+            <div>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Candidate Workflow Statuses
+              </Label>
+              <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">
+                Internal stages shown per assigned candidate (e.g. "EFID Pending", "Biometric Done").
+              </p>
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-1.5 min-h-[28px]">
+                  {customStatuses.map((s) => (
+                    <span
+                      key={s}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-secondary/10 text-secondary border border-secondary/30"
+                    >
+                      {s}
+                      <button
+                        type="button"
+                        onClick={() => setCustomStatuses((prev) => prev.filter((x) => x !== s))}
+                        className="ml-0.5 hover:text-destructive transition-colors"
+                        aria-label={`Remove ${s}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                  {customStatuses.length === 0 && (
+                    <span className="text-xs text-muted-foreground italic">No workflow statuses added yet.</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Add workflow status…"
+                    value={newCustomStatusInput}
+                    onChange={(e) => setNewCustomStatusInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const trimmed = newCustomStatusInput.trim();
+                        if (!trimmed) return;
+                        if (customStatuses.some((s) => s.toLowerCase() === trimmed.toLowerCase())) return;
+                        setCustomStatuses((prev) => [...prev, trimmed]);
+                        setNewCustomStatusInput("");
+                      }
+                    }}
+                    className="h-8 text-xs"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-3 text-xs shrink-0"
+                    disabled={!newCustomStatusInput.trim() || customStatuses.some((s) => s.toLowerCase() === newCustomStatusInput.trim().toLowerCase())}
+                    onClick={() => {
+                      const trimmed = newCustomStatusInput.trim();
+                      if (!trimmed) return;
+                      if (customStatuses.some((s) => s.toLowerCase() === trimmed.toLowerCase())) return;
+                      setCustomStatuses((prev) => [...prev, trimmed]);
+                      setNewCustomStatusInput("");
+                    }}
+                  >
+                    <Plus className="h-3 w-3" /> Add
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
 

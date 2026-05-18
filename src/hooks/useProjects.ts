@@ -89,12 +89,14 @@ export async function createProject(
     location: string;
     start_date?: Date | null;
     status: string;
+    custom_statuses?: string[];
   },
   ctx: { agency_id: string | null }
 ) {
   await addDoc(collection(db, COL), {
     ...data,
     start_date: data.start_date ? Timestamp.fromDate(data.start_date) : null,
+    custom_statuses: data.custom_statuses ?? [],
     agency_id: ctx.agency_id ?? null,
     created_at: serverTimestamp(),
   });

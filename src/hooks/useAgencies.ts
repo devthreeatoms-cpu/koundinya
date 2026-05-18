@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   collection, onSnapshot, addDoc, serverTimestamp, query, orderBy, where,
-  doc, setDoc, getDoc, updateDoc,
+  doc, setDoc, getDoc, updateDoc, getDocs,
 } from "firebase/firestore";
 import { initializeApp, getApp, deleteApp, getApps } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
@@ -68,14 +68,63 @@ export function useAllUsers() {
 }
 
 export async function createAgency(input: {
+  kissp_id?: string | null;
   name: string;
+  full_name?: string | null;
   email?: string | null;
   phone?: string | null;
+  partner_type?: string | null;
+  city_name?: string | null;
+  aadhar_number?: string | null;
+  aadhar_name?: string | null;
+  aadhar_dob?: string | null;
+  aadhar_address?: string | null;
+  pan_number?: string | null;
+  pan_name?: string | null;
+  bank_account_name?: string | null;
+  bank_name?: string | null;
+  bank_account_number?: string | null;
+  bank_ifsc?: string | null;
+  bank_branch_name?: string | null;
+  bank_account_type?: string | null;
+  company_name?: string | null;
+  company_gst?: string | null;
 }): Promise<string> {
+  const kisspId = input.kissp_id?.trim() || null;
+  const aadharNum = input.aadhar_number?.trim() || null;
+  const panNum = input.pan_number?.trim() || null;
+
+  const [dupKissp, dupAadhar, dupPan] = await Promise.all([
+    kisspId ? getDocs(query(collection(db, COL), where("kissp_id", "==", kisspId))) : Promise.resolve(null),
+    aadharNum ? getDocs(query(collection(db, COL), where("aadhar_number", "==", aadharNum))) : Promise.resolve(null),
+    panNum ? getDocs(query(collection(db, COL), where("pan_number", "==", panNum))) : Promise.resolve(null),
+  ]);
+  if (dupKissp && !dupKissp.empty) throw new Error(`${kisspId} is already assigned to another supply partner.`);
+  if (dupAadhar && !dupAadhar.empty) throw new Error("A supply partner with this Aadhar number already exists.");
+  if (dupPan && !dupPan.empty) throw new Error("A supply partner with this PAN number already exists.");
+
   const ref = await addDoc(collection(db, COL), {
+    kissp_id: kisspId,
     name: input.name.trim(),
+    full_name: input.full_name?.trim() || null,
     email: input.email?.trim() || null,
     phone: input.phone?.trim() || null,
+    partner_type: input.partner_type || null,
+    city_name: input.city_name?.trim() || null,
+    aadhar_number: aadharNum,
+    aadhar_name: input.aadhar_name?.trim() || null,
+    aadhar_dob: input.aadhar_dob?.trim() || null,
+    aadhar_address: input.aadhar_address?.trim() || null,
+    pan_number: panNum,
+    pan_name: input.pan_name?.trim() || null,
+    bank_account_name: input.bank_account_name?.trim() || null,
+    bank_name: input.bank_name?.trim() || null,
+    bank_account_number: input.bank_account_number?.trim() || null,
+    bank_ifsc: input.bank_ifsc?.trim() || null,
+    bank_branch_name: input.bank_branch_name?.trim() || null,
+    bank_account_type: input.bank_account_type || null,
+    company_name: input.company_name?.trim() || null,
+    company_gst: input.company_gst?.trim() || null,
     is_deleted: false,
     created_at: serverTimestamp(),
     updated_at: serverTimestamp(),
@@ -87,20 +136,14 @@ export async function createAgency(input: {
  * Combined: create agency record + Firebase Auth user in one go.
  * The user's email/password become the agency's sign-in credentials.
  */
-export async function createAgencyWithUser(input: {
-  name: string;
-  email: string;
-  phone?: string | null;
+export async function createAgencyWithUser(input: Parameters<typeof createAgency>[0] & {
   password: string;
 }): Promise<string> {
-  const agencyId = await createAgency({
-    name: input.name,
-    email: input.email,
-    phone: input.phone ?? null,
-  });
+  const { password, ...agencyData } = input;
+  const agencyId = await createAgency(agencyData);
   await createAgencyUser({
-    email: input.email,
-    password: input.password,
+    email: input.email!,
+    password,
     agency_id: agencyId,
   });
   return agencyId;
@@ -109,12 +152,69 @@ export async function createAgencyWithUser(input: {
 /** Update editable fields on an agency. Stamps updated_at. */
 export async function updateAgency(
   id: string,
-  data: { name?: string; email?: string | null; phone?: string | null }
+  data: Partial<{
+    kissp_id: string | null;
+    name: string;
+    full_name: string | null;
+    email: string | null;
+    phone: string | null;
+    partner_type: string | null;
+    city_name: string | null;
+    aadhar_number: string | null;
+    aadhar_name: string | null;
+    aadhar_dob: string | null;
+    aadhar_address: string | null;
+    pan_number: string | null;
+    pan_name: string | null;
+    bank_account_name: string | null;
+    bank_name: string | null;
+    bank_account_number: string | null;
+    bank_ifsc: string | null;
+    bank_branch_name: string | null;
+    bank_account_type: string | null;
+    company_name: string | null;
+    company_gst: string | null;
+  }>
 ) {
+  const str = (v?: string | null) => v?.trim() || null;
+  const newKissp = data.kissp_id !== undefined ? str(data.kissp_id) : undefined;
+  const newAadhar = data.aadhar_number !== undefined ? str(data.aadhar_number) : undefined;
+  const newPan = data.pan_number !== undefined ? str(data.pan_number) : undefined;
+
+  const [dupKissp, dupAadhar, dupPan] = await Promise.all([
+    newKissp ? getDocs(query(collection(db, COL), where("kissp_id", "==", newKissp))) : Promise.resolve(null),
+    newAadhar ? getDocs(query(collection(db, COL), where("aadhar_number", "==", newAadhar))) : Promise.resolve(null),
+    newPan ? getDocs(query(collection(db, COL), where("pan_number", "==", newPan))) : Promise.resolve(null),
+  ]);
+  if (dupKissp && dupKissp.docs.some((d) => d.id !== id))
+    throw new Error(`${newKissp} is already assigned to another supply partner.`);
+  if (dupAadhar && dupAadhar.docs.some((d) => d.id !== id))
+    throw new Error("A supply partner with this Aadhar number already exists.");
+  if (dupPan && dupPan.docs.some((d) => d.id !== id))
+    throw new Error("A supply partner with this PAN number already exists.");
+
   const payload: Record<string, any> = { updated_at: serverTimestamp() };
-  if (typeof data.name === "string") payload.name = data.name.trim();
-  if (data.email !== undefined) payload.email = data.email?.trim() || null;
-  if (data.phone !== undefined) payload.phone = data.phone?.trim() || null;
+  if (newKissp !== undefined) payload.kissp_id = newKissp;
+  if (data.name !== undefined) payload.name = data.name!.trim();
+  if (data.full_name !== undefined) payload.full_name = str(data.full_name);
+  if (data.email !== undefined) payload.email = str(data.email);
+  if (data.phone !== undefined) payload.phone = str(data.phone);
+  if (data.partner_type !== undefined) payload.partner_type = data.partner_type || null;
+  if (data.city_name !== undefined) payload.city_name = str(data.city_name);
+  if (newAadhar !== undefined) payload.aadhar_number = newAadhar;
+  if (data.aadhar_name !== undefined) payload.aadhar_name = str(data.aadhar_name);
+  if (data.aadhar_dob !== undefined) payload.aadhar_dob = str(data.aadhar_dob);
+  if (data.aadhar_address !== undefined) payload.aadhar_address = str(data.aadhar_address);
+  if (newPan !== undefined) payload.pan_number = newPan;
+  if (data.pan_name !== undefined) payload.pan_name = str(data.pan_name);
+  if (data.bank_account_name !== undefined) payload.bank_account_name = str(data.bank_account_name);
+  if (data.bank_name !== undefined) payload.bank_name = str(data.bank_name);
+  if (data.bank_account_number !== undefined) payload.bank_account_number = str(data.bank_account_number);
+  if (data.bank_ifsc !== undefined) payload.bank_ifsc = str(data.bank_ifsc);
+  if (data.bank_branch_name !== undefined) payload.bank_branch_name = str(data.bank_branch_name);
+  if (data.bank_account_type !== undefined) payload.bank_account_type = data.bank_account_type || null;
+  if (data.company_name !== undefined) payload.company_name = str(data.company_name);
+  if (data.company_gst !== undefined) payload.company_gst = str(data.company_gst);
   await updateDoc(doc(db, COL, id), payload);
 }
 

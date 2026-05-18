@@ -9,6 +9,8 @@ import {
   Moon,
   Sun,
   Save,
+  DatabaseZap,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,6 +43,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { initials } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
+import { seedDemoData } from "@/utils/seedData";
 
 const APP_VERSION = "1.0.0";
 const FIREBASE_PROJECT_ID = "koundinya-wms";
@@ -70,9 +73,26 @@ function loadPrefs(): Preferences {
 }
 
 export default function Settings() {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
+  const [seeding, setSeeding] = useState(false);
+  const [seedConfirmOpen, setSeedConfirmOpen] = useState(false);
+
+  async function handleSeedData() {
+    setSeeding(true);
+    try {
+      const result = await seedDemoData();
+      toast.success("Demo data seeded", {
+        description: `Added ${result.partners} supply partners and ${result.team} internal team members.`,
+      });
+    } catch (err: any) {
+      toast.error("Seeding failed", { description: err?.message ?? "Something went wrong" });
+    } finally {
+      setSeeding(false);
+      setSeedConfirmOpen(false);
+    }
+  }
 
   const [name, setName] = useState<string>(user?.displayName ?? "");
   const [prefs, setPrefs] = useState<Preferences>(() => loadPrefs());
@@ -294,6 +314,59 @@ export default function Settings() {
           </div>
         </div>
       </Card>
+
+      {/* Demo Data — admin only */}
+      {isAdmin && (
+        <Card className="glass-card p-4 sm:p-6 hover-lift animate-fade-in-up">
+          <div className="flex items-start gap-3 mb-5">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary grid place-items-center">
+              <DatabaseZap className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold tracking-tight">Demo data</h3>
+              <p className="text-xs text-muted-foreground">
+                Seed the database with sample supply partners and internal team members.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start justify-between gap-4 p-4 rounded-xl border border-border/60 bg-muted/20">
+            <div>
+              <p className="text-sm font-medium">Seed demo records</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Clears all existing supply partners &amp; internal team, then adds 4 dummy supply partners and 5 internal team members.
+              </p>
+            </div>
+            <AlertDialog open={seedConfirmOpen} onOpenChange={setSeedConfirmOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="shrink-0" disabled={seeding}>
+                  {seeding ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <DatabaseZap className="h-4 w-4 mr-1.5" />}
+                  Seed data
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Seed demo data?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will <strong>permanently delete</strong> all existing supply partner and internal team records, then replace them with 4 dummy supply partners and 5 internal team members. Candidates, projects, and assignments are not affected.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={seeding}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={(e) => { e.preventDefault(); handleSeedData(); }}
+                    disabled={seeding}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    {seeding && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    Yes, seed data
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </Card>
+      )}
 
       {/* Danger Zone */}
       <Card className="p-6 shadow-card border-destructive/30 bg-destructive/5 animate-fade-in-up">

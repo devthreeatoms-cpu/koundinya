@@ -9,9 +9,10 @@ import {
   FileText,
   Briefcase,
   Calendar,
-  Tag,
   ShieldCheck,
   Landmark,
+  UserCog,
+  Building2,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -145,18 +146,19 @@ export default function CandidateDetail() {
                 </div>
                 <div className="min-w-0">
                   <p className="text-[11px] text-muted-foreground leading-none">Location</p>
-                  <p className={cn("text-sm font-medium mt-0.5 break-words", !candidate.location && "text-muted-foreground italic")}>
-                    {candidate.location || "Not provided"}
-                  </p>
-                  {candidate.latitude != null && candidate.longitude != null && (
-                    <a
-                      href={`https://www.google.com/maps?q=${candidate.latitude},${candidate.longitude}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[11px] text-primary hover:underline mt-0.5 inline-block"
-                    >
-                      View on Google Maps
-                    </a>
+                  {candidate.state ? (
+                    <div className="mt-0.5 space-y-0.5">
+                      {candidate.area_name && (
+                        <p className="text-sm font-medium break-words">{candidate.area_name}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground break-words">
+                        {[candidate.district, candidate.state].filter(Boolean).join(", ")}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className={cn("text-sm font-medium mt-0.5 break-words", !candidate.location && "text-muted-foreground italic")}>
+                      {candidate.location || "Not provided"}
+                    </p>
                   )}
                 </div>
               </div>
@@ -170,14 +172,19 @@ export default function CandidateDetail() {
                 </div>
               </div>
               <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
-                <div className="h-8 w-8 rounded-lg bg-muted text-muted-foreground grid place-items-center">
-                  <Tag className="h-4 w-4" />
+                <div className="h-8 w-8 rounded-lg bg-muted text-muted-foreground grid place-items-center shrink-0">
+                  {candidate.source === "Internal Team"
+                    ? <UserCog className="h-4 w-4" />
+                    : <Building2 className="h-4 w-4" />}
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[11px] text-muted-foreground leading-none">Source</p>
-                  <p className={cn("text-sm font-medium mt-0.5", !candidate.source && "text-muted-foreground italic")}>
-                    {candidate.source || "Not provided"}
+                  <p className="text-sm font-medium mt-0.5 break-words">
+                    {candidate.source_member_name || candidate.source || "Not provided"}
                   </p>
+                  {candidate.source_member_name && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{candidate.source}</p>
+                  )}
                 </div>
               </div>
 

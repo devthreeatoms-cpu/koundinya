@@ -14,6 +14,8 @@ import {
   Users as UsersIcon,
   ShieldCheck,
   Building2,
+  UserCog,
+  Loader2,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -57,6 +59,9 @@ import {
   useAgencyOwnedCandidates,
   useCombinedCandidatePool,
   softDeleteCandidate,
+  bulkAssignKisfsIds,
+  clearAllCandidates,
+  seedTestCandidates,
 } from "@/hooks/useCandidates";
 import { useAssignments } from "@/hooks/useAssignments";
 import { useAgencies } from "@/hooks/useAgencies";
@@ -168,6 +173,9 @@ export default function CandidatesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Candidate | null>(null);
   const [deleting, setDeleting] = useState<Candidate | null>(null);
+  const [assigningIds, setAssigningIds] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const activeAssignedIds = useMemo(
     () => new Set(assignments.filter((a) => a.status === "Active").map((a) => a.candidate_id)),
@@ -259,11 +267,39 @@ export default function CandidatesPage() {
         title="Candidates"
         description="Manage your candidate database, statuses, and availability."
         actions={
-          showAddButton ? (
-            <Button onClick={openAdd} variant="premium">
-              <Plus className="h-4 w-4" /> Add candidate
-            </Button>
-          ) : null
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={assigningIds}
+                onClick={async () => {
+                  setAssigningIds(true);
+                  try {
+                    const n = await bulkAssignKisfsIds();
+                    toast({ title: n > 0 ? `Fixed ${n} candidate${n === 1 ? "" : "s"} — duplicates reassigned, missing IDs assigned` : "All KISFS IDs are already unique" });
+                  } catch (err: any) {
+                    toast({ title: "Error", description: err?.message, variant: "destructive" });
+                  } finally {
+                    setAssigningIds(false);
+                  }
+                }}
+              >
+                {assigningIds && <Loader2 className="h-4 w-4 animate-spin" />}
+                Fix KISFS IDs
+              </Button>
+            )}
+            {isAdmin && (
+              <Button variant="outline" size="sm" className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setResetOpen(true)}>
+                Reset Test Data
+              </Button>
+            )}
+            {showAddButton && (
+              <Button onClick={openAdd} variant="premium">
+                <Plus className="h-4 w-4" /> Add candidate
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -280,17 +316,17 @@ export default function CandidatesPage() {
                 <span className="hidden sm:inline">Admin Candidates</span>
               </TabsTrigger>
               <TabsTrigger value="agency" className="text-[11px] sm:text-sm px-1.5 sm:px-3 py-1.5 whitespace-normal sm:whitespace-nowrap leading-tight">
-                <span className="sm:hidden">Agency</span>
-                <span className="hidden sm:inline">Agency Candidates</span>
+                <span className="sm:hidden">Supply Partners</span>
+                <span className="hidden sm:inline">Supply Partner Candidates</span>
               </TabsTrigger>
             </TabsList>
             {tab === "agency" && (
               <Select value={agencyFilter} onValueChange={setAgencyFilter}>
                 <SelectTrigger className="sm:w-56">
-                  <SelectValue placeholder="Filter by agency" />
+                  <SelectValue placeholder="Filter by supply partner" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All agencies</SelectItem>
+                  <SelectItem value="all">All supply partners</SelectItem>
                   {agencies.map((a) => (
                     <SelectItem key={a.id} value={a.id}>
                       {a.name}
@@ -484,7 +520,7 @@ export default function CandidatesPage() {
                           <p className="text-xs text-muted-foreground tabular-nums break-all">{c.phone}</p>
                           <p className="text-xs text-muted-foreground inline-flex items-center gap-1 mt-0.5">
                             <MapPin className="h-3 w-3 shrink-0" />
-                            <span className="break-words">{c.location}</span>
+                            <span className="break-words">{c.area_name ? `${c.area_name}, ${c.district}, ${c.state}` : c.location}</span>
                           </p>
                           {(c.aadhar_number || c.pan_number) && (
                             <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5 text-[10px] text-muted-foreground">
@@ -560,8 +596,11 @@ export default function CandidatesPage() {
                       >
                         {isAvail ? "Available" : "Assigned"}
                       </Badge>
-                      <Badge variant="outline" className="text-[11px] border-border text-muted-foreground">
-                        {c.source}
+                      <Badge variant="outline" className="text-[11px] border-border text-muted-foreground inline-flex items-center gap-1 max-w-[160px]">
+                        {c.source === "Internal Team"
+                          ? <UserCog className="h-2.5 w-2.5 shrink-0" />
+                          : <Building2 className="h-2.5 w-2.5 shrink-0" />}
+                        <span className="truncate">{c.source_member_name || c.source}</span>
                       </Badge>
                       {c.has_bike && (
                         <Badge variant="outline" className="text-[11px] border-border text-muted-foreground inline-flex items-center gap-1">
@@ -650,10 +689,22 @@ export default function CandidatesPage() {
                       <TableCell className="text-sm tabular-nums">{c.phone}</TableCell>
                       <TableCell className="text-sm">
                         <span className="inline-flex items-center gap-1 text-muted-foreground">
-                          <MapPin className="h-3 w-3" /> {c.location}
+                          <MapPin className="h-3 w-3" /> {c.area_name ? `${c.area_name}, ${c.district}, ${c.state}` : c.location}
                         </span>
                       </TableCell>
-                      <TableCell className="text-sm">{c.source}</TableCell>
+                      <TableCell className="text-sm">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          {c.source === "Internal Team"
+                            ? <UserCog className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            : <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">{c.source_member_name || c.source}</p>
+                            {c.source_member_name && (
+                              <p className="text-xs text-muted-foreground truncate">{c.source}</p>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Badge
                           className={cn(
@@ -773,6 +824,42 @@ export default function CandidatesPage() {
 
       <CandidateFormModal open={modalOpen} onOpenChange={setModalOpen} candidate={editing} />
 
+      {/* Reset test data confirmation */}
+      <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset all candidate data?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will <strong>permanently delete every candidate</strong> in the database and replace them with 15 fresh test records. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resetting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={resetting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async (e) => {
+                e.preventDefault();
+                setResetting(true);
+                try {
+                  await clearAllCandidates();
+                  const n = await seedTestCandidates();
+                  toast({ title: `Done — ${n} fresh test candidates created` });
+                  setResetOpen(false);
+                } catch (err: any) {
+                  toast({ title: "Error", description: err?.message, variant: "destructive" });
+                } finally {
+                  setResetting(false);
+                }
+              }}
+            >
+              {resetting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Yes, delete all & reseed
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -820,7 +907,7 @@ function OriginBadge({
       className="border-secondary/40 text-secondary bg-secondary-soft/50 text-[10px] gap-1 px-1.5 py-0 font-medium max-w-[10rem] truncate"
     >
       <Building2 className="h-2.5 w-2.5 shrink-0" />
-      <span className="truncate">{agencyName || "Agency"}</span>
+      <span className="truncate">{agencyName || "Supply Partner"}</span>
     </Badge>
   );
 }

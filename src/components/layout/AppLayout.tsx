@@ -16,6 +16,8 @@ import {
   Moon,
   Building2,
   UsersRound,
+  UserCog,
+  ScrollText,
 } from "lucide-react";
 import logo from "@/assets/koundinya-logo.jpeg";
 import { useAuth } from "@/context/AuthContext";
@@ -46,8 +48,10 @@ const navItems: NavItem[] = [
   { to: "/candidates", label: "Candidates", icon: Users },
   { to: "/projects", label: "Projects", icon: Briefcase, hideForAgency: true },
   { to: "/clients", label: "Clients", icon: UsersRound, adminOnly: true },
-  { to: "/agencies", label: "Agencies", icon: Building2, adminOnly: true },
-  { to: "/reports", label: "Reports", icon: BarChart3 },
+  { to: "/internal-partners", label: "Internal Team", icon: UserCog, adminOnly: true },
+  { to: "/supply-partners", label: "Supply Partners", icon: Building2, adminOnly: true },
+  { to: "/reports", label: "Reports", icon: BarChart3, adminOnly: true },
+  { to: "/work-log", label: "Work Log", icon: ScrollText, adminOnly: true },
 ];
 
 const STORAGE_KEY = "koundinya-sidebar-collapsed";
@@ -169,7 +173,7 @@ export default function AppLayout() {
       }),
     [isAdmin]
   );
-  const roleLabel = isAdmin ? "Administrator" : "Agency user";
+  const roleLabel = isAdmin ? "Administrator" : "Supply Partner";
 
   return (
     <div className="relative min-h-screen bg-background overflow-x-hidden">

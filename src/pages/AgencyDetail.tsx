@@ -113,13 +113,13 @@ export default function AgencyDetail() {
     return (
       <div className="space-y-4">
         <Link
-          to="/agencies"
+          to="/supply-partners"
           className="text-sm text-muted-foreground inline-flex items-center gap-1 hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to agencies
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to supply partners
         </Link>
         <Card className="p-12 text-center">
-          <p className="text-sm text-muted-foreground">Agency not found.</p>
+          <p className="text-sm text-muted-foreground">Supply partner not found.</p>
         </Card>
       </div>
     );
@@ -130,16 +130,25 @@ export default function AgencyDetail() {
   return (
     <div className="space-y-6">
       <Link
-        to="/agencies"
+        to="/supply-partners"
         className="text-sm text-muted-foreground inline-flex items-center gap-1 hover:text-foreground transition-colors w-fit"
       >
-        <ArrowLeft className="h-3.5 w-3.5" /> Back to agencies
+        <ArrowLeft className="h-3.5 w-3.5" /> Back to supply partners
       </Link>
 
-      <PageHeader
-        title={agency.name}
-        description={`Created ${formatDate((agency.created_at as any)?.toDate?.()) || "—"}`}
-      />
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <PageHeader
+            title={agency.name}
+            description={`Created ${formatDate((agency.created_at as any)?.toDate?.()) || "—"}`}
+          />
+        </div>
+        {agency.kissp_id && (
+          <span className="shrink-0 mt-1 text-xs font-mono font-semibold px-2 py-1 rounded-md bg-primary/10 text-primary border border-primary/20">
+            {agency.kissp_id}
+          </span>
+        )}
+      </div>
 
       {/* Stats */}
       <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
@@ -169,7 +178,7 @@ export default function AgencyDetail() {
         {dLoading ? (
           <SkeletonRows />
         ) : visibleCandidates.length === 0 ? (
-          <EmptyState text="No candidates in this agency yet." />
+          <EmptyState text="No candidates for this supply partner yet." />
         ) : (
           <>
             {/* Mobile: stacked cards */}

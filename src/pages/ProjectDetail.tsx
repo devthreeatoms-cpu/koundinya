@@ -7,11 +7,18 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { useProjectById } from "@/hooks/useProjects";
 import { useAllCandidates } from "@/hooks/useCandidates";
-import { useAssignments, removeAssignment } from "@/hooks/useAssignments";
+import { useAssignments, removeAssignment, updateAssignmentProjectStatus } from "@/hooks/useAssignments";
 import { useAgencies } from "@/hooks/useAgencies";
 import { useAuth } from "@/context/AuthContext";
 import ProjectFormModal from "@/components/projects/ProjectFormModal";
@@ -45,7 +52,7 @@ function OwnerBadge({
       className="text-[10px] uppercase tracking-wide border-secondary/40 text-secondary bg-secondary/10 inline-flex items-center gap-1 max-w-[140px]"
     >
       <Building2 className="h-2.5 w-2.5 shrink-0" />
-      <span className="truncate">{agencyName || "Agency"}</span>
+      <span className="truncate">{agencyName || "Supply Partner"}</span>
     </Badge>
   );
 }
@@ -112,6 +119,16 @@ export default function ProjectDetail() {
       toast({ title: "Error", description: err?.message, variant: "destructive" });
     }
   }
+
+  async function handleWorkflowStatus(assignmentId: string, value: string) {
+    try {
+      await updateAssignmentProjectStatus(assignmentId, value === "__none__" ? null : value);
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message, variant: "destructive" });
+    }
+  }
+
+  const hasCustomStatuses = (project?.custom_statuses?.length ?? 0) > 0;
 
   if (pLoading) {
     return (
@@ -279,11 +296,24 @@ export default function ProjectDetail() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50">
-                      <p className="text-[11px] text-muted-foreground">
-                        Assigned <span className="font-medium text-foreground">{formatDate((a.assigned_at as any)?.toDate?.())}</span>
-                      </p>
-                      <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {hasCustomStatuses && (
+                          <Select
+                            value={(a as any).project_status ?? "__none__"}
+                            onValueChange={(v) => handleWorkflowStatus(a.id, v)}
+                          >
+                            <SelectTrigger className="h-7 text-xs w-36">
+                              <SelectValue placeholder="— Status —" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">— Not set —</SelectItem>
+                              {project!.custom_statuses!.map((s) => (
+                                <SelectItem key={s} value={s}>{s}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                         {c && !isDeleted && (
                           <Button asChild variant="ghost" size="sm" className="h-9 text-primary hover:text-primary hover:bg-primary-soft">
                             <Link to={`/candidates/${c.id}`}>
@@ -295,6 +325,9 @@ export default function ProjectDetail() {
                           <UserMinus className="h-4 w-4" /> Remove
                         </Button>
                       </div>
+                      <p className="text-[11px] text-muted-foreground ml-auto">
+                        {formatDate((a.assigned_at as any)?.toDate?.())}
+                      </p>
                     </div>
                   </li>
                 );
@@ -349,7 +382,23 @@ export default function ProjectDetail() {
                         <TableCell className={cn("text-sm tabular-nums", isDeleted && "text-muted-foreground")}>{c?.phone ?? "—"}</TableCell>
                         <TableCell className="text-sm">{formatDate((a.assigned_at as any)?.toDate?.())}</TableCell>
                         <TableCell className="text-right">
-                          <div className="inline-flex items-center gap-1">
+                          <div className="inline-flex items-center gap-2 justify-end">
+                            {hasCustomStatuses && (
+                              <Select
+                                value={(a as any).project_status ?? "__none__"}
+                                onValueChange={(v) => handleWorkflowStatus(a.id, v)}
+                              >
+                                <SelectTrigger className="h-7 text-xs w-40">
+                                  <SelectValue placeholder="— Status —" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__none__">— Not set —</SelectItem>
+                                  {project!.custom_statuses!.map((s) => (
+                                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
                             {c && !isDeleted && (
                               <Button asChild variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary-soft">
                                 <Link to={`/candidates/${c.id}`}>

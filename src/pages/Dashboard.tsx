@@ -264,7 +264,7 @@ export default function Dashboard() {
                 <Building2 className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="font-semibold tracking-tight">Agencies overview</h3>
+                <h3 className="font-semibold tracking-tight">Supply Partners overview</h3>
                 <p className="text-xs text-muted-foreground">
                   {agencies.filter((a) => !a.is_deleted).length} active ·{" "}
                   {agencies.filter((a) => a.is_deleted).length} inactive
@@ -272,7 +272,7 @@ export default function Dashboard() {
               </div>
             </div>
             <Button asChild variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary-soft">
-              <Link to="/agencies">Manage <ArrowRight className="h-3.5 w-3.5" /></Link>
+              <Link to="/supply-partners">Manage <ArrowRight className="h-3.5 w-3.5" /></Link>
             </Button>
           </div>
           {agLoading ? (
@@ -283,14 +283,14 @@ export default function Dashboard() {
             </div>
           ) : agencies.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">
-              No agencies yet. Create one from the Agencies page.
+              No supply partners yet. Create one from the Supply Partners page.
             </p>
           ) : (
             <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {agencies.slice(0, 6).map((a) => (
                 <li key={a.id}>
                   <Link
-                    to={`/agencies/${a.id}`}
+                    to={`/supply-partners/${a.id}`}
                     className={cn(
                       "block p-3 rounded-lg border border-border/60 hover:border-primary/40 hover:shadow-card transition-all group",
                       a.is_deleted && "opacity-70"
