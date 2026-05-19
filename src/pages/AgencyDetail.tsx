@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -7,6 +7,7 @@ import {
   ClipboardList,
   Loader2,
   Eye,
+  Pencil,
 } from "lucide-react";
 
 import PageHeader from "@/components/PageHeader";
@@ -27,6 +28,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useAgency, useAgencyData } from "@/hooks/useAgencies";
 import { formatDate, initials } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
+import type { Agency } from "@/types";
+import EditPartnerDialog from "@/components/EditPartnerDialog";
 
 export default function AgencyDetail() {
   const { id } = useParams<{ id: string }>();
@@ -38,6 +41,8 @@ export default function AgencyDetail() {
     assignments,
     loading: dLoading,
   } = useAgencyData(id);
+
+  const [editAgency, setEditAgency] = useState<Agency | null>(null);
 
   // Mirror what the agency itself sees: hide soft-deleted candidates
   // everywhere on this page (stats, lists, assignment counts).
@@ -143,11 +148,22 @@ export default function AgencyDetail() {
             description={`Created ${formatDate((agency.created_at as any)?.toDate?.()) || "—"}`}
           />
         </div>
-        {agency.kissp_id && (
-          <span className="shrink-0 mt-1 text-xs font-mono font-semibold px-2 py-1 rounded-md bg-primary/10 text-primary border border-primary/20">
-            {agency.kissp_id}
-          </span>
-        )}
+        <div className="flex items-center gap-2 shrink-0 mt-1">
+          {agency.kissp_id && (
+            <span className="text-xs font-mono font-semibold px-2 py-1 rounded-md bg-primary/10 text-primary border border-primary/20">
+              {agency.kissp_id}
+            </span>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="px-2.5"
+            aria-label="Edit supply partner"
+            onClick={() => setEditAgency(agency)}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -167,6 +183,11 @@ export default function AgencyDetail() {
           loading={dLoading}
         />
       </div>
+
+      <EditPartnerDialog
+        agency={editAgency}
+        onOpenChange={(o) => { if (!o) setEditAgency(null); }}
+      />
 
       {/* Candidates */}
       <Card className="glass-card p-4 sm:p-6 hover-lift">

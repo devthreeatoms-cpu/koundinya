@@ -81,6 +81,10 @@ export interface Agency {
   id: string;
   kissp_id?: string | null;
   name: string;
+  is_internal?: boolean;
+  // Internal-team-only fields
+  position?: string | null;
+  employee_id?: string | null;
   // Basic
   full_name?: string | null;
   email?: string | null;

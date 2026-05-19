@@ -13,6 +13,7 @@ import {
   Phone as PhoneIcon,
   BadgeCheck,
   Briefcase,
+  Mail,
 } from "lucide-react";
 
 import PageHeader from "@/components/PageHeader";
@@ -45,32 +46,42 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import {
-  useInternalPartners,
-  createInternalPartner,
-  updateInternalPartner,
-  softDeleteInternalPartner,
-  restoreInternalPartner,
-} from "@/hooks/useInternalPartners";
+  useAgencies,
+  createInternalMemberWithUser,
+  updateInternalMember,
+  softDeleteAgency,
+  restoreAgency,
+} from "@/hooks/useAgencies";
 import { formatDate } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
-import type { InternalPartner } from "@/types";
+import type { Agency } from "@/types";
 
-const partnerSchema = z.object({
+const addSchema = z.object({
+  full_name: z.string().trim().min(2, "Full name is required").max(100),
+  position: z.string().trim().min(1, "Position is required").max(100),
+  phone: z.string().trim().min(6, "Phone is required").max(30),
+  employee_id: z.string().trim().min(1, "Employee ID is required").max(50),
+  email: z.string().trim().email("Valid email required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+type AddForm = z.infer<typeof addSchema>;
+
+const editSchema = z.object({
   full_name: z.string().trim().min(2, "Full name is required").max(100),
   position: z.string().trim().min(1, "Position is required").max(100),
   phone: z.string().trim().min(6, "Phone is required").max(30),
   employee_id: z.string().trim().min(1, "Employee ID is required").max(50),
 });
-type PartnerForm = z.infer<typeof partnerSchema>;
+type EditForm = z.infer<typeof editSchema>;
 
 export default function InternalPartnersPage() {
   const { isAdmin, loading: authLoading } = useAuth();
   const [showInactive, setShowInactive] = useState(false);
-  const { partners, loading } = useInternalPartners({ includeDeleted: showInactive });
+  const { agencies: partners, loading } = useAgencies({ isInternal: true, includeDeleted: showInactive });
 
   const [addOpen, setAddOpen] = useState(false);
-  const [editPartner, setEditPartner] = useState<InternalPartner | null>(null);
-  const [deletePartner, setDeletePartner] = useState<InternalPartner | null>(null);
+  const [editPartner, setEditPartner] = useState<Agency | null>(null);
+  const [deletePartner, setDeletePartner] = useState<Agency | null>(null);
 
   if (authLoading) {
     return (
@@ -85,7 +96,7 @@ export default function InternalPartnersPage() {
     <div className="space-y-6">
       <PageHeader
         title="Internal Team"
-        description="Manage internal team members who operate the platform on behalf of the organisation."
+        description="Manage internal team members. Each member gets their own login to add and manage candidates."
         actions={
           <Button variant="premium" onClick={() => setAddOpen(true)}>
             <Plus className="h-4 w-4" /> <span className="truncate">Add member</span>
@@ -98,7 +109,7 @@ export default function InternalPartnersPage() {
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium">Show inactive members</p>
           <p className="text-[11px] text-muted-foreground mt-0.5 hidden sm:block">
-            Deactivated members are preserved in the database but cannot be assigned.
+            Deactivated members are preserved in the database but cannot sign in.
           </p>
         </div>
         <Switch
@@ -169,19 +180,30 @@ export default function InternalPartnersPage() {
                     inactive && "text-muted-foreground"
                   )}
                 >
-                  {p.full_name}
+                  {p.name}
                 </h3>
 
                 <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                  <p className="inline-flex items-center gap-1.5">
-                    <Briefcase className="h-3 w-3 shrink-0" /> {p.position}
-                  </p>
-                  <p className="inline-flex items-center gap-1.5">
-                    <PhoneIcon className="h-3 w-3 shrink-0" /> {p.phone}
-                  </p>
-                  <p className="inline-flex items-center gap-1.5">
-                    <BadgeCheck className="h-3 w-3 shrink-0" /> ID: {p.employee_id}
-                  </p>
+                  {p.position && (
+                    <p className="inline-flex items-center gap-1.5">
+                      <Briefcase className="h-3 w-3 shrink-0" /> {p.position}
+                    </p>
+                  )}
+                  {p.phone && (
+                    <p className="inline-flex items-center gap-1.5">
+                      <PhoneIcon className="h-3 w-3 shrink-0" /> {p.phone}
+                    </p>
+                  )}
+                  {p.employee_id && (
+                    <p className="inline-flex items-center gap-1.5">
+                      <BadgeCheck className="h-3 w-3 shrink-0" /> ID: {p.employee_id}
+                    </p>
+                  )}
+                  {p.email && (
+                    <p className="inline-flex items-center gap-1.5">
+                      <Mail className="h-3 w-3 shrink-0" /> {p.email}
+                    </p>
+                  )}
                   <p>Added {formatDate((p.created_at as any)?.toDate?.()) || "—"}</p>
                 </div>
 
@@ -202,7 +224,7 @@ export default function InternalPartnersPage() {
                       className="px-2.5 text-primary hover:text-primary hover:bg-primary/10"
                       aria-label="Reactivate member"
                       onClick={async () => {
-                        try { await restoreInternalPartner(p.id); } catch {/* noop */}
+                        try { await restoreAgency(p.id); } catch {/* noop */}
                       }}
                     >
                       <RotateCcw className="h-4 w-4" />
@@ -225,12 +247,12 @@ export default function InternalPartnersPage() {
         </div>
       )}
 
-      <AddPartnerDialog open={addOpen} onOpenChange={setAddOpen} />
-      <EditPartnerDialog
+      <AddMemberDialog open={addOpen} onOpenChange={setAddOpen} />
+      <EditMemberDialog
         partner={editPartner}
         onOpenChange={(open) => { if (!open) setEditPartner(null); }}
       />
-      <DeactivatePartnerDialog
+      <DeactivateMemberDialog
         partner={deletePartner}
         onOpenChange={(open) => { if (!open) setDeletePartner(null); }}
       />
@@ -238,7 +260,7 @@ export default function InternalPartnersPage() {
   );
 }
 
-function AddPartnerDialog({
+function AddMemberDialog({
   open,
   onOpenChange,
 }: {
@@ -251,15 +273,15 @@ function AddPartnerDialog({
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<PartnerForm>({
-    resolver: zodResolver(partnerSchema),
-    defaultValues: { full_name: "", position: "", phone: "", employee_id: "" },
+  } = useForm<AddForm>({
+    resolver: zodResolver(addSchema),
+    defaultValues: { full_name: "", position: "", phone: "", employee_id: "", email: "", password: "" },
   });
 
-  async function onSubmit(values: PartnerForm) {
+  async function onSubmit(values: AddForm) {
     try {
-      await createInternalPartner(values);
-      toast({ title: "Team member added" });
+      await createInternalMemberWithUser(values);
+      toast({ title: "Team member added", description: `${values.full_name} can now sign in with their email and password.` });
       reset();
       onOpenChange(false);
     } catch (err: any) {
@@ -273,33 +295,48 @@ function AddPartnerDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) reset(); }}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add team member</DialogTitle>
           <DialogDescription>
-            Add an internal team member. They can add candidates, create projects, clients, and assign candidates to projects.
+            Create a login account for an internal team member. They can add candidates and see only their own data.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
           <div>
-            <Label htmlFor="full_name">Full name</Label>
-            <Input id="full_name" placeholder="e.g. Ravi Kumar" className="mt-1.5" {...register("full_name")} />
+            <Label htmlFor="add-full_name">Full name</Label>
+            <Input id="add-full_name" placeholder="e.g. Ravi Kumar" className="mt-1.5" {...register("full_name")} />
             {errors.full_name && <p className="text-xs text-destructive mt-1">{errors.full_name.message}</p>}
           </div>
           <div>
-            <Label htmlFor="position">Position</Label>
-            <Input id="position" placeholder="e.g. Operations Manager" className="mt-1.5" {...register("position")} />
+            <Label htmlFor="add-position">Position</Label>
+            <Input id="add-position" placeholder="e.g. Operations Manager" className="mt-1.5" {...register("position")} />
             {errors.position && <p className="text-xs text-destructive mt-1">{errors.position.message}</p>}
           </div>
           <div>
-            <Label htmlFor="phone">Phone number</Label>
-            <Input id="phone" placeholder="+91 98765 43210" className="mt-1.5" {...register("phone")} />
+            <Label htmlFor="add-phone">Phone number</Label>
+            <Input id="add-phone" placeholder="+91 98765 43210" className="mt-1.5" {...register("phone")} />
             {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone.message}</p>}
           </div>
           <div>
-            <Label htmlFor="employee_id">Employee ID</Label>
-            <Input id="employee_id" placeholder="e.g. EMP-001" className="mt-1.5" {...register("employee_id")} />
+            <Label htmlFor="add-employee_id">Employee ID</Label>
+            <Input id="add-employee_id" placeholder="e.g. EMP-001" className="mt-1.5" {...register("employee_id")} />
             {errors.employee_id && <p className="text-xs text-destructive mt-1">{errors.employee_id.message}</p>}
+          </div>
+          <div className="pt-2 border-t border-border/60">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Login credentials</p>
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="add-email">Email address</Label>
+                <Input id="add-email" type="email" placeholder="ravi@company.com" className="mt-1.5" {...register("email")} />
+                {errors.email && <p className="text-xs text-destructive mt-1">{errors.email.message}</p>}
+              </div>
+              <div>
+                <Label htmlFor="add-password">Password</Label>
+                <Input id="add-password" type="password" placeholder="Min. 6 characters" className="mt-1.5" {...register("password")} />
+                {errors.password && <p className="text-xs text-destructive mt-1">{errors.password.message}</p>}
+              </div>
+            </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
@@ -316,11 +353,11 @@ function AddPartnerDialog({
   );
 }
 
-function EditPartnerDialog({
+function EditMemberDialog({
   partner,
   onOpenChange,
 }: {
-  partner: InternalPartner | null;
+  partner: Agency | null;
   onOpenChange: (open: boolean) => void;
 }) {
   const { toast } = useToast();
@@ -329,15 +366,15 @@ function EditPartnerDialog({
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<PartnerForm>({
-    resolver: zodResolver(partnerSchema),
+  } = useForm<EditForm>({
+    resolver: zodResolver(editSchema),
     defaultValues: { full_name: "", position: "", phone: "", employee_id: "" },
   });
 
   useEffect(() => {
     if (partner) {
       reset({
-        full_name: partner.full_name ?? "",
+        full_name: partner.name ?? "",
         position: partner.position ?? "",
         phone: partner.phone ?? "",
         employee_id: partner.employee_id ?? "",
@@ -345,10 +382,10 @@ function EditPartnerDialog({
     }
   }, [partner, reset]);
 
-  async function onSubmit(values: PartnerForm) {
+  async function onSubmit(values: EditForm) {
     if (!partner) return;
     try {
-      await updateInternalPartner(partner.id, values);
+      await updateInternalMember(partner.id, values);
       toast({ title: "Member updated" });
       onOpenChange(false);
     } catch (err: any) {
@@ -361,7 +398,7 @@ function EditPartnerDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Edit team member</DialogTitle>
-          <DialogDescription>Update this member's details.</DialogDescription>
+          <DialogDescription>Update this member's details. Email and password cannot be changed here.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
           <div>
@@ -399,11 +436,11 @@ function EditPartnerDialog({
   );
 }
 
-function DeactivatePartnerDialog({
+function DeactivateMemberDialog({
   partner,
   onOpenChange,
 }: {
-  partner: InternalPartner | null;
+  partner: Agency | null;
   onOpenChange: (open: boolean) => void;
 }) {
   const { toast } = useToast();
@@ -413,8 +450,8 @@ function DeactivatePartnerDialog({
     if (!partner) return;
     setSubmitting(true);
     try {
-      await softDeleteInternalPartner(partner.id);
-      toast({ title: "Member deactivated", description: `${partner.full_name} has been marked inactive.` });
+      await softDeleteAgency(partner.id);
+      toast({ title: "Member deactivated", description: `${partner.name} has been marked inactive.` });
       onOpenChange(false);
     } catch (err: any) {
       toast({ title: "Error", description: err?.message, variant: "destructive" });
@@ -431,7 +468,7 @@ function DeactivatePartnerDialog({
           <AlertDialogDescription>
             {partner && (
               <>
-                <span className="font-medium text-foreground">{partner.full_name}</span> will be marked
+                <span className="font-medium text-foreground">{partner.name}</span> will be marked
                 inactive. Their record is preserved and can be reactivated at any time.
               </>
             )}

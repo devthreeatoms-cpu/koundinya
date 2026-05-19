@@ -16,6 +16,7 @@ import {
   Building2,
   UserCog,
   Loader2,
+  ArrowRight,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -97,7 +98,8 @@ export default function CandidatesPage() {
   // Combined pool: admin pool + every agency's candidates (used by the "All
   // candidates" tab for admins, and by the unified view for agency users).
   const { candidates: combinedPool, loading: combinedLoading } = useCombinedCandidatePool();
-  const { agencies } = useAgencies({ includeDeleted: true });
+  const { agencies } = useAgencies({ includeDeleted: true, isInternal: false });
+  const { agencies: internalPartners, loading: ipLoading } = useAgencies({ isInternal: true });
   // Admins view a combined pool (admin + every agency); to correctly compute
   // availability for agency-owned candidates we need ALL assignments, not
   // just admin-owned ones. Agency users also bypass so they can see active
@@ -112,9 +114,8 @@ export default function CandidatesPage() {
     return v === "available" || v === "assigned" ? v : "all";
   })();
 
-  // Tab state — admins choose between All / Admin / Agency. Agency users
-  // always see their combined pool (admin + own agency).
-  const [tab, setTab] = useState<"all" | "admin" | "agency">("all");
+  // Tab state — admins choose between All / Admin / Agency / Internal Team.
+  const [tab, setTab] = useState<"all" | "admin" | "agency" | "internal">("all");
   const [agencyFilter, setAgencyFilter] = useState<string>("all");
   // Origin filter for agency users: all | admin (admin pool) | mine (my agency)
   const [originFilter, setOriginFilter] = useState<"all" | "admin" | "mine">("all");
@@ -143,8 +144,21 @@ export default function CandidatesPage() {
       ? combinedLoading
       : tab === "admin"
         ? adminLoading
-        : agencyLoading
+        : tab === "internal"
+          ? ipLoading
+          : agencyLoading
     : adminLoading;
+
+  const [ipSearch, setIpSearch] = useState("");
+  const filteredPartners = useMemo(() => {
+    const term = ipSearch.trim().toLowerCase();
+    return internalPartners.filter((p) =>
+      !term ||
+      p.name.toLowerCase().includes(term) ||
+      (p.phone ?? "").toLowerCase().includes(term) ||
+      (p.employee_id ?? "").toLowerCase().includes(term)
+    );
+  }, [internalPartners, ipSearch]);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -304,9 +318,9 @@ export default function CandidatesPage() {
       />
 
       {isAdmin && (
-        <Tabs value={tab} onValueChange={(v) => setTab(v as "all" | "admin" | "agency")}>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "all" | "admin" | "agency" | "internal")}>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <TabsList className="grid grid-cols-3 w-full sm:w-auto sm:inline-flex h-auto gap-1 p-1">
+            <TabsList className="grid grid-cols-4 w-full sm:w-auto sm:inline-flex h-auto gap-1 p-1">
               <TabsTrigger value="all" className="text-[11px] sm:text-sm px-1.5 sm:px-3 py-1.5 whitespace-normal sm:whitespace-nowrap leading-tight">
                 <span className="sm:hidden">All</span>
                 <span className="hidden sm:inline">All Candidates</span>
@@ -316,8 +330,12 @@ export default function CandidatesPage() {
                 <span className="hidden sm:inline">Admin Candidates</span>
               </TabsTrigger>
               <TabsTrigger value="agency" className="text-[11px] sm:text-sm px-1.5 sm:px-3 py-1.5 whitespace-normal sm:whitespace-nowrap leading-tight">
-                <span className="sm:hidden">Supply Partners</span>
+                <span className="sm:hidden">Partners</span>
                 <span className="hidden sm:inline">Supply Partner Candidates</span>
+              </TabsTrigger>
+              <TabsTrigger value="internal" className="text-[11px] sm:text-sm px-1.5 sm:px-3 py-1.5 whitespace-normal sm:whitespace-nowrap leading-tight">
+                <span className="sm:hidden">Internal</span>
+                <span className="hidden sm:inline">Internal Team</span>
               </TabsTrigger>
             </TabsList>
             {tab === "agency" && (
@@ -340,10 +358,138 @@ export default function CandidatesPage() {
           <TabsContent value="all" />
           <TabsContent value="admin" />
           <TabsContent value="agency" />
+          <TabsContent value="internal" />
         </Tabs>
       )}
 
 
+      {/* Internal Team tab content */}
+      {tab === "internal" && (
+        <Card className="glass-card hover-lift overflow-hidden">
+          <div className="p-4 border-b border-border/60">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="relative flex-1 group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
+                <Input
+                  placeholder="Search by name, phone or employee ID…"
+                  className="pl-9"
+                  value={ipSearch}
+                  onChange={(e) => setIpSearch(e.target.value)}
+                />
+              </div>
+              <Link
+                to="/internal-partners"
+                className="text-xs text-primary inline-flex items-center gap-1 hover:gap-1.5 transition-all shrink-0"
+              >
+                Manage members <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Mobile: cards */}
+          <div className="md:hidden">
+            {ipLoading ? (
+              <div className="p-4 space-y-3">
+                {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
+              </div>
+            ) : filteredPartners.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 text-muted-foreground py-16 px-4 text-center">
+                <div className="h-12 w-12 rounded-full bg-muted grid place-items-center">
+                  <UserCog className="h-5 w-5" />
+                </div>
+                <p className="text-sm font-medium">No internal team members found</p>
+              </div>
+            ) : (
+              <ul className="p-3 space-y-3">
+                {filteredPartners.map((p) => (
+                  <li key={p.id} className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <div className="flex items-start gap-3">
+                      <div className="h-10 w-10 rounded-full bg-secondary-soft text-secondary grid place-items-center text-xs font-semibold shrink-0">
+                        {initials(p.name)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm">{p.name}</p>
+                        <p className="text-xs text-muted-foreground">{p.position}</p>
+                        <p className="text-xs text-muted-foreground tabular-nums">{p.phone}</p>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] font-mono shrink-0">{p.employee_id}</Badge>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden md:block overflow-auto">
+            <Table>
+              <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur">
+                <TableRow className="hover:bg-transparent border-b border-border">
+                  <TableHead className="font-semibold text-foreground">Name</TableHead>
+                  <TableHead className="font-semibold text-foreground">Employee ID</TableHead>
+                  <TableHead className="font-semibold text-foreground">Position</TableHead>
+                  <TableHead className="font-semibold text-foreground">Phone</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {ipLoading ? (
+                  [...Array(5)].map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell colSpan={4}><Skeleton className="h-10 w-full" /></TableCell>
+                    </TableRow>
+                  ))
+                ) : filteredPartners.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-16">
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <div className="h-12 w-12 rounded-full bg-muted grid place-items-center">
+                          <UserCog className="h-5 w-5" />
+                        </div>
+                        <p className="text-sm font-medium">No internal team members found</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredPartners.map((p, idx) => (
+                    <TableRow
+                      key={p.id}
+                      className={cn(
+                        "border-b border-border/60",
+                        idx % 2 === 1 && "bg-muted/20",
+                        "hover:bg-primary-soft/40"
+                      )}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-full bg-secondary-soft text-secondary grid place-items-center text-xs font-semibold shadow-sm shrink-0">
+                            {initials(p.name)}
+                          </div>
+                          <p className="font-medium text-sm">{p.name}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs font-mono font-semibold text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded">
+                          {p.employee_id}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{p.position}</TableCell>
+                      <TableCell className="text-sm tabular-nums">{p.phone}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="p-4 border-t border-border/60 bg-muted/20">
+            <p className="text-xs text-muted-foreground">
+              Showing <span className="font-semibold text-foreground">{filteredPartners.length}</span> internal team member{filteredPartners.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {tab !== "internal" && (
       <Card className="glass-card hover-lift overflow-hidden">
         <div className="p-4 border-b border-border/60 space-y-3">
           <div className="flex flex-col lg:flex-row gap-3">
@@ -821,6 +967,7 @@ export default function CandidatesPage() {
           </div>
         </div>
       </Card>
+      )} {/* end tab !== "internal" */}
 
       <CandidateFormModal open={modalOpen} onOpenChange={setModalOpen} candidate={editing} />
 

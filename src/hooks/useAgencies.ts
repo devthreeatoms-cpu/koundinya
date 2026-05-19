@@ -15,13 +15,14 @@ const COL = "agencies";
  * By default excludes soft-deleted agencies; pass { includeDeleted: true }
  * to also return deactivated ones (for the "show inactive" toggle).
  */
-export function useAgencies(opts: { includeDeleted?: boolean } = {}) {
+export function useAgencies(opts: { includeDeleted?: boolean; isInternal?: boolean } = {}) {
   const includeDeleted = !!opts.includeDeleted;
+  // undefined = all, true = internal only, false = external supply partners only
+  const isInternal = opts.isInternal;
   const [agencies, setAgencies] = useState<Agency[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Order client-side; some legacy docs may not have created_at yet.
     const unsub = onSnapshot(
       collection(db, COL),
       (snap) => {
@@ -29,6 +30,8 @@ export function useAgencies(opts: { includeDeleted?: boolean } = {}) {
           (d) => ({ id: d.id, ...(d.data() as any) })
         ) as Agency[];
         if (!includeDeleted) list = list.filter((a) => !a.is_deleted);
+        if (isInternal === true) list = list.filter((a) => !!a.is_internal);
+        else if (isInternal === false) list = list.filter((a) => !a.is_internal);
         list.sort(
           (x, y) =>
             ((y.created_at as any)?.toMillis?.() ?? 0) -
@@ -40,7 +43,7 @@ export function useAgencies(opts: { includeDeleted?: boolean } = {}) {
       () => setLoading(false)
     );
     return () => unsub();
-  }, [includeDeleted]);
+  }, [includeDeleted, isInternal]);
 
   return { agencies, loading };
 }
@@ -130,6 +133,49 @@ export async function createAgency(input: {
     updated_at: serverTimestamp(),
   });
   return ref.id;
+}
+
+/**
+ * Create an internal team member: agency record (is_internal: true) + Firebase Auth user.
+ */
+export async function createInternalMemberWithUser(input: {
+  full_name: string;
+  position: string;
+  phone: string;
+  employee_id: string;
+  email: string;
+  password: string;
+}): Promise<string> {
+  const ref = await addDoc(collection(db, COL), {
+    name: input.full_name.trim(),
+    email: input.email.trim(),
+    phone: input.phone.trim(),
+    position: input.position.trim(),
+    employee_id: input.employee_id.trim(),
+    is_internal: true,
+    is_deleted: false,
+    created_at: serverTimestamp(),
+    updated_at: serverTimestamp(),
+  });
+  await createAgencyUser({
+    email: input.email,
+    password: input.password,
+    agency_id: ref.id,
+  });
+  return ref.id;
+}
+
+/** Update editable fields on an internal team member. */
+export async function updateInternalMember(
+  id: string,
+  data: { full_name?: string; position?: string; phone?: string; employee_id?: string }
+) {
+  const payload: Record<string, any> = { updated_at: serverTimestamp() };
+  if (data.full_name !== undefined) payload.name = data.full_name.trim();
+  if (data.position !== undefined) payload.position = data.position.trim();
+  if (data.phone !== undefined) payload.phone = data.phone.trim();
+  if (data.employee_id !== undefined) payload.employee_id = data.employee_id.trim();
+  await updateDoc(doc(db, COL, id), payload);
 }
 
 /**

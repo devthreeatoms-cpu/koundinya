@@ -20,7 +20,9 @@
       "PowerShell(head *)",
       "Bash(npx tsx *)",
       "Bash(firebase firestore:rules)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(xargs grep -l \"InternalPartner\")",
+      "Bash(Get-ChildItem -Path . -Recurse -Name \"Dashboard.tsx\" -ErrorAction SilentlyContinue)"
     ]
   },
   "enabledPlugins": {

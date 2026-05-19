@@ -8,6 +8,7 @@ import {
   TrendingUp,
   Activity,
   Sparkles,
+  UserCog,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -38,23 +39,33 @@ import { Building2 } from "lucide-react";
 
 export default function Dashboard() {
   const { isAdmin } = useAuth();
-  const { candidates: combinedCandidates, loading: cLoading } = useCombinedCandidatePool();
+
+  // Agency/internal-team users see strictly their own candidates; admins see all.
+  const { candidates: ownCandidates, loading: ownCLoading } = useCandidates();
+  const { candidates: combinedCandidates, loading: combinedCLoading } = useCombinedCandidatePool();
+  const cLoading = isAdmin ? combinedCLoading : ownCLoading;
+
   const { candidates: allCandidates } = useAllCandidates({ bypassOwnerFilter: isAdmin });
   const { projects, loading: pLoading } = useProjects({ bypassOwnerFilter: isAdmin });
-  const { assignments, loading: aLoading } = useAssignments({ bypassOwnerFilter: true });
-  const { agencies, loading: agLoading } = useAgencies({ includeDeleted: true });
+  // No bypassOwnerFilter — each user sees only their own assignments.
+  const { assignments, loading: aLoading } = useAssignments();
+  const { agencies, loading: agLoading } = useAgencies({ includeDeleted: true, isInternal: false });
+  const { agencies: internalPartners, loading: ipLoading } = useAgencies({ includeDeleted: true, isInternal: true });
 
-  const loading = cLoading || pLoading || aLoading || agLoading;
+  // Agency users don't wait on the agencies query for their loading state.
+  const loading = cLoading || pLoading || aLoading || (isAdmin && agLoading);
 
   const activeAgencyIds = useMemo(
     () => new Set(agencies.filter((a) => !a.is_deleted).map((a) => a.id)),
     [agencies]
   );
   const candidates = useMemo(() => {
+    if (!isAdmin) return ownCandidates; // already scoped to this user's agency
+    // Admin: filter out candidates from deactivated supply partners.
     const dropDeactivated = (c: { agency_id?: string | null }) =>
       c.agency_id == null || activeAgencyIds.has(c.agency_id);
     return combinedCandidates.filter(dropDeactivated);
-  }, [combinedCandidates, activeAgencyIds]);
+  }, [isAdmin, ownCandidates, combinedCandidates, activeAgencyIds]);
 
   // Only count active assignments whose candidate is currently visible.
   // Stale assignments (deleted candidates, deactivated agencies) would
@@ -313,6 +324,53 @@ export default function Dashboard() {
                       {a.email || "No email"}
                     </p>
                   </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
+
+      {/* Internal Team overview — admin only */}
+      {isAdmin && (
+        <Card className="glass-card p-4 sm:p-6 hover-lift animate-fade-in-up">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-secondary-soft text-secondary grid place-items-center">
+                <UserCog className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="font-semibold tracking-tight">Internal Team overview</h3>
+                <p className="text-xs text-muted-foreground">
+                  {internalPartners.filter((p) => !p.is_deleted).length} active ·{" "}
+                  {internalPartners.filter((p) => p.is_deleted).length} inactive
+                </p>
+              </div>
+            </div>
+            <Button asChild variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary-soft">
+              <Link to="/internal-partners">Manage <ArrowRight className="h-3.5 w-3.5" /></Link>
+            </Button>
+          </div>
+          {ipLoading ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-20 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : internalPartners.filter((p) => !p.is_deleted).length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">
+              No internal team members yet. Add them from the Internal Partners page.
+            </p>
+          ) : (
+            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {internalPartners.filter((p) => !p.is_deleted).slice(0, 6).map((p) => (
+                <li key={p.id}>
+                  <div className="p-3 rounded-lg border border-border/60">
+                    <p className="font-medium text-sm truncate">{p.name}</p>
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      {p.position} · {p.employee_id}
+                    </p>
+                  </div>
                 </li>
               ))}
             </ul>
