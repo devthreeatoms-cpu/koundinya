@@ -21,6 +21,7 @@ export interface Candidate {
   source_member_id?: string | null;
   source_member_name?: string | null;
   is_deleted?: boolean;
+  is_blocklisted?: boolean;
   created_at?: Timestamp | null;
   agency_id?: string | null;
   aadhar_number?: string | null;

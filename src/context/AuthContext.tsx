@@ -17,6 +17,7 @@ interface AuthContextValue {
   role: UserRole | null;
   agencyId: string | null;
   isAdmin: boolean;
+  isInternal: boolean;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -29,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [isInternal, setIsInternal] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -105,6 +107,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsub();
   }, [user]);
 
+  // Track whether the signed-in agency user belongs to an internal team agency.
+  useEffect(() => {
+    if (!profile || !profile.agency_id || profile.role === "admin") {
+      setIsInternal(false);
+      return;
+    }
+    const unsub = onSnapshot(
+      doc(db, "agencies", profile.agency_id),
+      (snap) => {
+        setIsInternal(snap.exists() && !!(snap.data() as any).is_internal);
+      },
+      () => setIsInternal(false)
+    );
+    return () => unsub();
+  }, [profile?.agency_id, profile?.role]);
+
   // If the signed-in agency user's agency gets soft-deleted while logged in,
   // immediately sign them out. Admins are unaffected.
   useEffect(() => {
@@ -163,6 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role,
         agencyId,
         isAdmin,
+        isInternal,
         loading: loading || (!!user && profileLoading && !profile),
         login,
         logout,

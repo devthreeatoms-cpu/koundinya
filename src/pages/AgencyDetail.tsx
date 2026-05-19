@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Link, Navigate, useParams, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   Building2,
@@ -33,6 +33,8 @@ import EditPartnerDialog from "@/components/EditPartnerDialog";
 
 export default function AgencyDetail() {
   const { id } = useParams<{ id: string }>();
+  const { pathname } = useLocation();
+  const isInternalRoute = pathname.startsWith("/internal-partners/");
   const { isAdmin, loading: authLoading } = useAuth();
   const { agency, loading: aLoading } = useAgency(id);
   const {
@@ -115,16 +117,20 @@ export default function AgencyDetail() {
   }
 
   if (!agency) {
+    const backTo = isInternalRoute ? "/internal-partners" : "/supply-partners";
+    const backLabel = isInternalRoute ? "Back to internal team" : "Back to supply partners";
     return (
       <div className="space-y-4">
         <Link
-          to="/supply-partners"
+          to={backTo}
           className="text-sm text-muted-foreground inline-flex items-center gap-1 hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to supply partners
+          <ArrowLeft className="h-3.5 w-3.5" /> {backLabel}
         </Link>
         <Card className="p-12 text-center">
-          <p className="text-sm text-muted-foreground">Supply partner not found.</p>
+          <p className="text-sm text-muted-foreground">
+            {isInternalRoute ? "Team member not found." : "Supply partner not found."}
+          </p>
         </Card>
       </div>
     );
@@ -135,34 +141,42 @@ export default function AgencyDetail() {
   return (
     <div className="space-y-6">
       <Link
-        to="/supply-partners"
+        to={isInternalRoute ? "/internal-partners" : "/supply-partners"}
         className="text-sm text-muted-foreground inline-flex items-center gap-1 hover:text-foreground transition-colors w-fit"
       >
-        <ArrowLeft className="h-3.5 w-3.5" /> Back to supply partners
+        <ArrowLeft className="h-3.5 w-3.5" />
+        {isInternalRoute ? "Back to internal team" : "Back to supply partners"}
       </Link>
 
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <PageHeader
             title={agency.name}
-            description={`Created ${formatDate((agency.created_at as any)?.toDate?.()) || "—"}`}
+            description={`${isInternalRoute ? "Team member" : "Supply partner"} · Created ${formatDate((agency.created_at as any)?.toDate?.()) || "—"}`}
           />
         </div>
         <div className="flex items-center gap-2 shrink-0 mt-1">
-          {agency.kissp_id && (
+          {!isInternalRoute && agency.kissp_id && (
             <span className="text-xs font-mono font-semibold px-2 py-1 rounded-md bg-primary/10 text-primary border border-primary/20">
               {agency.kissp_id}
             </span>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="px-2.5"
-            aria-label="Edit supply partner"
-            onClick={() => setEditAgency(agency)}
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
+          {isInternalRoute && agency.employee_id && (
+            <span className="text-xs font-mono font-semibold px-2 py-1 rounded-md bg-secondary/10 text-secondary border border-secondary/20">
+              {agency.employee_id}
+            </span>
+          )}
+          {!isInternalRoute && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="px-2.5"
+              aria-label="Edit supply partner"
+              onClick={() => setEditAgency(agency)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -184,10 +198,12 @@ export default function AgencyDetail() {
         />
       </div>
 
-      <EditPartnerDialog
-        agency={editAgency}
-        onOpenChange={(o) => { if (!o) setEditAgency(null); }}
-      />
+      {!isInternalRoute && (
+        <EditPartnerDialog
+          agency={editAgency}
+          onOpenChange={(o) => { if (!o) setEditAgency(null); }}
+        />
+      )}
 
       {/* Candidates */}
       <Card className="glass-card p-4 sm:p-6 hover-lift">

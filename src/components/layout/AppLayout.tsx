@@ -40,13 +40,14 @@ type NavItem = {
   label: string;
   icon: typeof LayoutDashboard;
   adminOnly?: boolean;
-  hideForAgency?: boolean;
+  /** Hidden for external agency users (supply partners) but visible to internal team */
+  hideForExternal?: boolean;
 };
 
 const navItems: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/candidates", label: "Candidates", icon: Users },
-  { to: "/projects", label: "Projects", icon: Briefcase, hideForAgency: true },
+  { to: "/projects", label: "Projects", icon: Briefcase, hideForExternal: true },
   { to: "/clients", label: "Clients", icon: UsersRound, adminOnly: true },
   { to: "/internal-partners", label: "Internal Team", icon: UserCog, adminOnly: true },
   { to: "/supply-partners", label: "Supply Partners", icon: Building2, adminOnly: true },
@@ -143,7 +144,7 @@ function SidebarContent({
 }
 
 export default function AppLayout() {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, isInternal } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -168,12 +169,13 @@ export default function AppLayout() {
     () =>
       navItems.filter((i) => {
         if (i.adminOnly && !isAdmin) return false;
-        if (i.hideForAgency && !isAdmin) return false;
+        // hideForExternal hides nav items for supply partners but not internal team members
+        if (i.hideForExternal && !isAdmin && !isInternal) return false;
         return true;
       }),
-    [isAdmin]
+    [isAdmin, isInternal]
   );
-  const roleLabel = isAdmin ? "Administrator" : "Supply Partner";
+  const roleLabel = isAdmin ? "Administrator" : isInternal ? "Team Member" : "Supply Partner";
 
   return (
     <div className="relative min-h-screen bg-background overflow-x-hidden">

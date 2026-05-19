@@ -36,7 +36,6 @@ import {
 } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
 import { createCandidate, updateCandidate, isKisfsIdTaken } from "@/hooks/useCandidates";
-import { useInternalPartners } from "@/hooks/useInternalPartners";
 import { useAgencies } from "@/hooks/useAgencies";
 import { useAuth } from "@/context/AuthContext";
 import type { Candidate, CandidateStatus } from "@/types";
@@ -182,8 +181,8 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
   const { agencyId, isAdmin } = useAuth();
   const isEdit = !!candidate;
 
-  const { partners: internalPartners } = useInternalPartners({ includeDeleted: false });
-  const { agencies } = useAgencies({ includeDeleted: false });
+  const { agencies: internalPartners } = useAgencies({ isInternal: true, includeDeleted: false });
+  const { agencies } = useAgencies({ isInternal: false, includeDeleted: false });
   const [memberPopoverOpen, setMemberPopoverOpen] = useState(false);
   const [agencyPopoverOpen, setAgencyPopoverOpen] = useState(false);
   const [kisfsCheck, setKisfsCheck] = useState<"idle" | "checking" | "taken" | "ok">("idle");
@@ -295,7 +294,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
 
       if (isAdmin && source_member_id) {
         source_member_name = values.source === "Internal Team"
-          ? (internalPartners.find(p => p.id === source_member_id)?.full_name ?? null)
+          ? (internalPartners.find(p => p.id === source_member_id)?.name ?? null)
           : (agencies.find(a => a.id === source_member_id)?.name ?? null);
       } else if (!isAdmin && agencyId) {
         source_member_id = agencyId;
@@ -518,7 +517,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
                             <>
                               <UserCog className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                               <span className="truncate">
-                                {internalPartners.find(p => p.id === sourceMemberId)?.full_name ?? "Select a team member…"}
+                                {internalPartners.find(p => p.id === sourceMemberId)?.name ?? "Select a team member…"}
                               </span>
                             </>
                           ) : "Select a team member…"}
@@ -535,7 +534,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
                             {internalPartners.map((p) => (
                               <CommandItem
                                 key={p.id}
-                                value={`${p.full_name} ${p.position ?? ""}`}
+                                value={`${p.name} ${p.position ?? ""}`}
                                 onSelect={() => {
                                   setValue("source_member_id", p.id, { shouldValidate: true });
                                   clearErrors("source_member_id");
@@ -544,7 +543,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
                               >
                                 <Check className={cn("mr-2 h-4 w-4 shrink-0", sourceMemberId === p.id ? "opacity-100" : "opacity-0")} />
                                 <div className="min-w-0">
-                                  <p className="font-medium truncate">{p.full_name}</p>
+                                  <p className="font-medium truncate">{p.name}</p>
                                   {p.position && <p className="text-xs text-muted-foreground truncate">{p.position}</p>}
                                 </div>
                               </CommandItem>

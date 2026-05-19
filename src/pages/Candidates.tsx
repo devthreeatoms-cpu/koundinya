@@ -17,6 +17,7 @@ import {
   UserCog,
   Loader2,
   ArrowRight,
+  ShieldBan,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,8 @@ import {
   bulkAssignKisfsIds,
   clearAllCandidates,
   seedTestCandidates,
+  blocklistCandidate,
+  unblocklistCandidate,
 } from "@/hooks/useCandidates";
 import { useAssignments } from "@/hooks/useAssignments";
 import { useAgencies } from "@/hooks/useAgencies";
@@ -165,6 +168,7 @@ export default function CandidatesPage() {
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [availFilter, setAvailFilter] = useState<string>(initialAvail);
   const [kycFilter, setKycFilter] = useState<string>("all");
+  const [blocklistFilter, setBlocklistFilter] = useState(false);
   const [page, setPage] = useState(1);
 
   // Reset pagination when tab/agency filter changes.
@@ -200,9 +204,15 @@ export default function CandidatesPage() {
     [candidates]
   );
 
+  const blocklistedCount = useMemo(
+    () => candidates.filter((c) => !!c.is_blocklisted).length,
+    [candidates]
+  );
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return candidates.filter((c) => {
+      if (blocklistFilter && !c.is_blocklisted) return false;
       if (
         term &&
         !c.name.toLowerCase().includes(term) &&
@@ -213,7 +223,7 @@ export default function CandidatesPage() {
       }
       if (statusFilter !== "all" && c.status !== statusFilter) return false;
       if (sourceFilter !== "all" && c.source !== sourceFilter) return false;
-      
+
       const hasAadhar = !!c.aadhar_number;
       const hasPan = !!c.pan_number;
       if (kycFilter === "fully_verified" && (!hasAadhar || !hasPan)) return false;
@@ -228,7 +238,7 @@ export default function CandidatesPage() {
       }
       return true;
     });
-  }, [candidates, search, statusFilter, sourceFilter, kycFilter, availFilter, activeAssignedIds]);
+  }, [candidates, search, statusFilter, sourceFilter, kycFilter, availFilter, blocklistFilter, activeAssignedIds]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount);
@@ -259,13 +269,15 @@ export default function CandidatesPage() {
     (statusFilter !== "all" ? 1 : 0) +
     (sourceFilter !== "all" ? 1 : 0) +
     (availFilter !== "all" ? 1 : 0) +
-    (kycFilter !== "all" ? 1 : 0);
+    (kycFilter !== "all" ? 1 : 0) +
+    (blocklistFilter ? 1 : 0);
 
   function clearFilters() {
     setStatusFilter("all");
     setSourceFilter("all");
     setAvailFilter("all");
     setKycFilter("all");
+    setBlocklistFilter(false);
     setPage(1);
   }
 
@@ -577,6 +589,26 @@ export default function CandidatesPage() {
                   <SelectItem value="kyc_pending">KYC Pending</SelectItem>
                 </SelectContent>
               </Select>
+              <button
+                onClick={() => { setBlocklistFilter((v) => !v); setPage(1); }}
+                className={cn(
+                  "inline-flex items-center gap-1.5 h-10 px-3 rounded-md border text-sm font-medium transition-colors shrink-0",
+                  blocklistFilter
+                    ? "bg-destructive/10 border-destructive/40 text-destructive"
+                    : "border-input bg-background hover:bg-muted text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <ShieldBan className="h-4 w-4" />
+                Blocklisted
+                {blocklistedCount > 0 && (
+                  <span className={cn(
+                    "ml-0.5 min-w-[18px] h-[18px] rounded-full text-[10px] font-bold grid place-items-center px-1",
+                    blocklistFilter ? "bg-destructive text-white" : "bg-destructive/15 text-destructive"
+                  )}>
+                    {blocklistedCount}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
 
@@ -616,6 +648,14 @@ export default function CandidatesPage() {
                   className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-accent/15 text-accent hover:bg-accent/25 transition-colors"
                 >
                   {availFilter === "available" ? "Available" : "Assigned"} <X className="h-3 w-3" />
+                </button>
+              )}
+              {blocklistFilter && (
+                <button
+                  onClick={() => { setBlocklistFilter(false); setPage(1); }}
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                >
+                  <ShieldBan className="h-3 w-3" /> Blocklisted <X className="h-3 w-3" />
                 </button>
               )}
               <button
@@ -703,6 +743,13 @@ export default function CandidatesPage() {
                                   <Edit className="h-4 w-4 mr-2" /> Edit
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
+                                  className={c.is_blocklisted ? "text-primary focus:text-primary" : "text-destructive focus:text-destructive"}
+                                  onClick={() => c.is_blocklisted ? unblocklistCandidate(c.id) : blocklistCandidate(c.id)}
+                                >
+                                  <ShieldBan className="h-4 w-4 mr-2" />
+                                  {c.is_blocklisted ? "Remove blocklist" : "Blocklist"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
                                   className="text-destructive focus:text-destructive"
                                   onClick={() => setDeleting(c)}
                                 >
@@ -742,6 +789,11 @@ export default function CandidatesPage() {
                       >
                         {isAvail ? "Available" : "Assigned"}
                       </Badge>
+                      {c.is_blocklisted && (
+                        <Badge variant="outline" className="text-[11px] border-destructive/50 text-destructive bg-destructive/10 font-semibold gap-1">
+                          <ShieldBan className="h-2.5 w-2.5" /> Blocklisted
+                        </Badge>
+                      )}
                       <Badge variant="outline" className="text-[11px] border-border text-muted-foreground inline-flex items-center gap-1 max-w-[160px]">
                         {c.source === "Internal Team"
                           ? <UserCog className="h-2.5 w-2.5 shrink-0" />
@@ -874,16 +926,23 @@ export default function CandidatesPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={
-                            isAvail
-                              ? "border-primary/40 text-primary bg-primary-soft"
-                              : "border-muted-foreground/30 text-muted-foreground"
-                          }
-                        >
-                          {isAvail ? "Available" : "Assigned"}
-                        </Badge>
+                        <div className="flex flex-col gap-1">
+                          <Badge
+                            variant="outline"
+                            className={
+                              isAvail
+                                ? "border-primary/40 text-primary bg-primary-soft"
+                                : "border-muted-foreground/30 text-muted-foreground"
+                            }
+                          >
+                            {isAvail ? "Available" : "Assigned"}
+                          </Badge>
+                          {c.is_blocklisted && (
+                            <Badge variant="outline" className="border-destructive/50 text-destructive bg-destructive/10 font-semibold gap-1 text-[10px]">
+                              <ShieldBan className="h-2.5 w-2.5" /> Blocklisted
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-1">
@@ -915,6 +974,13 @@ export default function CandidatesPage() {
                                 <>
                                   <DropdownMenuItem onClick={() => openEdit(c)}>
                                     <Edit className="h-4 w-4 mr-2" /> Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className={c.is_blocklisted ? "text-primary focus:text-primary" : "text-destructive focus:text-destructive"}
+                                    onClick={() => c.is_blocklisted ? unblocklistCandidate(c.id) : blocklistCandidate(c.id)}
+                                  >
+                                    <ShieldBan className="h-4 w-4 mr-2" />
+                                    {c.is_blocklisted ? "Remove blocklist" : "Blocklist"}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     className="text-destructive focus:text-destructive"

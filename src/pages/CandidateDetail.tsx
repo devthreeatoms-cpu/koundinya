@@ -13,6 +13,8 @@ import {
   Landmark,
   UserCog,
   Building2,
+  ShieldBan,
+  ShieldCheck as ShieldOk,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -26,15 +28,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useCandidateById } from "@/hooks/useCandidates";
+import { useCandidateById, blocklistCandidate, unblocklistCandidate } from "@/hooks/useCandidates";
 import { useProjects } from "@/hooks/useProjects";
 import { useAssignments } from "@/hooks/useAssignments";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import CandidateFormModal from "@/components/candidates/CandidateFormModal";
 import { formatDate, initials } from "@/lib/utils-format";
 import type { CandidateStatus } from "@/types";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const statusStyles: Record<CandidateStatus, string> = {
   New: "bg-secondary/15 text-secondary border border-secondary/30",
@@ -53,11 +66,14 @@ const statusDot: Record<CandidateStatus, string> = {
 export default function CandidateDetail() {
   const { id } = useParams<{ id: string }>();
   const { isAdmin } = useAuth();
+  const { toast } = useToast();
   const { candidate, loading: cLoading } = useCandidateById(id);
   const bypass = isAdmin && !!candidate?.agency_id;
   const { projects } = useProjects({ bypassOwnerFilter: bypass });
   const { assignments } = useAssignments({ candidate_id: id, bypassOwnerFilter: bypass });
   const [editOpen, setEditOpen] = useState(false);
+  const [blocklistOpen, setBlocklistOpen] = useState(false);
+  const [blocklistLoading, setBlocklistLoading] = useState(false);
 
   const projectMap = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
 
@@ -86,6 +102,25 @@ export default function CandidateDetail() {
   }
 
   const isAvailable = !assignments.some((a) => a.status === "Active");
+  const isBlocklisted = !!candidate.is_blocklisted;
+
+  async function handleBlocklistToggle() {
+    setBlocklistLoading(true);
+    try {
+      if (isBlocklisted) {
+        await unblocklistCandidate(candidate.id);
+        toast({ title: "Removed from blocklist" });
+      } else {
+        await blocklistCandidate(candidate.id);
+        toast({ title: "Candidate blocklisted" });
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message, variant: "destructive" });
+    } finally {
+      setBlocklistLoading(false);
+      setBlocklistOpen(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -100,9 +135,27 @@ export default function CandidateDetail() {
         title={candidate.name}
         description={`Source: ${candidate.source}`}
         actions={
-          <Button variant="outline" onClick={() => setEditOpen(true)}>
-            <Edit className="h-4 w-4" /> Edit
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                isBlocklisted
+                  ? "border-success/40 text-success hover:bg-success/10"
+                  : "border-destructive/40 text-destructive hover:bg-destructive/10"
+              )}
+              onClick={() => setBlocklistOpen(true)}
+            >
+              {isBlocklisted ? (
+                <><ShieldOk className="h-4 w-4" /> Remove blocklist</>
+              ) : (
+                <><ShieldBan className="h-4 w-4" /> Blocklist</>
+              )}
+            </Button>
+            <Button variant="outline" onClick={() => setEditOpen(true)}>
+              <Edit className="h-4 w-4" /> Edit
+            </Button>
+          </div>
         }
       />
 
@@ -121,6 +174,11 @@ export default function CandidateDetail() {
                 <span className={cn("h-1.5 w-1.5 rounded-full", statusDot[candidate.status])} />
                 {candidate.status}
               </Badge>
+              {isBlocklisted && (
+                <Badge variant="outline" className="border-destructive/50 text-destructive bg-destructive/10 font-semibold gap-1">
+                  <ShieldBan className="h-3 w-3" /> Blocklisted
+                </Badge>
+              )}
             </div>
             {candidate.kisfs_id && (
               <p className="mt-1 text-xs font-mono font-semibold text-primary tracking-widest">
@@ -400,6 +458,41 @@ export default function CandidateDetail() {
       </Card>
 
       <CandidateFormModal open={editOpen} onOpenChange={setEditOpen} candidate={candidate} />
+
+      <AlertDialog open={blocklistOpen} onOpenChange={setBlocklistOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isBlocklisted ? "Remove from blocklist?" : "Blocklist this candidate?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isBlocklisted ? (
+                <>
+                  <span className="font-medium text-foreground">{candidate.name}</span> will be removed from the blocklist and marked available again.
+                </>
+              ) : (
+                <>
+                  <span className="font-medium text-foreground">{candidate.name}</span> will be blocklisted. They will be flagged across all views and cannot be assigned to projects.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={blocklistLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleBlocklistToggle(); }}
+              disabled={blocklistLoading}
+              className={isBlocklisted
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              }
+            >
+              {blocklistLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {isBlocklisted ? "Remove blocklist" : "Blocklist"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

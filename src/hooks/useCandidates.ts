@@ -294,6 +294,14 @@ export async function softDeleteCandidate(id: string) {
   await updateDoc(doc(db, COL, id), { is_deleted: true });
 }
 
+export async function blocklistCandidate(id: string) {
+  await updateDoc(doc(db, COL, id), { is_blocklisted: true });
+}
+
+export async function unblocklistCandidate(id: string) {
+  await updateDoc(doc(db, COL, id), { is_blocklisted: false });
+}
+
 /**
  * Fixes all KISFS ID problems in one pass:
  *   1. Candidates with no ID → assigns a new sequential one.

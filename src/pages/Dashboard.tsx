@@ -38,7 +38,7 @@ import { cn } from "@/lib/utils";
 import { Building2 } from "lucide-react";
 
 export default function Dashboard() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isInternal } = useAuth();
 
   // Agency/internal-team users see strictly their own candidates; admins see all.
   const { candidates: ownCandidates, loading: ownCLoading } = useCandidates();
@@ -117,6 +117,39 @@ export default function Dashboard() {
           ring: "ring-accent/20",
           hint: `${assignedIds.size} currently assigned`,
           to: "/candidates?availability=available",
+          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--accent)/0.45)]",
+        },
+      ]
+    : isInternal
+    ? [
+        {
+          label: "Total candidates",
+          value: candidates.length,
+          icon: Users,
+          gradient: "bg-gradient-primary",
+          ring: "ring-primary/20",
+          hint: `${availableCount} available now`,
+          to: "/candidates",
+          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--primary)/0.45)]",
+        },
+        {
+          label: "My projects",
+          value: projects.length,
+          icon: Briefcase,
+          gradient: "bg-gradient-secondary",
+          ring: "ring-secondary/20",
+          hint: `${projects.length} total`,
+          to: "/projects",
+          hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--secondary)/0.45)]",
+        },
+        {
+          label: "Assigned candidates",
+          value: assignedIds.size,
+          icon: UserCheck,
+          gradient: "bg-gradient-accent",
+          ring: "ring-accent/20",
+          hint: "On an active project",
+          to: "/candidates?availability=assigned",
           hoverGlow: "hover:shadow-[0_10px_40px_-10px_hsl(var(--accent)/0.45)]",
         },
       ]
@@ -365,12 +398,15 @@ export default function Dashboard() {
             <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {internalPartners.filter((p) => !p.is_deleted).slice(0, 6).map((p) => (
                 <li key={p.id}>
-                  <div className="p-3 rounded-lg border border-border/60">
-                    <p className="font-medium text-sm truncate">{p.name}</p>
+                  <Link
+                    to={`/internal-partners/${p.id}`}
+                    className="block p-3 rounded-lg border border-border/60 hover:border-secondary/40 hover:shadow-card transition-all group"
+                  >
+                    <p className="font-medium text-sm group-hover:text-secondary truncate">{p.name}</p>
                     <p className="text-[11px] text-muted-foreground truncate mt-0.5">
                       {p.position} · {p.employee_id}
                     </p>
-                  </div>
+                  </Link>
                 </li>
               ))}
             </ul>
