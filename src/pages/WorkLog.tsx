@@ -227,12 +227,18 @@ export default function WorkLog() {
       </div>
 
       <Tabs defaultValue="activity" className="space-y-4">
-        <TabsList className="grid grid-cols-2 w-full sm:w-auto sm:inline-flex h-auto gap-1 p-1">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full sm:w-auto sm:inline-flex h-auto gap-1 p-1">
           <TabsTrigger value="activity" className="text-sm px-4 py-2 gap-2">
             <Clock className="h-3.5 w-3.5" /> Activity Log
           </TabsTrigger>
           <TabsTrigger value="candidates" className="text-sm px-4 py-2 gap-2">
             <Users className="h-3.5 w-3.5" /> Candidate History
+          </TabsTrigger>
+          <TabsTrigger value="internal" className="text-sm px-4 py-2 gap-2">
+            <UserCog className="h-3.5 w-3.5" /> Internal Team
+          </TabsTrigger>
+          <TabsTrigger value="supply" className="text-sm px-4 py-2 gap-2">
+            <Building2 className="h-3.5 w-3.5" /> Supply Partners
           </TabsTrigger>
         </TabsList>
 
@@ -251,6 +257,28 @@ export default function WorkLog() {
             allCands={allCands}
             assignments={assignments}
             projectMap={projectMap}
+            loading={loading}
+          />
+        </TabsContent>
+
+        {/* ── Tab 3: Internal Team History ── */}
+        <TabsContent value="internal">
+          <InternalTeamHistoryTab
+            allAgencies={allAgencies}
+            allCands={allCands}
+            projects={projects}
+            assignments={assignments}
+            candidateMap={candidateMap}
+            projectMap={projectMap}
+            loading={loading}
+          />
+        </TabsContent>
+
+        {/* ── Tab 4: Supply Partner History ── */}
+        <TabsContent value="supply">
+          <SupplyPartnerHistoryTab
+            allAgencies={allAgencies}
+            allCands={allCands}
             loading={loading}
           />
         </TabsContent>
@@ -749,6 +777,495 @@ function CandidateHistoryTab({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ─── Internal Team History Tab ────────────────────────────────────────────────
+
+type AgencyEntry = ReturnType<typeof useAgencies>["agencies"][number];
+type ProjectEntry = ReturnType<typeof useProjects>["projects"][number];
+
+function InternalTeamHistoryTab({
+  allAgencies,
+  allCands,
+  projects,
+  assignments,
+  candidateMap,
+  projectMap,
+  loading,
+}: {
+  allAgencies: AgencyEntry[];
+  allCands: CandidateEntry[];
+  projects: ProjectEntry[];
+  assignments: Assignment[];
+  candidateMap: Map<string, CandidateEntry>;
+  projectMap: Map<string, ProjectEntry>;
+  loading: boolean;
+}) {
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<AgencyEntry | null>(null);
+
+  const members = useMemo(
+    () => allAgencies.filter((a) => !!a.is_internal && !a.is_deleted),
+    [allAgencies]
+  );
+
+  const filteredMembers = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return members;
+    return members.filter(
+      (m) =>
+        m.name.toLowerCase().includes(term) ||
+        (m.position ?? "").toLowerCase().includes(term) ||
+        (m.employee_id ?? "").toLowerCase().includes(term)
+    );
+  }, [members, search]);
+
+  const history = useMemo((): WorkEvent[] => {
+    if (!selected) return [];
+    const evs: WorkEvent[] = [];
+
+    for (const c of allCands) {
+      if (c.agency_id !== selected.id) continue;
+      const ts = (c.created_at as any)?.toDate?.() as Date | undefined;
+      if (!ts) continue;
+      evs.push({
+        id: `ca-${c.id}`,
+        type: "candidate_added",
+        timestamp: ts,
+        label: `${c.name} added as candidate`,
+        subLabel: c.phone,
+        actor: selected.name,
+        actorType: "internal",
+        linkTo: `/candidates/${c.id}`,
+      });
+    }
+
+    for (const p of projects) {
+      if (p.agency_id !== selected.id) continue;
+      const ts = (p.created_at as any)?.toDate?.() as Date | undefined;
+      if (!ts) continue;
+      evs.push({
+        id: `pc-${p.id}`,
+        type: "project_created",
+        timestamp: ts,
+        label: `Project "${p.name}" created`,
+        subLabel: p.client_name || p.location,
+        actor: selected.name,
+        actorType: "internal",
+        linkTo: `/projects/${p.id}`,
+      });
+    }
+
+    for (const a of assignments) {
+      if (a.agency_id !== selected.id) continue;
+      const cand = candidateMap.get(a.candidate_id);
+      const proj = projectMap.get(a.project_id);
+
+      const ats = (a.assigned_at as any)?.toDate?.() as Date | undefined;
+      if (ats) {
+        evs.push({
+          id: `as-${a.id}`,
+          type: "assigned",
+          timestamp: ats,
+          label: `${cand?.name ?? "Candidate"} assigned to ${proj?.name ?? "a project"}`,
+          subLabel: proj?.client_name || proj?.location,
+          actor: selected.name,
+          actorType: "internal",
+          linkTo: cand ? `/candidates/${cand.id}` : undefined,
+        });
+      }
+
+      if (a.status !== "Active") {
+        const rts = (a.removed_at as any)?.toDate?.() as Date | undefined;
+        if (rts) {
+          evs.push({
+            id: `rm-${a.id}`,
+            type: "removed",
+            timestamp: rts,
+            label: `${cand?.name ?? "Candidate"} removed from ${proj?.name ?? "a project"}`,
+            subLabel: `Status: ${a.status}`,
+            actor: selected.name,
+            actorType: "internal",
+            linkTo: cand ? `/candidates/${cand.id}` : undefined,
+          });
+        }
+      }
+    }
+
+    return evs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  }, [selected, allCands, projects, assignments, candidateMap, projectMap]);
+
+  const grouped = useMemo(() => {
+    const groups: { label: string; events: WorkEvent[] }[] = [];
+    for (const ev of history) {
+      const label = dayLabel(ev.timestamp);
+      const last = groups[groups.length - 1];
+      if (last?.label === label) last.events.push(ev);
+      else groups.push({ label, events: [ev] });
+    }
+    return groups;
+  }, [history]);
+
+  const candidatesAdded = history.filter((e) => e.type === "candidate_added").length;
+  const projectsCreated = history.filter((e) => e.type === "project_created").length;
+  const assignmentsMade = history.filter((e) => e.type === "assigned").length;
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+      {/* Left: member picker */}
+      <Card className="glass-card p-4 self-start">
+        <div className="mb-3">
+          <p className="text-sm font-semibold mb-2">Search team member</p>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Name or position…"
+              className="pl-9 h-9 text-sm"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setSelected(null); }}
+            />
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="space-y-2">
+            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
+          </div>
+        ) : filteredMembers.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-6 text-center">No team members found.</p>
+        ) : (
+          <ul className="space-y-1 max-h-[60vh] overflow-y-auto pr-1">
+            {filteredMembers.map((m) => (
+              <li key={m.id}>
+                <button
+                  onClick={() => setSelected(m)}
+                  className={cn(
+                    "w-full text-left flex items-center gap-3 p-2.5 rounded-lg transition-colors",
+                    selected?.id === m.id
+                      ? "bg-secondary/10 border border-secondary/30"
+                      : "hover:bg-muted/50 border border-transparent"
+                  )}
+                >
+                  <div className="h-9 w-9 rounded-full bg-secondary/20 text-secondary grid place-items-center text-xs font-semibold shrink-0">
+                    {initials(m.name)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className={cn("text-sm font-medium truncate", selected?.id === m.id && "text-secondary")}>
+                      {m.name}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground truncate">{m.position || "Team Member"}</p>
+                  </div>
+                  {selected?.id === m.id && <ChevronRight className="h-4 w-4 text-secondary shrink-0" />}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      {/* Right: history */}
+      <div>
+        {!selected ? (
+          <Card className="glass-card p-16 text-center">
+            <div className="h-14 w-14 rounded-full bg-secondary/10 grid place-items-center mx-auto mb-4">
+              <UserCog className="h-6 w-6 text-secondary" />
+            </div>
+            <p className="text-sm font-medium">Select a team member</p>
+            <p className="text-xs text-muted-foreground mt-1">Click a name on the left to see their full activity history.</p>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {/* Member header */}
+            <Card className="glass-card p-4">
+              <div className="flex items-center gap-4">
+                <div className="h-14 w-14 rounded-xl bg-secondary/20 text-secondary grid place-items-center text-lg font-bold shadow-sm shrink-0">
+                  {initials(selected.name)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-semibold text-base">{selected.name}</h3>
+                    {selected.employee_id && (
+                      <span className="text-xs font-mono font-bold text-secondary bg-secondary/10 px-2 py-0.5 rounded">
+                        {selected.employee_id}
+                      </span>
+                    )}
+                    <Badge variant="outline" className="border-secondary/40 text-secondary bg-secondary/10 text-[10px]">
+                      <UserCog className="h-2.5 w-2.5 mr-1" /> Internal Team
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">{selected.position || "Team Member"}</p>
+                </div>
+              </div>
+              {/* Mini stats */}
+              <div className="mt-4 grid grid-cols-3 gap-3 pt-4 border-t border-border/50">
+                <div className="text-center">
+                  <p className="text-lg font-bold tabular-nums">{candidatesAdded}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Candidates</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-bold tabular-nums">{projectsCreated}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Projects</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-bold tabular-nums">{assignmentsMade}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Assignments</p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Timeline */}
+            {grouped.length === 0 ? (
+              <Card className="glass-card p-12 text-center">
+                <Clock className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm font-medium">No activity recorded</p>
+                <p className="text-xs text-muted-foreground mt-1">This team member hasn't performed any tracked actions yet.</p>
+              </Card>
+            ) : (
+              <PersonTimeline grouped={grouped} />
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Supply Partner History Tab ────────────────────────────────────────────────
+
+function SupplyPartnerHistoryTab({
+  allAgencies,
+  allCands,
+  loading,
+}: {
+  allAgencies: AgencyEntry[];
+  allCands: CandidateEntry[];
+  loading: boolean;
+}) {
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<AgencyEntry | null>(null);
+
+  const partners = useMemo(
+    () => allAgencies.filter((a) => !a.is_internal && !a.is_deleted),
+    [allAgencies]
+  );
+
+  const filteredPartners = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return partners;
+    return partners.filter(
+      (p) =>
+        p.name.toLowerCase().includes(term) ||
+        (p.kissp_id ?? "").toLowerCase().includes(term)
+    );
+  }, [partners, search]);
+
+  const history = useMemo((): WorkEvent[] => {
+    if (!selected) return [];
+    const evs: WorkEvent[] = [];
+
+    for (const c of allCands) {
+      if (c.agency_id !== selected.id) continue;
+      const ts = (c.created_at as any)?.toDate?.() as Date | undefined;
+      if (!ts) continue;
+      evs.push({
+        id: `ca-${c.id}`,
+        type: "candidate_added",
+        timestamp: ts,
+        label: `${c.name} added as candidate`,
+        subLabel: c.phone,
+        actor: selected.name,
+        actorType: "supply_partner",
+        linkTo: `/candidates/${c.id}`,
+      });
+    }
+
+    return evs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  }, [selected, allCands]);
+
+  const grouped = useMemo(() => {
+    const groups: { label: string; events: WorkEvent[] }[] = [];
+    for (const ev of history) {
+      const label = dayLabel(ev.timestamp);
+      const last = groups[groups.length - 1];
+      if (last?.label === label) last.events.push(ev);
+      else groups.push({ label, events: [ev] });
+    }
+    return groups;
+  }, [history]);
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+      {/* Left: partner picker */}
+      <Card className="glass-card p-4 self-start">
+        <div className="mb-3">
+          <p className="text-sm font-semibold mb-2">Search supply partner</p>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Name or KISSP ID…"
+              className="pl-9 h-9 text-sm"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setSelected(null); }}
+            />
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="space-y-2">
+            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
+          </div>
+        ) : filteredPartners.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-6 text-center">No supply partners found.</p>
+        ) : (
+          <ul className="space-y-1 max-h-[60vh] overflow-y-auto pr-1">
+            {filteredPartners.map((p) => (
+              <li key={p.id}>
+                <button
+                  onClick={() => setSelected(p)}
+                  className={cn(
+                    "w-full text-left flex items-center gap-3 p-2.5 rounded-lg transition-colors",
+                    selected?.id === p.id
+                      ? "bg-muted border border-border"
+                      : "hover:bg-muted/50 border border-transparent"
+                  )}
+                >
+                  <div className="h-9 w-9 rounded-full bg-muted text-muted-foreground grid place-items-center text-xs font-semibold shrink-0">
+                    <Building2 className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{p.name}</p>
+                    {p.kissp_id && (
+                      <p className="text-[11px] font-mono text-muted-foreground">{p.kissp_id}</p>
+                    )}
+                  </div>
+                  {selected?.id === p.id && <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      {/* Right: history */}
+      <div>
+        {!selected ? (
+          <Card className="glass-card p-16 text-center">
+            <div className="h-14 w-14 rounded-full bg-muted grid place-items-center mx-auto mb-4">
+              <Building2 className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="text-sm font-medium">Select a supply partner</p>
+            <p className="text-xs text-muted-foreground mt-1">Click a name on the left to see which candidates they've added and when.</p>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {/* Partner header */}
+            <Card className="glass-card p-4">
+              <div className="flex items-center gap-4">
+                <div className="h-14 w-14 rounded-xl bg-muted text-muted-foreground grid place-items-center shadow-sm shrink-0">
+                  <Building2 className="h-7 w-7" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-semibold text-base">{selected.name}</h3>
+                    {selected.kissp_id && (
+                      <span className="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">
+                        {selected.kissp_id}
+                      </span>
+                    )}
+                    <Badge variant="outline" className="text-[10px]">
+                      <Building2 className="h-2.5 w-2.5 mr-1" /> Supply Partner
+                    </Badge>
+                  </div>
+                  {selected.phone && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{selected.phone}</p>
+                  )}
+                </div>
+                <Button asChild variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary-soft shrink-0">
+                  <Link to={`/supply-partners/${selected.id}`}>View profile</Link>
+                </Button>
+              </div>
+              {/* Mini stats */}
+              <div className="mt-4 pt-4 border-t border-border/50 flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-semibold tabular-nums">{history.length}</span>
+                <span className="text-xs text-muted-foreground">candidates added</span>
+              </div>
+            </Card>
+
+            {/* Timeline */}
+            {grouped.length === 0 ? (
+              <Card className="glass-card p-12 text-center">
+                <Clock className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm font-medium">No candidates added yet</p>
+                <p className="text-xs text-muted-foreground mt-1">This supply partner hasn't added any candidates.</p>
+              </Card>
+            ) : (
+              <PersonTimeline grouped={grouped} />
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Shared person timeline renderer ──────────────────────────────────────────
+
+function PersonTimeline({ grouped }: { grouped: { label: string; events: WorkEvent[] }[] }) {
+  return (
+    <div className="space-y-6">
+      {grouped.map((g) => (
+        <div key={g.label}>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="h-px flex-1 bg-border/60" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-2 py-1 rounded-full bg-muted/40">
+              {g.label}
+            </span>
+            <Badge variant="secondary" className="bg-muted/60 text-muted-foreground border-0 text-[10px]">
+              {g.events.length}
+            </Badge>
+            <div className="h-px flex-1 bg-border/60" />
+          </div>
+          <Card className="glass-card overflow-hidden">
+            <ul className="divide-y divide-border/50">
+              {g.events.map((ev) => {
+                const meta = TYPE_META[ev.type];
+                return (
+                  <li key={ev.id} className="flex items-start gap-3 px-4 py-3 hover:bg-muted/20 transition-colors">
+                    <div className={cn("h-8 w-8 rounded-full grid place-items-center shrink-0 mt-0.5", meta.color)}>
+                      {meta.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          {ev.linkTo ? (
+                            <Link to={ev.linkTo} className="text-sm font-medium hover:text-primary transition-colors break-words">
+                              {ev.label}
+                            </Link>
+                          ) : (
+                            <p className="text-sm font-medium break-words">{ev.label}</p>
+                          )}
+                          {ev.subLabel && (
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate">{ev.subLabel}</p>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+                          {format(ev.timestamp, "HH:mm")}
+                        </span>
+                      </div>
+                      <Badge variant="outline" className="mt-1.5 text-[10px] h-4 px-1.5 border-border/60 text-muted-foreground">
+                        {meta.label}
+                      </Badge>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </Card>
+        </div>
+      ))}
     </div>
   );
 }

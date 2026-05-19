@@ -8,7 +8,9 @@ import {
   Loader2,
   Eye,
   Pencil,
+  ShieldCheck,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -25,7 +27,7 @@ import {
 } from "@/components/ui/table";
 
 import { useAuth } from "@/context/AuthContext";
-import { useAgency, useAgencyData } from "@/hooks/useAgencies";
+import { useAgency, useAgencyData, updateAgencyEditPermission } from "@/hooks/useAgencies";
 import { formatDate, initials } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
 import type { Agency } from "@/types";
@@ -197,6 +199,35 @@ export default function AgencyDetail() {
           loading={dLoading}
         />
       </div>
+
+      {/* Can edit candidates toggle — supply partners only */}
+      {!isInternalRoute && (
+        <Card className="glass-card p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-9 w-9 rounded-xl bg-primary-soft text-primary grid place-items-center shrink-0">
+                <ShieldCheck className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">Can edit / delete candidates</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {agency.can_edit_candidates
+                    ? "This partner can edit and delete their own candidates."
+                    : "This partner cannot edit or delete their own candidates."}
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={!!agency.can_edit_candidates}
+              onCheckedChange={async (val) => {
+                try { await updateAgencyEditPermission(agency.id, val); } catch {/* noop */}
+              }}
+              aria-label="Toggle candidate edit permission"
+              className="shrink-0"
+            />
+          </div>
+        </Card>
+      )}
 
       {!isInternalRoute && (
         <EditPartnerDialog

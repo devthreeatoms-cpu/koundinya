@@ -26,45 +26,62 @@ service cloud.firestore {
       return isSignedIn() && userRole() == 'admin';
     }
 
+    function agencyData() {
+      let aid = userAgencyId();
+      return aid != null && exists(/databases/$(database)/documents/agencies/$(aid))
+        ? get(/databases/$(database)/documents/agencies/$(aid)).data
+        : null;
+    }
+
+    function canEditCandidates() {
+      let ag = agencyData();
+      return ag != null && (
+        ag.get('is_internal', false) == true ||
+        ag.get('can_edit_candidates', false) == true
+      );
+    }
+
     // ── users ──────────────────────────────────────────────────────────────
-    // Admins can read/write all profiles; users can read/write their own.
+    // Users can read their own profile. Admins can read all.
+    // Self-updates are allowed but role and agency_id cannot be changed.
+    // Only admins can create or delete profiles.
     match /users/{uid} {
-      allow read:  if isSignedIn() && (request.auth.uid == uid || isAdmin());
-      allow write: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow update: if isSignedIn() && (
+        (request.auth.uid == uid
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.agency_id == resource.data.agency_id)
+        || isAdmin()
+      );
+      allow create, delete: if isAdmin();
     }
 
     // ── agencies ───────────────────────────────────────────────────────────
-    // All signed-in users can READ agencies (needed for name resolution in
-    // Dashboard, ProjectDetail, etc. which query the full collection without
-    // an agency_id filter). Only admins can write.
+    // All signed-in users can read (needed for name resolution throughout the
+    // app). Only admins can write.
     match /agencies/{agencyId} {
       allow read:  if isSignedIn();
       allow write: if isAdmin();
     }
 
     // ── clients ───────────────────────────────────────────────────────────
-    // All signed-in users can READ clients (needed for dropdown in project
-    // form). Only admins can write.
     match /clients/{clientId} {
       allow read:  if isSignedIn();
       allow write: if isAdmin();
     }
 
     // ── project_statuses ───────────────────────────────────────────────────
-    // All signed-in users can READ statuses (needed for project form dropdown).
-    // Only admins can add/remove statuses.
     match /project_statuses/{statusId} {
       allow read:  if isSignedIn();
       allow write: if isAdmin();
     }
 
     // ── candidates ─────────────────────────────────────────────────────────
-    // READ: all signed-in users. The app queries candidates without
-    // agency_id filters in several hooks (useCombinedCandidatePool,
-    // useAllCandidates) and applies client-side filtering — Firestore
-    // security rules that depend on resource.data would reject those
-    // queries entirely, so we keep reads open for authenticated users.
-    // WRITE: admins own agency_id==null docs; agencies own their own.
+    // Reads are open to all authenticated users (client-side filtering is used).
+    // Creates: agency users can only create candidates with their own agency_id.
+    // Updates: supply partners need the can_edit_candidates toggle; internal
+    //          team members can always update their own candidates.
+    // Deletes: admin only (soft-delete is an update, not a delete).
     match /candidates/{candidateId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && (
@@ -75,7 +92,7 @@ service cloud.firestore {
       allow update: if isSignedIn() && (
         isAdmin()
           ? resource.data.agency_id == null
-          : resource.data.agency_id == userAgencyId()
+          : resource.data.agency_id == userAgencyId() && canEditCandidates()
       );
       allow delete: if isAdmin();
     }
@@ -97,33 +114,30 @@ service cloud.firestore {
     }
 
     // ── assignments ────────────────────────────────────────────────────────
-    // READ: open to all signed-in users — hooks like useAssignments with
-    // bypassOwnerFilter=true query all assignments without an agency_id
-    // WHERE clause, which requires open read access.
+    // Reads open to all authenticated users (bypass filter used in several hooks).
+    // Creates: agency users can only create assignments tagged with their agency_id.
+    // Updates: agency users can only update their own agency's assignments.
+    // Deletes: admin only.
     match /assignments/{assignmentId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && (
         isAdmin() || request.resource.data.agency_id == userAgencyId()
       );
       allow update: if isSignedIn() && (
-        isAdmin() ||
-        resource.data.agency_id == userAgencyId() ||
-        resource.data.agency_id == null
+        isAdmin() || resource.data.agency_id == userAgencyId()
       );
       allow delete: if isAdmin();
     }
 
-    // ── internal_partners ─────────────────────────────────────────────────
-    // Admin-only: internal team member directory.
+    // ── internal_partners (legacy collection) ─────────────────────────────
     match /internal_partners/{partnerId} {
       allow read, write: if isAdmin();
     }
 
     // ── counters ───────────────────────────────────────────────────────────
-    // Used for atomic sequential ID generation (KISFS IDs).
-    // All signed-in users need read+write to participate in the transaction.
+    // Only admins need counters (sequential ID generation).
     match /counters/{counterId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isAdmin();
     }
   }
 }

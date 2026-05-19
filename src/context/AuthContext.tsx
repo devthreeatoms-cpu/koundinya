@@ -9,7 +9,7 @@ import type { AppUser, UserRole } from "@/types";
  * is auto-bootstrapped into the `users` collection with role: "admin"
  * (only if no profile doc exists for them yet).
  */
-const ADMIN_EMAILS = ["admin@gmail.com"];
+const ADMIN_EMAILS = ["kis.vasudev@gmail.com"];
 
 interface AuthContextValue {
   user: User | null;
@@ -18,6 +18,8 @@ interface AuthContextValue {
   agencyId: string | null;
   isAdmin: boolean;
   isInternal: boolean;
+  /** True if this user may edit/delete candidates. Admins always true; internal team always true; supply partners depend on the per-agency toggle. */
+  canEditCandidates: boolean;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -31,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
   const [isInternal, setIsInternal] = useState(false);
+  const [canEditCandidates, setCanEditCandidates] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -107,18 +110,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsub();
   }, [user]);
 
-  // Track whether the signed-in agency user belongs to an internal team agency.
+  // Track is_internal and can_edit_candidates from the agency document.
   useEffect(() => {
     if (!profile || !profile.agency_id || profile.role === "admin") {
       setIsInternal(false);
+      setCanEditCandidates(profile?.role === "admin");
       return;
     }
     const unsub = onSnapshot(
       doc(db, "agencies", profile.agency_id),
       (snap) => {
-        setIsInternal(snap.exists() && !!(snap.data() as any).is_internal);
+        const data = snap.exists() ? (snap.data() as any) : null;
+        const internal = !!(data?.is_internal);
+        setIsInternal(internal);
+        // Internal team can always edit; supply partners need the toggle on
+        setCanEditCandidates(internal || !!(data?.can_edit_candidates));
       },
-      () => setIsInternal(false)
+      () => { setIsInternal(false); setCanEditCandidates(false); }
     );
     return () => unsub();
   }, [profile?.agency_id, profile?.role]);
@@ -182,6 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         agencyId,
         isAdmin,
         isInternal,
+        canEditCandidates: isAdmin ? true : canEditCandidates,
         loading: loading || (!!user && profileLoading && !profile),
         login,
         logout,

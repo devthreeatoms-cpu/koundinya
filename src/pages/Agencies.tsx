@@ -46,6 +46,7 @@ import {
   createAgencyWithUser,
   softDeleteAgency,
   restoreAgency,
+  updateAgencyEditPermission,
 } from "@/hooks/useAgencies";
 import { formatDate } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
@@ -255,6 +256,25 @@ export default function AgenciesPage() {
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
+                </div>
+
+                {/* Can edit candidates toggle */}
+                <div
+                  className="mt-3 pt-3 border-t border-border/50 flex items-center justify-between gap-2 relative z-10"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium">Can edit candidates</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Allow this partner to edit or delete their own candidates</p>
+                  </div>
+                  <Switch
+                    checked={!!a.can_edit_candidates}
+                    onCheckedChange={async (val) => {
+                      try { await updateAgencyEditPermission(a.id, val); } catch {/* noop */}
+                    }}
+                    aria-label="Toggle candidate edit permission"
+                    className="shrink-0"
+                  />
                 </div>
               </Card>
             );

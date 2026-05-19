@@ -15,7 +15,6 @@ import {
   ShieldCheck,
   Building2,
   UserCog,
-  Loader2,
   ArrowRight,
   ShieldBan,
 } from "lucide-react";
@@ -61,9 +60,6 @@ import {
   useAgencyOwnedCandidates,
   useCombinedCandidatePool,
   softDeleteCandidate,
-  bulkAssignKisfsIds,
-  clearAllCandidates,
-  seedTestCandidates,
   blocklistCandidate,
   unblocklistCandidate,
 } from "@/hooks/useCandidates";
@@ -95,7 +91,7 @@ const statusDot: Record<CandidateStatus, string> = {
 };
 
 export default function CandidatesPage() {
-  const { isAdmin, agencyId } = useAuth();
+  const { isAdmin, agencyId, canEditCandidates } = useAuth();
   const { candidates: adminCandidates, loading: adminLoading } = useCandidates();
   const { candidates: agencyCandidates, loading: agencyLoading } = useAgencyOwnedCandidates();
   // Combined pool: admin pool + every agency's candidates (used by the "All
@@ -191,9 +187,7 @@ export default function CandidatesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Candidate | null>(null);
   const [deleting, setDeleting] = useState<Candidate | null>(null);
-  const [assigningIds, setAssigningIds] = useState(false);
-  const [resetOpen, setResetOpen] = useState(false);
-  const [resetting, setResetting] = useState(false);
+
 
   const activeAssignedIds = useMemo(
     () => new Set(assignments.filter((a) => a.status === "Active").map((a) => a.candidate_id)),
@@ -294,32 +288,6 @@ export default function CandidatesPage() {
         description="Manage your candidate database, statuses, and availability."
         actions={
           <div className="flex items-center gap-2">
-            {isAdmin && (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={assigningIds}
-                onClick={async () => {
-                  setAssigningIds(true);
-                  try {
-                    const n = await bulkAssignKisfsIds();
-                    toast({ title: n > 0 ? `Fixed ${n} candidate${n === 1 ? "" : "s"} — duplicates reassigned, missing IDs assigned` : "All KISFS IDs are already unique" });
-                  } catch (err: any) {
-                    toast({ title: "Error", description: err?.message, variant: "destructive" });
-                  } finally {
-                    setAssigningIds(false);
-                  }
-                }}
-              >
-                {assigningIds && <Loader2 className="h-4 w-4 animate-spin" />}
-                Fix KISFS IDs
-              </Button>
-            )}
-            {isAdmin && (
-              <Button variant="outline" size="sm" className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setResetOpen(true)}>
-                Reset Test Data
-              </Button>
-            )}
             {showAddButton && (
               <Button onClick={openAdd} variant="premium">
                 <Plus className="h-4 w-4" /> Add candidate
@@ -737,7 +705,7 @@ export default function CandidatesPage() {
                             <DropdownMenuItem onClick={() => navigate(`/candidates/${c.id}`)}>
                               <Eye className="h-4 w-4 mr-2" /> View
                             </DropdownMenuItem>
-                            {(isAdmin || c.agency_id === agencyId) && (
+                            {(isAdmin || (c.agency_id === agencyId && canEditCandidates)) && (
                               <>
                                 <DropdownMenuItem onClick={() => openEdit(c)}>
                                   <Edit className="h-4 w-4 mr-2" /> Edit
@@ -970,7 +938,7 @@ export default function CandidatesPage() {
                               <DropdownMenuItem onClick={() => navigate(`/candidates/${c.id}`)}>
                                 <Eye className="h-4 w-4 mr-2" /> View
                               </DropdownMenuItem>
-                              {(isAdmin || c.agency_id === agencyId) && (
+                              {(isAdmin || (c.agency_id === agencyId && canEditCandidates)) && (
                                 <>
                                   <DropdownMenuItem onClick={() => openEdit(c)}>
                                     <Edit className="h-4 w-4 mr-2" /> Edit
@@ -1038,40 +1006,6 @@ export default function CandidatesPage() {
       <CandidateFormModal open={modalOpen} onOpenChange={setModalOpen} candidate={editing} />
 
       {/* Reset test data confirmation */}
-      <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reset all candidate data?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will <strong>permanently delete every candidate</strong> in the database and replace them with 15 fresh test records. This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={resetting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={resetting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={async (e) => {
-                e.preventDefault();
-                setResetting(true);
-                try {
-                  await clearAllCandidates();
-                  const n = await seedTestCandidates();
-                  toast({ title: `Done — ${n} fresh test candidates created` });
-                  setResetOpen(false);
-                } catch (err: any) {
-                  toast({ title: "Error", description: err?.message, variant: "destructive" });
-                } finally {
-                  setResetting(false);
-                }
-              }}
-            >
-              {resetting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Yes, delete all & reseed
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>

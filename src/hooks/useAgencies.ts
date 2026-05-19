@@ -283,6 +283,14 @@ export async function restoreAgency(id: string) {
   });
 }
 
+/** Toggle whether a supply partner can edit/delete their own candidates. */
+export async function updateAgencyEditPermission(id: string, canEdit: boolean) {
+  await updateDoc(doc(db, COL, id), {
+    can_edit_candidates: canEdit,
+    updated_at: serverTimestamp(),
+  });
+}
+
 /**
  * Creates a Firebase Auth user for an agency, then writes their /users/{uid}
  * profile doc. Uses a SECONDARY Firebase app instance so the currently

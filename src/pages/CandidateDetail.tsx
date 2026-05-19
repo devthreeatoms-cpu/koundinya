@@ -65,7 +65,7 @@ const statusDot: Record<CandidateStatus, string> = {
 
 export default function CandidateDetail() {
   const { id } = useParams<{ id: string }>();
-  const { isAdmin } = useAuth();
+  const { isAdmin, agencyId, canEditCandidates } = useAuth();
   const { toast } = useToast();
   const { candidate, loading: cLoading } = useCandidateById(id);
   const bypass = isAdmin && !!candidate?.agency_id;
@@ -135,27 +135,29 @@ export default function CandidateDetail() {
         title={candidate.name}
         description={`Source: ${candidate.source}`}
         actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className={cn(
-                isBlocklisted
-                  ? "border-success/40 text-success hover:bg-success/10"
-                  : "border-destructive/40 text-destructive hover:bg-destructive/10"
-              )}
-              onClick={() => setBlocklistOpen(true)}
-            >
-              {isBlocklisted ? (
-                <><ShieldOk className="h-4 w-4" /> Remove blocklist</>
-              ) : (
-                <><ShieldBan className="h-4 w-4" /> Blocklist</>
-              )}
-            </Button>
-            <Button variant="outline" onClick={() => setEditOpen(true)}>
-              <Edit className="h-4 w-4" /> Edit
-            </Button>
-          </div>
+          (isAdmin || (candidate?.agency_id === agencyId && canEditCandidates)) ? (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  isBlocklisted
+                    ? "border-success/40 text-success hover:bg-success/10"
+                    : "border-destructive/40 text-destructive hover:bg-destructive/10"
+                )}
+                onClick={() => setBlocklistOpen(true)}
+              >
+                {isBlocklisted ? (
+                  <><ShieldOk className="h-4 w-4" /> Remove blocklist</>
+                ) : (
+                  <><ShieldBan className="h-4 w-4" /> Blocklist</>
+                )}
+              </Button>
+              <Button variant="outline" onClick={() => setEditOpen(true)}>
+                <Edit className="h-4 w-4" /> Edit
+              </Button>
+            </div>
+          ) : undefined
         }
       />
 

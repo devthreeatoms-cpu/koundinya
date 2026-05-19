@@ -110,6 +110,8 @@ export interface Agency {
   // Company
   company_name?: string | null;
   company_gst?: string | null;
+  /** Admin-controlled toggle: whether this supply partner can edit/delete their own candidates. */
+  can_edit_candidates?: boolean;
   is_deleted?: boolean;
   created_at?: Timestamp | null;
   updated_at?: Timestamp | null;

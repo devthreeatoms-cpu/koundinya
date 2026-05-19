@@ -22,7 +22,15 @@
       "Bash(firebase firestore:rules)",
       "Bash(node *)",
       "Bash(xargs grep -l \"InternalPartner\")",
-      "Bash(Get-ChildItem -Path . -Recurse -Name \"Dashboard.tsx\" -ErrorAction SilentlyContinue)"
+      "Bash(Get-ChildItem -Path . -Recurse -Name \"Dashboard.tsx\" -ErrorAction SilentlyContinue)",
+      "mcp__plugin_firebase_firebase__firestore_query_collection",
+      "mcp__plugin_firebase_firebase__auth_get_users",
+      "mcp__plugin_firebase_firebase__firestore_get_document",
+      "mcp__plugin_firebase_firebase__firestore_update_document",
+      "Bash(npx firebase *)",
+      "mcp__plugin_firebase_firebase__firestore_list_collections",
+      "mcp__plugin_firebase_firebase__firestore_list_documents",
+      "mcp__plugin_firebase_firebase__firestore_delete_document"
     ]
   },
   "enabledPlugins": {
