@@ -74,13 +74,33 @@ import { initials } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
-const STATUSES: (CandidateStatus | "all")[] = ["all", "New", "Contacted", "Assigned", "Rejected"];
+const STATUSES: (CandidateStatus | "all")[] = [
+  "all",
+  "New",
+  "Contacted",
+  "Assigned",
+  "Rejected",
+  "Call Back",
+  "Follow Up",
+  "On Hold",
+  "Interview Pending",
+  "Not Answering",
+  "Not Interested",
+  "Not Responding",
+];
 
 const statusStyles: Record<CandidateStatus, string> = {
   New: "bg-secondary/15 text-secondary border border-secondary/30",
   Contacted: "bg-warning/15 text-warning border border-warning/30",
   Assigned: "bg-primary/15 text-primary border border-primary/30",
   Rejected: "bg-destructive/15 text-destructive border border-destructive/30",
+  "Call Back": "bg-accent/15 text-accent border border-accent/30",
+  "Follow Up": "bg-warning/15 text-warning border border-warning/30",
+  "On Hold": "bg-muted text-muted-foreground border border-border",
+  "Interview Pending": "bg-primary/15 text-primary border border-primary/30",
+  "Not Answering": "bg-destructive/15 text-destructive border border-destructive/30",
+  "Not Interested": "bg-destructive/15 text-destructive border border-destructive/30",
+  "Not Responding": "bg-destructive/15 text-destructive border border-destructive/30",
 };
 
 const statusDot: Record<CandidateStatus, string> = {
@@ -88,6 +108,13 @@ const statusDot: Record<CandidateStatus, string> = {
   Contacted: "bg-warning",
   Assigned: "bg-primary",
   Rejected: "bg-destructive",
+  "Call Back": "bg-accent",
+  "Follow Up": "bg-warning",
+  "On Hold": "bg-muted-foreground",
+  "Interview Pending": "bg-primary",
+  "Not Answering": "bg-destructive",
+  "Not Interested": "bg-destructive",
+  "Not Responding": "bg-destructive",
 };
 
 export default function CandidatesPage() {
@@ -98,6 +125,10 @@ export default function CandidatesPage() {
   // candidates" tab for admins, and by the unified view for agency users).
   const { candidates: combinedPool, loading: combinedLoading } = useCombinedCandidatePool();
   const { agencies } = useAgencies({ includeDeleted: true, isInternal: false });
+  // All agencies (external + internal, including deactivated) — used to keep
+  // admins from accidentally hiding candidates whose owning agency is
+  // internal (which the external-only list above does not know about).
+  const { agencies: allAgencies } = useAgencies({ includeDeleted: true });
   const { agencies: internalPartners, loading: ipLoading } = useAgencies({ isInternal: true });
   // Admins view a combined pool (admin + every agency); to correctly compute
   // availability for agency-owned candidates we need ALL assignments, not
@@ -119,10 +150,12 @@ export default function CandidatesPage() {
   // Origin filter for agency users: all | admin (admin pool) | mine (my agency)
   const [originFilter, setOriginFilter] = useState<"all" | "admin" | "mine">("all");
 
-  // Hide candidates whose owning agency has been deactivated.
+  // Hide candidates whose owning agency has been deactivated. Includes BOTH
+  // external supply partners and internal team agencies so admins see every
+  // active candidate regardless of which kind of agency owns them.
   const activeAgencyIds = useMemo(
-    () => new Set(agencies.filter((a) => !a.is_deleted).map((a) => a.id)),
-    [agencies]
+    () => new Set(allAgencies.filter((a) => !a.is_deleted).map((a) => a.id)),
+    [allAgencies]
   );
   const candidates = useMemo(() => {
     const dropDeactivated = (c: Candidate) =>
@@ -164,6 +197,12 @@ export default function CandidatesPage() {
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [availFilter, setAvailFilter] = useState<string>(initialAvail);
   const [kycFilter, setKycFilter] = useState<string>("all");
+  const [bikeFilter, setBikeFilter] = useState<string>("all");
+  const [genderFilter, setGenderFilter] = useState<string>("all");
+  const [stateFilter, setStateFilter] = useState<string>("all");
+  const [districtFilter, setDistrictFilter] = useState<string>("all");
+  const [pincodeFilter, setPincodeFilter] = useState<string>("all");
+  const [qualFilter, setQualFilter] = useState<string>("all");
   const [blocklistFilter, setBlocklistFilter] = useState(false);
   const [page, setPage] = useState(1);
 
@@ -197,6 +236,22 @@ export default function CandidatesPage() {
     () => Array.from(new Set(candidates.map((c) => c.source).filter(Boolean))),
     [candidates]
   );
+  const states = useMemo(
+    () => Array.from(new Set(candidates.map((c) => c.state).filter(Boolean))).sort() as string[],
+    [candidates]
+  );
+  const districts = useMemo(
+    () => Array.from(new Set(candidates.map((c) => c.district).filter(Boolean))).sort() as string[],
+    [candidates]
+  );
+  const pincodes = useMemo(
+    () => Array.from(new Set(candidates.map((c) => c.pincode).filter(Boolean))).sort() as string[],
+    [candidates]
+  );
+  const qualifications = useMemo(
+    () => Array.from(new Set(candidates.map((c) => c.qualification).filter(Boolean))).sort() as string[],
+    [candidates]
+  );
 
   const blocklistedCount = useMemo(
     () => candidates.filter((c) => !!c.is_blocklisted).length,
@@ -217,6 +272,13 @@ export default function CandidatesPage() {
       }
       if (statusFilter !== "all" && c.status !== statusFilter) return false;
       if (sourceFilter !== "all" && c.source !== sourceFilter) return false;
+      if (bikeFilter === "yes" && !c.has_bike) return false;
+      if (bikeFilter === "no" && c.has_bike) return false;
+      if (genderFilter !== "all" && c.gender !== genderFilter) return false;
+      if (stateFilter !== "all" && c.state !== stateFilter) return false;
+      if (districtFilter !== "all" && c.district !== districtFilter) return false;
+      if (pincodeFilter !== "all" && c.pincode !== pincodeFilter) return false;
+      if (qualFilter !== "all" && c.qualification !== qualFilter) return false;
 
       const hasAadhar = !!c.aadhar_number;
       const hasPan = !!c.pan_number;
@@ -232,7 +294,7 @@ export default function CandidatesPage() {
       }
       return true;
     });
-  }, [candidates, search, statusFilter, sourceFilter, kycFilter, availFilter, blocklistFilter, activeAssignedIds]);
+  }, [candidates, search, statusFilter, sourceFilter, bikeFilter, genderFilter, stateFilter, districtFilter, pincodeFilter, qualFilter, kycFilter, availFilter, blocklistFilter, activeAssignedIds]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount);
@@ -264,6 +326,12 @@ export default function CandidatesPage() {
     (sourceFilter !== "all" ? 1 : 0) +
     (availFilter !== "all" ? 1 : 0) +
     (kycFilter !== "all" ? 1 : 0) +
+    (bikeFilter !== "all" ? 1 : 0) +
+    (genderFilter !== "all" ? 1 : 0) +
+    (stateFilter !== "all" ? 1 : 0) +
+    (districtFilter !== "all" ? 1 : 0) +
+    (pincodeFilter !== "all" ? 1 : 0) +
+    (qualFilter !== "all" ? 1 : 0) +
     (blocklistFilter ? 1 : 0);
 
   function clearFilters() {
@@ -271,14 +339,20 @@ export default function CandidatesPage() {
     setSourceFilter("all");
     setAvailFilter("all");
     setKycFilter("all");
+    setBikeFilter("all");
+    setGenderFilter("all");
+    setStateFilter("all");
+    setDistrictFilter("all");
+    setPincodeFilter("all");
+    setQualFilter("all");
     setBlocklistFilter(false);
     setPage(1);
   }
 
   const showAddButton = !isAdmin || tab === "admin" || tab === "all";
   const agencyMap = useMemo(
-    () => new Map(agencies.map((a) => [a.id, a])),
-    [agencies]
+    () => new Map(allAgencies.map((a) => [a.id, a])),
+    [allAgencies]
   );
 
   return (
@@ -472,8 +546,8 @@ export default function CandidatesPage() {
       {tab !== "internal" && (
       <Card className="glass-card hover-lift overflow-hidden">
         <div className="p-4 border-b border-border/60 space-y-3">
-          <div className="flex flex-col lg:flex-row gap-3">
-            <div className="relative flex-1 group">
+          <div className="flex flex-col xl:flex-row xl:items-start gap-3">
+            <div className="relative flex-1 min-w-[240px] xl:max-w-sm group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
               <Input
                 placeholder="Search by name, phone or KISFS ID…"
@@ -485,7 +559,7 @@ export default function CandidatesPage() {
                 }}
               />
             </div>
-            <div className="grid grid-cols-2 sm:flex gap-2 sm:flex-wrap">
+            <div className="grid grid-cols-2 sm:flex sm:flex-1 gap-2 sm:flex-wrap sm:items-center">
               <Select
                 value={statusFilter}
                 onValueChange={(v) => {
@@ -557,6 +631,115 @@ export default function CandidatesPage() {
                   <SelectItem value="kyc_pending">KYC Pending</SelectItem>
                 </SelectContent>
               </Select>
+              <Select
+                value={bikeFilter}
+                onValueChange={(v) => {
+                  setBikeFilter(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-32">
+                  <SelectValue placeholder="Bike" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All (Bike)</SelectItem>
+                  <SelectItem value="yes">Has Bike</SelectItem>
+                  <SelectItem value="no">No Bike</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={genderFilter}
+                onValueChange={(v) => {
+                  setGenderFilter(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-32">
+                  <SelectValue placeholder="Gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Genders</SelectItem>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              {states.length > 0 && (
+                <Select
+                  value={stateFilter}
+                  onValueChange={(v) => {
+                    setStateFilter(v);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-36">
+                    <SelectValue placeholder="State" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All States</SelectItem>
+                    {states.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {districts.length > 0 && (
+                <Select
+                  value={districtFilter}
+                  onValueChange={(v) => {
+                    setDistrictFilter(v);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-36">
+                    <SelectValue placeholder="District" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Districts</SelectItem>
+                    {districts.map((d) => (
+                      <SelectItem key={d} value={d}>{d}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {pincodes.length > 0 && (
+                <Select
+                  value={pincodeFilter}
+                  onValueChange={(v) => {
+                    setPincodeFilter(v);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-32">
+                    <SelectValue placeholder="Pincode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Pincodes</SelectItem>
+                    {pincodes.map((p) => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {qualifications.length > 0 && (
+                <Select
+                  value={qualFilter}
+                  onValueChange={(v) => {
+                    setQualFilter(v);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-40">
+                    <SelectValue placeholder="Qualification" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Qualifications</SelectItem>
+                    {qualifications.map((q) => (
+                      <SelectItem key={q} value={q}>{q}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <button
                 onClick={() => { setBlocklistFilter((v) => !v); setPage(1); }}
                 className={cn(
@@ -616,6 +799,54 @@ export default function CandidatesPage() {
                   className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-accent/15 text-accent hover:bg-accent/25 transition-colors"
                 >
                   {availFilter === "available" ? "Available" : "Assigned"} <X className="h-3 w-3" />
+                </button>
+              )}
+              {bikeFilter !== "all" && (
+                <button
+                  onClick={() => { setBikeFilter("all"); setPage(1); }}
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                >
+                  {bikeFilter === "yes" ? "Has Bike" : "No Bike"} <X className="h-3 w-3" />
+                </button>
+              )}
+              {genderFilter !== "all" && (
+                <button
+                  onClick={() => { setGenderFilter("all"); setPage(1); }}
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-secondary/10 text-secondary hover:bg-secondary/20 transition-colors"
+                >
+                  {genderFilter} <X className="h-3 w-3" />
+                </button>
+              )}
+              {stateFilter !== "all" && (
+                <button
+                  onClick={() => { setStateFilter("all"); setPage(1); }}
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-warning/10 text-warning hover:bg-warning/20 transition-colors"
+                >
+                  State: {stateFilter} <X className="h-3 w-3" />
+                </button>
+              )}
+              {districtFilter !== "all" && (
+                <button
+                  onClick={() => { setDistrictFilter("all"); setPage(1); }}
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-warning/10 text-warning hover:bg-warning/20 transition-colors"
+                >
+                  District: {districtFilter} <X className="h-3 w-3" />
+                </button>
+              )}
+              {pincodeFilter !== "all" && (
+                <button
+                  onClick={() => { setPincodeFilter("all"); setPage(1); }}
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-warning/10 text-warning hover:bg-warning/20 transition-colors"
+                >
+                  Pincode: {pincodeFilter} <X className="h-3 w-3" />
+                </button>
+              )}
+              {qualFilter !== "all" && (
+                <button
+                  onClick={() => { setQualFilter("all"); setPage(1); }}
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-accent/15 text-accent hover:bg-accent/25 transition-colors"
+                >
+                  Qual: {qualFilter} <X className="h-3 w-3" />
                 </button>
               )}
               {blocklistFilter && (
