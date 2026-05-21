@@ -561,6 +561,22 @@ export default function CandidatesPage() {
             </div>
             <div className="grid grid-cols-2 sm:flex sm:flex-1 gap-2 sm:flex-wrap sm:items-center">
               <Select
+                value={availFilter}
+                onValueChange={(v) => {
+                  setAvailFilter(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="col-span-2 w-full sm:w-40">
+                  <SelectValue placeholder="Availability" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="available">Available</SelectItem>
+                  <SelectItem value="assigned">Assigned</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
                 value={statusFilter}
                 onValueChange={(v) => {
                   setStatusFilter(v);
@@ -595,22 +611,6 @@ export default function CandidatesPage() {
                       {s}
                     </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={availFilter}
-                onValueChange={(v) => {
-                  setAvailFilter(v);
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger className="col-span-2 w-full sm:w-40">
-                  <SelectValue placeholder="Availability" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="available">Available</SelectItem>
-                  <SelectItem value="assigned">Assigned</SelectItem>
                 </SelectContent>
               </Select>
               <Select

@@ -1,8 +1,20 @@
 import type { Timestamp } from "firebase/firestore";
 
-export type CandidateStatus = "New" | "Contacted" | "Assigned" | "Rejected";
+export type CandidateStatus =
+  | "New"
+  | "Contacted"
+  | "Assigned"
+  | "Rejected"
+  | "Call Back"
+  | "Follow Up"
+  | "On Hold"
+  | "Interview Pending"
+  | "Not Answering"
+  | "Not Interested"
+  | "Not Responding";
 export type ProjectStatus = string;
 export type AssignmentStatus = "Active" | "Completed" | "Dropped";
+export type OnboardingStatus = "Onboarding" | "MovedToProject";
 export type UserRole = "admin" | "agency";
 
 export interface Candidate {
@@ -28,6 +40,10 @@ export interface Candidate {
   pan_number?: string | null;
   aadhar_verified?: boolean;
   pan_verified?: boolean;
+  age?: number | null;
+  gender?: "Male" | "Female" | "Other" | null;
+  qualification?: string | null;
+  pincode?: string | null;
   bank_account_name?: string | null;
   bank_name?: string | null;
   bank_account_number?: string | null;
@@ -43,6 +59,7 @@ export interface Project {
   start_date?: Timestamp | null;
   status: ProjectStatus;
   custom_statuses?: string[];
+  onboarding_statuses?: string[];
   created_at?: Timestamp | null;
   agency_id?: string | null;
 }
@@ -65,6 +82,22 @@ export interface Assignment {
   status: AssignmentStatus;
   project_status?: string | null;
   agency_id?: string | null;
+}
+
+export interface OnboardingCandidate {
+  id: string;
+  project_id: string;
+  candidate_id: string;
+  agency_id?: string | null;
+  onboarding_status: string;
+  notes?: string | null;
+  status: OnboardingStatus;
+  moved_to_project_at?: Timestamp | null;
+  assignment_id?: string | null;
+  created_at?: Timestamp | null;
+  updated_at?: Timestamp | null;
+  created_by?: string | null;
+  updated_by?: string | null;
 }
 
 export interface InternalPartner {

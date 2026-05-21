@@ -90,6 +90,7 @@ export async function createProject(
     start_date?: Date | null;
     status: string;
     custom_statuses?: string[];
+    onboarding_statuses?: string[];
   },
   ctx: { agency_id: string | null }
 ) {
@@ -97,6 +98,7 @@ export async function createProject(
     ...data,
     start_date: data.start_date ? Timestamp.fromDate(data.start_date) : null,
     custom_statuses: data.custom_statuses ?? [],
+    onboarding_statuses: data.onboarding_statuses ?? [],
     agency_id: ctx.agency_id ?? null,
     created_at: serverTimestamp(),
   });

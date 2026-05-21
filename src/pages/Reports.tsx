@@ -5,6 +5,7 @@ import {
   Briefcase,
   Eye,
   Building2,
+  UserCog,
   ChevronRight,
   ArrowLeft,
   CheckCircle2,
@@ -48,6 +49,7 @@ import { useCombinedCandidatePool, useAllCandidates } from "@/hooks/useCandidate
 import { useProjects } from "@/hooks/useProjects";
 import { useAssignments } from "@/hooks/useAssignments";
 import { useAgencies } from "@/hooks/useAgencies";
+import { useAllOnboardingCandidates } from "@/hooks/useOnboardingCandidates";
 import { useAuth } from "@/context/AuthContext";
 import { formatDate, initials } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
@@ -80,8 +82,10 @@ export default function Reports() {
   const { projects, loading: pLoading } = useProjects({ bypassOwnerFilter: isAdmin });
   const { assignments, loading: aLoading } = useAssignments({ bypassOwnerFilter: isAdmin });
   const { agencies } = useAgencies({ includeDeleted: true });
+  const { agencies: internalPartners } = useAgencies({ includeDeleted: true, isInternal: true });
+  const { items: onboardingItems, loading: oLoading } = useAllOnboardingCandidates();
 
-  const loading = cLoading || pLoading || aLoading;
+  const loading = cLoading || pLoading || aLoading || oLoading;
 
   const [activeTab, setActiveTab] = useState("candidates");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -161,8 +165,10 @@ export default function Reports() {
     projects.map((p) => ({
       ...p,
       activeCount: assignments.filter((a) => a.project_id === p.id && a.status === "Active").length,
+      onboardingCount: onboardingItems.filter((o) => o.project_id === p.id && o.status === "Onboarding").length,
+      movedFromOnboardingCount: onboardingItems.filter((o) => o.project_id === p.id && o.status === "MovedToProject").length,
     })).sort((a, b) => b.activeCount - a.activeCount),
-    [projects, assignments]
+    [projects, assignments, onboardingItems]
   );
 
   const projectDrill = useMemo(() => {
@@ -170,14 +176,16 @@ export default function Reports() {
     const proj = projectMap.get(selectedProjectId);
     if (!proj) return null;
     const active = assignments.filter((a) => a.project_id === selectedProjectId && a.status === "Active");
+    const onboarding = onboardingItems.filter((o) => o.project_id === selectedProjectId && o.status === "Onboarding");
+    const movedFromOnboarding = onboardingItems.filter((o) => o.project_id === selectedProjectId && o.status === "MovedToProject");
     const grouped: Record<string, typeof active> = {};
     for (const a of active) {
       const key = (a as any).project_status ?? "Not set";
       if (!grouped[key]) grouped[key] = [];
       grouped[key].push(a);
     }
-    return { proj, active, grouped };
-  }, [selectedProjectId, assignments, projectMap]);
+    return { proj, active, grouped, onboarding, movedFromOnboarding };
+  }, [selectedProjectId, assignments, projectMap, onboardingItems]);
 
   // ── Supply partner report ──────────────────────────────────────────────────
 
@@ -206,6 +214,38 @@ export default function Reports() {
     return { agency, cands };
   }, [selectedAgencyId, agencyMap, visibleCandidates]);
 
+  const internalRows = useMemo(
+    () =>
+      internalPartners
+        .filter((p) => !p.is_deleted)
+        .map((p) => {
+          const cands = visibleCandidates.filter(
+            (c) =>
+              c.agency_id === p.id ||
+              (c.source === "Internal Team" && c.source_member_id === p.id)
+          );
+          const assignedCount = cands.filter((c) => activeAssignedIds.has(c.id)).length;
+          return {
+            ...p,
+            candidateCount: cands.length,
+            assignedCount,
+            availableCount: cands.length - assignedCount,
+          };
+        })
+        .sort((a, b) => b.candidateCount - a.candidateCount),
+    [internalPartners, visibleCandidates, activeAssignedIds]
+  );
+
+  const internalTotals = useMemo(
+    () => ({
+      totalMembers: internalRows.length,
+      totalCandidates: internalRows.reduce((sum, r) => sum + r.candidateCount, 0),
+      totalAssigned: internalRows.reduce((sum, r) => sum + r.assignedCount, 0),
+      totalAvailable: internalRows.reduce((sum, r) => sum + r.availableCount, 0),
+    }),
+    [internalRows]
+  );
+
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -230,6 +270,9 @@ export default function Reports() {
               </TabsTrigger>
               <TabsTrigger value="partners" className="gap-1.5">
                 <Building2 className="h-3.5 w-3.5" /> Supply Partners
+              </TabsTrigger>
+              <TabsTrigger value="internal-team" className="gap-1.5">
+                <UserCog className="h-3.5 w-3.5" /> Internal Team
               </TabsTrigger>
             </TabsList>
 
@@ -356,6 +399,10 @@ export default function Reports() {
                           <p className="text-2xl font-bold tabular-nums">{projectDrill.active.length}</p>
                           <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Active</p>
                         </div>
+                        <div className="text-center">
+                          <p className="text-2xl font-bold tabular-nums text-secondary">{projectDrill.onboarding.length}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Onboarding</p>
+                        </div>
                         <Button asChild variant="outline" size="sm">
                           <Link to={`/projects/${projectDrill.proj.id}`}>
                             <Eye className="h-4 w-4" /> Open
@@ -428,13 +475,14 @@ export default function Reports() {
                               onClick={() => setSelectedProjectId(p.id)}
                               className="w-full text-left rounded-xl border border-border/60 bg-muted/10 p-3 hover:bg-muted/30 transition-colors"
                             >
-                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center justify-between gap-2">
                                 <div className="min-w-0">
                                   <p className="text-sm font-semibold truncate">{p.name}</p>
                                   {p.client_name && <p className="text-xs text-muted-foreground truncate">{p.client_name}</p>}
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0">
                                   <Badge variant="outline" className="border-primary/30 text-primary bg-primary-soft text-xs">{p.activeCount} active</Badge>
+                                  <Badge variant="outline" className="border-secondary/30 text-secondary bg-secondary/10 text-xs">{p.onboardingCount} onboarding</Badge>
                                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                 </div>
                               </div>
@@ -452,6 +500,7 @@ export default function Reports() {
                               <TableHead className="font-semibold text-foreground">Status</TableHead>
                               <TableHead className="font-semibold text-foreground">Location</TableHead>
                               <TableHead className="font-semibold text-foreground text-center">Active candidates</TableHead>
+                              <TableHead className="font-semibold text-foreground text-center">Onboarding</TableHead>
                               <TableHead className="font-semibold text-foreground text-right">Details</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -474,6 +523,9 @@ export default function Reports() {
                                 <TableCell className="text-sm text-muted-foreground">{p.location || "—"}</TableCell>
                                 <TableCell className="text-center">
                                   <span className="text-sm font-bold tabular-nums">{p.activeCount}</span>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <span className="text-sm font-bold tabular-nums text-secondary">{p.onboardingCount}</span>
                                 </TableCell>
                                 <TableCell className="text-right">
                                   <ChevronRight className="h-4 w-4 text-muted-foreground inline" />
@@ -698,6 +750,78 @@ export default function Reports() {
                 </div>
               )}
             </TabsContent>
+
+            {/* ── TAB 4: Internal Team Report ── */}
+            <TabsContent value="internal-team" className="mt-0 space-y-4">
+              <Card className="glass-card p-4 sm:p-5 hover-lift">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Members</p>
+                    <p className="text-2xl font-bold mt-1 tabular-nums">{internalTotals.totalMembers}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Candidates</p>
+                    <p className="text-2xl font-bold mt-1 tabular-nums">{internalTotals.totalCandidates}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Assigned</p>
+                    <p className="text-2xl font-bold mt-1 tabular-nums text-primary">{internalTotals.totalAssigned}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Available</p>
+                    <p className="text-2xl font-bold mt-1 tabular-nums text-green-600 dark:text-green-400">{internalTotals.totalAvailable}</p>
+                  </div>
+                </div>
+              </Card>
+
+              {loading ? (
+                <div className="space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}</div>
+              ) : internalRows.length === 0 ? (
+                <Card className="glass-card p-10 text-center">
+                  <p className="text-sm text-muted-foreground">No internal team members found.</p>
+                </Card>
+              ) : (
+                <div className="rounded-xl border border-border/60 overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-muted/40">
+                      <TableRow>
+                        <TableHead className="font-semibold text-foreground">Team Member</TableHead>
+                        <TableHead className="font-semibold text-foreground">Employee ID</TableHead>
+                        <TableHead className="font-semibold text-foreground">Position</TableHead>
+                        <TableHead className="font-semibold text-foreground text-center">Candidates</TableHead>
+                        <TableHead className="font-semibold text-foreground text-center">Assigned</TableHead>
+                        <TableHead className="font-semibold text-foreground text-center">Available</TableHead>
+                        <TableHead className="font-semibold text-foreground text-right">Open</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {internalRows.map((m, idx) => (
+                        <TableRow key={m.id} className={cn("border-b border-border/60 hover:bg-primary-soft/40", idx % 2 === 1 && "bg-muted/20")}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className="h-8 w-8 rounded-full bg-secondary/10 text-secondary grid place-items-center shrink-0">
+                                <UserCog className="h-4 w-4" />
+                              </div>
+                              <span className="text-sm font-semibold">{m.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs font-mono text-muted-foreground">{m.employee_id || "—"}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{m.position || "—"}</TableCell>
+                          <TableCell className="text-center font-bold tabular-nums">{m.candidateCount}</TableCell>
+                          <TableCell className="text-center text-sm text-primary tabular-nums">{m.assignedCount}</TableCell>
+                          <TableCell className="text-center text-sm text-green-600 tabular-nums">{m.availableCount}</TableCell>
+                          <TableCell className="text-right">
+                            <Button asChild variant="ghost" size="sm" className="h-7 text-primary hover:text-primary hover:bg-primary-soft">
+                              <Link to={`/internal-partners/${m.id}`}><Eye className="h-3.5 w-3.5" /></Link>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </TabsContent>
           </Tabs>
         </div>
 
@@ -818,4 +942,3 @@ function KycCard({
     </Card>
   );
 }
-

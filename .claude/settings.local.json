@@ -33,7 +33,11 @@
       "mcp__plugin_firebase_firebase__firestore_delete_document"
     ]
   },
+  "enabledMcpjsonServers": [
+    "firebase"
+  ],
   "enabledPlugins": {
     "firebase@claude-plugins-official": true
-  }
+  },
+  "enableAllProjectMcpServers": true
 }

@@ -78,7 +78,19 @@ const schema = z.object({
   area_name: z.string().trim().min(1, "Area is required").max(100),
   has_bike: z.boolean(),
   source: z.string().trim().min(1, "Source is required").max(50),
-  status: z.enum(["New", "Contacted", "Assigned", "Rejected"]),
+  status: z.enum([
+    "New",
+    "Contacted",
+    "Assigned",
+    "Rejected",
+    "Call Back",
+    "Follow Up",
+    "On Hold",
+    "Interview Pending",
+    "Not Answering",
+    "Not Interested",
+    "Not Responding",
+  ]),
   notes: z.string().trim().max(1000).optional().or(z.literal("")),
   aadhar_number: z.string().refine(val => !val || /^\d{12}$/.test(val), {
     message: "Enter valid 12-digit Aadhar number",
@@ -96,6 +108,23 @@ const schema = z.object({
   }).optional().or(z.literal("")),
   source_member_id: z.string().optional().or(z.literal("")),
   kisfs_suffix: z.string().regex(/^\d{1,4}$/, "Must be 1–4 digits").optional().or(z.literal("")),
+  age: z
+    .string()
+    .min(1, "Age is required")
+    .refine((val) => /^\d{1,3}$/.test(val) && +val >= 14 && +val <= 99, {
+      message: "Enter a valid age (14–99)",
+    }),
+  gender: z
+    .string()
+    .min(1, "Gender is required")
+    .refine((v) => ["Male", "Female", "Other"].includes(v), {
+      message: "Select a valid gender",
+    }),
+  qualification: z.string().trim().min(1, "Qualification is required").max(100),
+  pincode: z
+    .string()
+    .min(1, "Pincode is required")
+    .refine((val) => /^\d{6}$/.test(val), { message: "Enter valid 6-digit pincode" }),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -106,8 +135,29 @@ interface Props {
   candidate?: Candidate | null;
 }
 
-const STATUSES: CandidateStatus[] = ["New", "Contacted", "Assigned", "Rejected"];
-const SOURCES = ["Internal Team", "Supplier Partners"];
+const STATUSES: CandidateStatus[] = [
+  "New",
+  "Contacted",
+  "Assigned",
+  "Rejected",
+  "Call Back",
+  "Follow Up",
+  "On Hold",
+  "Interview Pending",
+  "Not Answering",
+  "Not Interested",
+  "Not Responding",
+];
+const SOURCES = [
+  "Internal Team",
+  "Supplier Partners",
+  "Apna",
+  "Job Hai",
+  "WhatsApp",
+  "Facebook",
+  "Instagram",
+  "Other",
+];
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -118,7 +168,7 @@ function FieldError({ message }: { message?: string }) {
   );
 }
 
-function SectionHeader({ icon, title, subtitle }: { icon: ReactNode; title: string; subtitle?: string }) {
+function SectionHeader({ icon, title, subtitle }: { icon: ReactNode; title: ReactNode; subtitle?: string }) {
   return (
     <div className="flex items-center gap-2.5 mb-3">
       <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary grid place-items-center shrink-0">
@@ -217,6 +267,10 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
       bank_ifsc: "",
       source_member_id: "",
       kisfs_suffix: "",
+      age: "",
+      gender: "",
+      qualification: "",
+      pincode: "",
     },
   });
 
@@ -256,6 +310,10 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
         bank_ifsc: candidate?.bank_ifsc ?? "",
         source_member_id: candidate?.source_member_id ?? (!isAdmin && agencyId ? agencyId : ""),
         kisfs_suffix: candidate?.kisfs_id?.replace(/^KISFS/, "") ?? "",
+        age: candidate?.age != null ? String(candidate.age) : "",
+        gender: (candidate?.gender as "" | "Male" | "Female" | "Other" | undefined) ?? "",
+        qualification: candidate?.qualification ?? "",
+        pincode: candidate?.pincode ?? "",
       });
     }
   }, [open, candidate, reset, isAdmin, agencyId]);
@@ -276,14 +334,52 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
     return () => clearTimeout(timer);
   }, [kifssSuffix, isAdmin, candidate?.id]);
 
+  function onInvalidSubmit(formErrors: Record<string, any>) {
+    const firstKey = Object.keys(formErrors)[0];
+    if (!firstKey) return;
+    const firstMsg = formErrors[firstKey]?.message as string | undefined;
+    toast({
+      title: "Please fix the highlighted fields",
+      description: firstMsg ?? "Some required fields are missing or invalid.",
+      variant: "destructive",
+    });
+    setTimeout(() => {
+      const form = document.getElementById("candidate-form");
+      if (!form) return;
+      const byName = form.querySelector(`[name="${firstKey}"]`) as HTMLElement | null;
+      const byId = document.getElementById(firstKey) as HTMLElement | null;
+      const firstErrorMsg = form.querySelector(".text-destructive") as HTMLElement | null;
+      const target = byName ?? byId ?? firstErrorMsg;
+      if (!target) return;
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (typeof (target as HTMLInputElement).focus === "function") {
+        try { (target as HTMLInputElement).focus({ preventScroll: true }); } catch { /* ignore */ }
+      }
+    }, 0);
+  }
+
   async function onSubmit(values: FormValues) {
-    // Admins must pick a source member
-    if (isAdmin && !values.source_member_id) {
-      setError("source_member_id", {
-        message: values.source === "Internal Team"
-          ? "Select an internal team member"
-          : "Select a supply partner",
+    // Admins must pick a source member ONLY for Internal Team / Supplier Partners
+    const needsSourceMember =
+      isAdmin &&
+      (values.source === "Internal Team" || values.source === "Supplier Partners");
+    if (needsSourceMember && !values.source_member_id) {
+      const msg = values.source === "Internal Team"
+        ? "Select an internal team member"
+        : "Select a supply partner";
+      setError("source_member_id", { message: msg });
+      toast({
+        title: "Please fix the highlighted fields",
+        description: msg,
+        variant: "destructive",
       });
+      setTimeout(() => {
+        const form = document.getElementById("candidate-form");
+        const target =
+          (form?.querySelector('[name="source_member_id"]') as HTMLElement | null) ??
+          (form?.querySelector(".text-destructive") as HTMLElement | null);
+        target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 0);
       return;
     }
 
@@ -321,6 +417,10 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
         bank_name: values.bank_name || null,
         bank_account_number: values.bank_account_number || null,
         bank_ifsc: values.bank_ifsc ? values.bank_ifsc.toUpperCase() : null,
+        age: values.age ? Number(values.age) : null,
+        gender: values.gender || null,
+        qualification: values.qualification?.trim() || null,
+        pincode: values.pincode || null,
         source_member_id,
         source_member_name,
       };
@@ -380,7 +480,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
 
         <form
           id="candidate-form"
-          onSubmit={handleSubmit(onSubmit)}
+          onSubmit={handleSubmit(onSubmit, onInvalidSubmit)}
           className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1"
         >
           {/* ── Personal Details ── */}
@@ -411,64 +511,65 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
                 />
                 <FieldError message={errors.phone?.message} />
               </div>
-              {isAdmin && (
-                <div>
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Candidate ID
-                  </Label>
-                  <div className="flex items-center mt-1.5">
-                    <span className="inline-flex items-center h-10 px-3 rounded-l-md border border-r-0 border-input bg-muted text-sm font-mono font-semibold text-muted-foreground select-none">
-                      KISFS
-                    </span>
-                    <Input
-                      id="kisfs_suffix"
-                      inputMode="numeric"
-                      placeholder="001"
-                      maxLength={4}
-                      className={cn(
-                        "rounded-l-none font-mono w-28",
-                        errors.kisfs_suffix && "border-destructive",
-                        kisfsCheck === "taken" && "border-destructive focus-visible:ring-destructive/20",
-                        kisfsCheck === "ok" && "border-green-500 focus-visible:ring-green-500/20",
-                      )}
-                      {...register("kisfs_suffix")}
-                      onChange={(e) => setValue("kisfs_suffix", e.target.value.replace(/\D/g, "").slice(0, 4), { shouldValidate: true })}
-                    />
-                    {kifssSuffix && (
-                      <span className={cn(
-                        "ml-3 text-xs font-mono font-semibold px-2 py-1 rounded-md",
-                        kisfsCheck === "taken" ? "bg-destructive/10 text-destructive" :
-                        kisfsCheck === "ok" ? "bg-green-500/10 text-green-600" :
-                        "bg-primary/10 text-primary"
-                      )}>
-                        KISFS{kifssSuffix.padStart(3, "0")}
-                      </span>
+              <div>
+                <Label htmlFor="age" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Age <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="age"
+                  inputMode="numeric"
+                  placeholder="e.g. 25"
+                  maxLength={3}
+                  className={cn("mt-1.5", errors.age && "border-destructive focus-visible:ring-destructive/20")}
+                  {...register("age")}
+                  onChange={(e) =>
+                    setValue("age", e.target.value.replace(/\D/g, "").slice(0, 3), {
+                      shouldValidate: true,
+                    })
+                  }
+                />
+                <FieldError message={errors.age?.message} />
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Gender <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={watch("gender") ?? ""}
+                  onValueChange={(v) =>
+                    setValue("gender", v as "" | "Male" | "Female" | "Other", { shouldValidate: true })
+                  }
+                >
+                  <SelectTrigger
+                    className={cn(
+                      "mt-1.5",
+                      errors.gender && "border-destructive focus-visible:ring-destructive/20"
                     )}
-                  </div>
-                  {/* Real-time availability feedback */}
-                  {kifssSuffix && kisfsCheck === "checking" && (
-                    <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
-                      <Loader2 className="h-3 w-3 animate-spin" /> Checking…
-                    </p>
-                  )}
-                  {kifssSuffix && kisfsCheck === "taken" && (
-                    <p className="text-[11px] text-destructive flex items-center gap-1 mt-1 font-medium">
-                      <AlertCircle className="h-3 w-3 shrink-0" />
-                      KISFS{kifssSuffix.padStart(3, "0")} is already assigned to another candidate
-                    </p>
-                  )}
-                  {kifssSuffix && kisfsCheck === "ok" && (
-                    <p className="text-[11px] text-green-600 flex items-center gap-1 mt-1 font-medium">
-                      <CheckCircle className="h-3 w-3 shrink-0" /> ID is available
-                    </p>
-                  )}
-                  {errors.kisfs_suffix && (
-                    <p className="text-xs text-destructive flex items-center gap-1 mt-1">
-                      <AlertCircle className="h-3 w-3 shrink-0" /> {errors.kisfs_suffix.message}
-                    </p>
-                  )}
-                </div>
-              )}
+                  >
+                    <SelectValue placeholder="Select gender…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Male">Male</SelectItem>
+                    <SelectItem value="Female">Female</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FieldError message={errors.gender?.message} />
+              </div>
+
+              <div className="sm:col-span-2">
+                <Label htmlFor="qualification" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Qualification <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="qualification"
+                  placeholder="e.g. 12th Pass, B.Com, ITI"
+                  className={cn("mt-1.5", errors.qualification && "border-destructive focus-visible:ring-destructive/20")}
+                  {...register("qualification")}
+                />
+                <FieldError message={errors.qualification?.message} />
+              </div>
 
               <div>
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -733,6 +834,30 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
                 {!areaLocked && <FieldError message={errors.area_name?.message} />}
               </LocationStep>
             </div>
+
+            {/* Pincode */}
+            <div className="mt-4">
+              <Label htmlFor="pincode" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Pincode <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="pincode"
+                inputMode="numeric"
+                placeholder="6 digits"
+                maxLength={6}
+                className={cn(
+                  "mt-1.5 sm:max-w-[12rem] font-mono tracking-wider",
+                  errors.pincode && "border-destructive focus-visible:ring-destructive/20"
+                )}
+                {...register("pincode")}
+                onChange={(e) =>
+                  setValue("pincode", e.target.value.replace(/\D/g, "").slice(0, 6), {
+                    shouldValidate: true,
+                  })
+                }
+              />
+              <FieldError message={errors.pincode?.message} />
+            </div>
           </div>
 
           {/* ── Identity Documents ── */}
@@ -824,10 +949,18 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
                 <p className="text-sm font-medium">Has bike</p>
                 <p className="text-xs text-muted-foreground mt-0.5">Candidate owns their own two-wheeler</p>
               </div>
-              <Switch
-                checked={watch("has_bike")}
-                onCheckedChange={(v) => setValue("has_bike", v)}
-              />
+              <Select
+                value={watch("has_bike") ? "yes" : "no"}
+                onValueChange={(v) => setValue("has_bike", v === "yes")}
+              >
+                <SelectTrigger className="w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -921,7 +1054,13 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
             Cancel
           </Button>
-          <Button form="candidate-form" type="submit" variant="premium" disabled={isSubmitting || kisfsCheck === "taken" || (isAdmin && !!kifssSuffix && kisfsCheck === "checking")} className="w-full sm:w-auto">
+          <Button
+            type="button"
+            variant="premium"
+            disabled={isSubmitting || kisfsCheck === "taken" || (isAdmin && !!kifssSuffix && kisfsCheck === "checking")}
+            onClick={handleSubmit(onSubmit, onInvalidSubmit)}
+            className="w-full sm:w-auto"
+          >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
             {isEdit ? "Save changes" : "Add candidate"}
           </Button>

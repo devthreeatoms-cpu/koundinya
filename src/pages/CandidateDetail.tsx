@@ -9,6 +9,9 @@ import {
   FileText,
   Briefcase,
   Calendar,
+  GraduationCap,
+  User,
+  Hash,
   ShieldCheck,
   Landmark,
   UserCog,
@@ -54,6 +57,13 @@ const statusStyles: Record<CandidateStatus, string> = {
   Contacted: "bg-warning/15 text-warning border border-warning/30",
   Assigned: "bg-primary/15 text-primary border border-primary/30",
   Rejected: "bg-destructive/15 text-destructive border border-destructive/30",
+  "Call Back": "bg-accent/15 text-accent border border-accent/30",
+  "Follow Up": "bg-warning/15 text-warning border border-warning/30",
+  "On Hold": "bg-muted text-muted-foreground border border-border",
+  "Interview Pending": "bg-primary/15 text-primary border border-primary/30",
+  "Not Answering": "bg-destructive/15 text-destructive border border-destructive/30",
+  "Not Interested": "bg-destructive/15 text-destructive border border-destructive/30",
+  "Not Responding": "bg-destructive/15 text-destructive border border-destructive/30",
 };
 
 const statusDot: Record<CandidateStatus, string> = {
@@ -61,6 +71,13 @@ const statusDot: Record<CandidateStatus, string> = {
   Contacted: "bg-warning",
   Assigned: "bg-primary",
   Rejected: "bg-destructive",
+  "Call Back": "bg-accent",
+  "Follow Up": "bg-warning",
+  "On Hold": "bg-muted-foreground",
+  "Interview Pending": "bg-primary",
+  "Not Answering": "bg-destructive",
+  "Not Interested": "bg-destructive",
+  "Not Responding": "bg-destructive",
 };
 
 export default function CandidateDetail() {
@@ -229,6 +246,50 @@ export default function CandidateDetail() {
                 <div>
                   <p className="text-[11px] text-muted-foreground leading-none">Transport</p>
                   <p className="text-sm font-medium mt-0.5">{candidate.has_bike ? "Has bike" : "No bike"}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="h-8 w-8 rounded-lg bg-primary-soft text-primary grid place-items-center">
+                  <Calendar className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground leading-none">Age</p>
+                  <p className={cn("text-sm font-medium mt-0.5", candidate.age == null && "text-muted-foreground italic")}>
+                    {candidate.age != null ? `${candidate.age} years` : "Not provided"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="h-8 w-8 rounded-lg bg-secondary-soft text-secondary grid place-items-center">
+                  <User className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground leading-none">Gender</p>
+                  <p className={cn("text-sm font-medium mt-0.5", !candidate.gender && "text-muted-foreground italic")}>
+                    {candidate.gender || "Not provided"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="h-8 w-8 rounded-lg bg-accent/10 text-accent grid place-items-center">
+                  <GraduationCap className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] text-muted-foreground leading-none">Qualification</p>
+                  <p className={cn("text-sm font-medium mt-0.5 break-words", !candidate.qualification && "text-muted-foreground italic")}>
+                    {candidate.qualification || "Not provided"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="h-8 w-8 rounded-lg bg-muted text-muted-foreground grid place-items-center">
+                  <Hash className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground leading-none">Pincode</p>
+                  <p className={cn("text-sm font-medium tabular-nums mt-0.5", !candidate.pincode && "text-muted-foreground italic")}>
+                    {candidate.pincode || "Not provided"}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">

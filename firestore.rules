@@ -41,6 +41,12 @@ service cloud.firestore {
       );
     }
 
+    function projectAgencyId(projectId) {
+      return projectId != null && exists(/databases/$(database)/documents/projects/$(projectId))
+        ? get(/databases/$(database)/documents/projects/$(projectId)).data.agency_id
+        : null;
+    }
+
     // ── users ──────────────────────────────────────────────────────────────
     // Users can read their own profile. Admins can read all.
     // Self-updates are allowed but role and agency_id cannot be changed.
@@ -125,6 +131,24 @@ service cloud.firestore {
       );
       allow update: if isSignedIn() && (
         isAdmin() || resource.data.agency_id == userAgencyId()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ── onboarding_candidates ────────────────────────────────────────────────
+    // Phase-1 project onboarding records. Readable by authenticated users.
+    // Agency users may only create/update records owned by their agency.
+    match /onboarding_candidates/{onboardingId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && (
+        isAdmin() ||
+        request.resource.data.agency_id == userAgencyId() ||
+        projectAgencyId(request.resource.data.project_id) == userAgencyId()
+      );
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        resource.data.agency_id == userAgencyId() ||
+        projectAgencyId(resource.data.project_id) == userAgencyId()
       );
       allow delete: if isAdmin();
     }

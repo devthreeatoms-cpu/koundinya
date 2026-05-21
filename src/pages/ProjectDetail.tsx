@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, MapPin, Calendar, Briefcase, Edit, Plus, UserMinus, Users, Eye, Loader2, Search } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Briefcase, Edit, Plus, UserMinus, Users, Eye, Loader2, Search, Save } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,10 +19,12 @@ import {
 import { useProjectById } from "@/hooks/useProjects";
 import { useAllCandidates } from "@/hooks/useCandidates";
 import { useAssignments, removeAssignment, updateAssignmentProjectStatus } from "@/hooks/useAssignments";
+import { useOnboardingCandidates, updateOnboardingEntry } from "@/hooks/useOnboardingCandidates";
 import { useAgencies } from "@/hooks/useAgencies";
 import { useAuth } from "@/context/AuthContext";
 import ProjectFormModal from "@/components/projects/ProjectFormModal";
-import AssignCandidatesModal from "@/components/projects/AssignCandidatesModal";
+import OnboardCandidatesModal from "@/components/projects/OnboardCandidatesModal";
+import MoveOnboardedToProjectModal from "@/components/projects/MoveOnboardedToProjectModal";
 import { formatDate, initials } from "@/lib/utils-format";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -59,7 +61,7 @@ function OwnerBadge({
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
-  const { isAdmin } = useAuth();
+  const { user } = useAuth();
   const { project, loading: pLoading } = useProjectById(id);
   // Project detail is already scoped by project_id, and the project doc itself
   // is access-checked above. Always bypass the owner filter here so EVERY
@@ -67,11 +69,14 @@ export default function ProjectDetail() {
   // whether the candidate sits in the admin pool or any agency pool.
   const { candidates: allCandidates } = useAllCandidates({ bypassOwnerFilter: true });
   const { assignments } = useAssignments({ project_id: id, bypassOwnerFilter: true });
+  const { items: onboardingItems, loading: onboardingLoading, error: onboardingError } = useOnboardingCandidates(id);
   const { agencies } = useAgencies({ includeDeleted: true });
   const { toast } = useToast();
 
   const [editOpen, setEditOpen] = useState(false);
-  const [assignOpen, setAssignOpen] = useState(false);
+  const [onboardOpen, setOnboardOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [statusDraft, setStatusDraft] = useState<Record<string, string>>({});
 
   // Use the full candidate list (incl. soft-deleted) so historical
   // assignments still show the candidate's name with a "(Deleted)" tag.
@@ -80,6 +85,10 @@ export default function ProjectDetail() {
 
   const active = assignments.filter((a) => a.status === "Active");
   const past = assignments.filter((a) => a.status !== "Active");
+  const onboardedCandidateIds = useMemo(
+    () => new Set(onboardingItems.map((o) => o.candidate_id)),
+    [onboardingItems]
+  );
 
   const [search, setSearch] = useState("");
 
@@ -128,7 +137,23 @@ export default function ProjectDetail() {
     }
   }
 
+  async function handleSaveOnboarding(id: string, currentStatus: string, currentNotes?: string | null) {
+    const nextStatus = (statusDraft[id] ?? currentStatus ?? "").trim();
+    const nextNotes = (currentNotes ?? "").trim();
+    try {
+      await updateOnboardingEntry(
+        id,
+        { onboarding_status: nextStatus, notes: nextNotes || null },
+        { userId: user?.uid ?? null }
+      );
+      toast({ title: "Onboarding updated" });
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message, variant: "destructive" });
+    }
+  }
+
   const hasCustomStatuses = (project?.custom_statuses?.length ?? 0) > 0;
+  const hasOnboardingStatuses = (project?.onboarding_statuses?.length ?? 0) > 0;
 
   if (pLoading) {
     return (
@@ -163,12 +188,109 @@ export default function ProjectDetail() {
             <Button variant="outline" onClick={() => setEditOpen(true)}>
               <Edit className="h-4 w-4" /> Edit
             </Button>
-            <Button onClick={() => setAssignOpen(true)} variant="premium">
-              <Plus className="h-4 w-4" /> Assign candidates
+            <Button onClick={() => setOnboardOpen(true)} variant="premium">
+              <Plus className="h-4 w-4" /> Onboard Candidate
+            </Button>
+            <Button onClick={() => setMoveOpen(true)} variant="outline">
+              <Plus className="h-4 w-4" /> Add to Project
             </Button>
           </>
         }
       />
+
+      <Card className="glass-card p-4 sm:p-6 hover-lift">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold inline-flex items-center gap-2">
+            <div className="h-7 w-7 rounded-lg bg-secondary-soft text-secondary grid place-items-center">
+              <Users className="h-3.5 w-3.5" />
+            </div>
+            Onboarding Candidates
+          </h3>
+          <Badge variant="secondary" className="bg-secondary-soft text-secondary border-0 font-semibold">
+            {onboardingItems.length}
+          </Badge>
+        </div>
+        {onboardingItems.length === 0 ? (
+          <div className="space-y-2">
+            {onboardingLoading ? (
+              <p className="text-sm text-muted-foreground">Loading onboarding candidates...</p>
+            ) : onboardingError ? (
+              <p className="text-sm text-destructive">Could not load onboarding candidates: {onboardingError}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">No onboarding candidates yet. Use "Onboard Candidate" to start phase 1.</p>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead className="font-semibold text-foreground">Candidate</TableHead>
+                  <TableHead className="font-semibold text-foreground">Phone</TableHead>
+                  <TableHead className="font-semibold text-foreground">Onboarding Status</TableHead>
+                  <TableHead className="font-semibold text-foreground">State</TableHead>
+                  <TableHead className="font-semibold text-foreground text-right">Save</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {onboardingItems.map((o, idx) => {
+                  const c = candidateMap.get(o.candidate_id);
+                  return (
+                    <TableRow key={o.id} className={cn("border-b border-border/60", idx % 2 === 1 && "bg-muted/20")}>
+                      <TableCell className="text-sm font-medium">{c?.name ?? "Unknown candidate"}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{c?.phone ?? "—"}</TableCell>
+                      <TableCell>
+                        {hasOnboardingStatuses ? (
+                          <Select
+                            value={(statusDraft[o.id] ?? o.onboarding_status ?? "__none__") || "__none__"}
+                            onValueChange={(v) => setStatusDraft((p) => ({ ...p, [o.id]: v === "__none__" ? "" : v }))}
+                          >
+                            <SelectTrigger className="h-8 text-xs w-44">
+                              <SelectValue placeholder="Select onboarding status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">— Not set —</SelectItem>
+                              {project!.onboarding_statuses!.map((s) => (
+                                <SelectItem key={s} value={s}>{s}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            value={statusDraft[o.id] ?? o.onboarding_status ?? ""}
+                            onChange={(e) => setStatusDraft((p) => ({ ...p, [o.id]: e.target.value }))}
+                            placeholder="e.g. Ready for Project"
+                            className="h-8 text-xs"
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={cn(
+                          o.status === "MovedToProject"
+                            ? "border-green-500/30 text-green-600 bg-green-500/10"
+                            : "border-yellow-500/30 text-yellow-600 bg-yellow-500/10"
+                        )}>
+                          {o.status === "MovedToProject" ? "Moved to Project" : "Onboarding"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-primary hover:text-primary hover:bg-primary-soft"
+                          onClick={() => handleSaveOnboarding(o.id, o.onboarding_status, o.notes)}
+                        >
+                          <Save className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="glass-card p-4 sm:p-6 hover-lift">
@@ -238,8 +360,8 @@ export default function ProjectDetail() {
             </div>
             <p className="text-sm font-medium">No active assignments</p>
             <p className="text-xs text-muted-foreground mt-1">Assign available candidates to get started.</p>
-            <Button onClick={() => setAssignOpen(true)} variant="premium" size="sm" className="mt-4 shadow-brand">
-              <Plus className="h-4 w-4" /> Assign candidates
+            <Button onClick={() => setMoveOpen(true)} variant="premium" size="sm" className="mt-4 shadow-brand">
+              <Plus className="h-4 w-4" /> Add to Project
             </Button>
           </div>
         ) : (
@@ -509,11 +631,19 @@ export default function ProjectDetail() {
       )}
 
       <ProjectFormModal open={editOpen} onOpenChange={setEditOpen} project={project} />
-      <AssignCandidatesModal
-        open={assignOpen}
-        onOpenChange={setAssignOpen}
+      <OnboardCandidatesModal
+        open={onboardOpen}
+        onOpenChange={setOnboardOpen}
         projectId={project.id}
         projectAgencyId={project.agency_id ?? null}
+        alreadyOnboardedIds={onboardedCandidateIds}
+      />
+      <MoveOnboardedToProjectModal
+        open={moveOpen}
+        onOpenChange={setMoveOpen}
+        projectId={project.id}
+        candidates={allCandidates}
+        onboardingItems={onboardingItems}
       />
     </div>
   );

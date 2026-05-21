@@ -68,6 +68,8 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
   const [addingStatus, setAddingStatus] = useState(false);
   const [customStatuses, setCustomStatuses] = useState<string[]>([]);
   const [newCustomStatusInput, setNewCustomStatusInput] = useState("");
+  const [onboardingStatuses, setOnboardingStatuses] = useState<string[]>([]);
+  const [newOnboardingStatusInput, setNewOnboardingStatusInput] = useState("");
 
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
 
@@ -99,7 +101,9 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
       });
       setShowManualClient(!hasLinkedClient);
       setCustomStatuses(project?.custom_statuses ?? []);
+      setOnboardingStatuses(project?.onboarding_statuses ?? []);
       setNewCustomStatusInput("");
+      setNewOnboardingStatusInput("");
     }
   }, [open, project, reset, clientMap]);
 
@@ -127,6 +131,7 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
         start_date: values.start_date ? new Date(values.start_date) : null,
         status: values.status,
         custom_statuses: customStatuses,
+        onboarding_statuses: onboardingStatuses,
       };
       if (isEdit && project) {
         await updateProject(project.id, payload);
@@ -147,7 +152,7 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden gap-0">
+      <DialogContent className="max-w-lg max-h-[90vh] p-0 overflow-hidden gap-0 flex flex-col">
         <DialogHeader className="p-4 sm:p-6 pb-4 border-b border-border bg-gradient-soft">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-gradient-brand text-white grid place-items-center shadow-brand">
@@ -164,7 +169,7 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 space-y-4 overflow-y-auto">
           <div>
             <Label htmlFor="name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Project name
@@ -380,6 +385,73 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
                       if (customStatuses.some((s) => s.toLowerCase() === trimmed.toLowerCase())) return;
                       setCustomStatuses((prev) => [...prev, trimmed]);
                       setNewCustomStatusInput("");
+                    }}
+                  >
+                    <Plus className="h-3 w-3" /> Add
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Onboarding Statuses — per-project tags used in onboarding table */}
+            <div>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Onboarding Statuses
+              </Label>
+              <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">
+                Status options for onboarding phase (e.g. "Training Pending", "Docs Pending", "Ready for Project").
+              </p>
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-1.5 min-h-[28px]">
+                  {onboardingStatuses.map((s) => (
+                    <span
+                      key={s}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary-soft text-primary border border-primary/30"
+                    >
+                      {s}
+                      <button
+                        type="button"
+                        onClick={() => setOnboardingStatuses((prev) => prev.filter((x) => x !== s))}
+                        className="ml-0.5 hover:text-destructive transition-colors"
+                        aria-label={`Remove ${s}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                  {onboardingStatuses.length === 0 && (
+                    <span className="text-xs text-muted-foreground italic">No onboarding statuses added yet.</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Add onboarding status..."
+                    value={newOnboardingStatusInput}
+                    onChange={(e) => setNewOnboardingStatusInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const trimmed = newOnboardingStatusInput.trim();
+                        if (!trimmed) return;
+                        if (onboardingStatuses.some((s) => s.toLowerCase() === trimmed.toLowerCase())) return;
+                        setOnboardingStatuses((prev) => [...prev, trimmed]);
+                        setNewOnboardingStatusInput("");
+                      }
+                    }}
+                    className="h-8 text-xs"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-3 text-xs shrink-0"
+                    disabled={!newOnboardingStatusInput.trim() || onboardingStatuses.some((s) => s.toLowerCase() === newOnboardingStatusInput.trim().toLowerCase())}
+                    onClick={() => {
+                      const trimmed = newOnboardingStatusInput.trim();
+                      if (!trimmed) return;
+                      if (onboardingStatuses.some((s) => s.toLowerCase() === trimmed.toLowerCase())) return;
+                      setOnboardingStatuses((prev) => [...prev, trimmed]);
+                      setNewOnboardingStatusInput("");
                     }}
                   >
                     <Plus className="h-3 w-3" /> Add
