@@ -152,6 +152,20 @@ export default function ProjectDetail() {
     }
   }
 
+  async function handleMarkAsReady(id: string) {
+    try {
+      await updateOnboardingEntry(
+        id,
+        { onboarding_status: "Ready for Project" },
+        { userId: user?.uid ?? null }
+      );
+      setStatusDraft((p) => ({ ...p, [id]: "Ready for Project" }));
+      toast({ title: "Marked as ready" });
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message, variant: "destructive" });
+    }
+  }
+
   const hasCustomStatuses = (project?.custom_statuses?.length ?? 0) > 0;
   const hasOnboardingStatuses = (project?.onboarding_statuses?.length ?? 0) > 0;
 
@@ -229,6 +243,7 @@ export default function ProjectDetail() {
                   <TableHead className="font-semibold text-foreground">Phone</TableHead>
                   <TableHead className="font-semibold text-foreground">Onboarding Status</TableHead>
                   <TableHead className="font-semibold text-foreground">State</TableHead>
+                  <TableHead className="font-semibold text-foreground text-center">Ready</TableHead>
                   <TableHead className="font-semibold text-foreground text-right">Save</TableHead>
                 </TableRow>
               </TableHeader>
@@ -272,6 +287,22 @@ export default function ProjectDetail() {
                         )}>
                           {o.status === "MovedToProject" ? "Moved to Project" : "Onboarding"}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          disabled={
+                            o.status === "MovedToProject" ||
+                            (statusDraft[o.id] ?? o.onboarding_status ?? "").trim().toLowerCase() === "ready for project"
+                          }
+                          onClick={() => {
+                            void handleMarkAsReady(o.id);
+                          }}
+                        >
+                          Mark as Ready
+                        </Button>
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
