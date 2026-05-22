@@ -56,8 +56,12 @@ export default function Dashboard() {
   const loading = cLoading || pLoading || aLoading || (isAdmin && agLoading);
 
   const activeAgencyIds = useMemo(
-    () => new Set(agencies.filter((a) => !a.is_deleted).map((a) => a.id)),
-    [agencies]
+    () => {
+      const activeExternal = agencies.filter((a) => !a.is_deleted).map((a) => a.id);
+      const activeInternal = internalPartners.filter((a) => !a.is_deleted).map((a) => a.id);
+      return new Set([...activeExternal, ...activeInternal]);
+    },
+    [agencies, internalPartners]
   );
   const candidates = useMemo(() => {
     if (!isAdmin) return ownCandidates; // already scoped to this user's agency

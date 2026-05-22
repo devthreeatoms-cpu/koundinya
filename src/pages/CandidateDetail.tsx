@@ -218,6 +218,17 @@ export default function CandidateDetail() {
                 </div>
               </div>
               <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="h-8 w-8 rounded-lg bg-primary-soft text-primary grid place-items-center">
+                  <User className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] text-muted-foreground leading-none">Email</p>
+                  <p className={cn("text-sm font-medium mt-0.5 break-words", !candidate.email && "text-muted-foreground italic")}>
+                    {candidate.email || "Not provided"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
                 <div className="h-8 w-8 rounded-lg bg-secondary-soft text-secondary grid place-items-center">
                   <MapPin className="h-4 w-4" />
                 </div>
@@ -289,6 +300,18 @@ export default function CandidateDetail() {
                   <p className="text-[11px] text-muted-foreground leading-none">Pincode</p>
                   <p className={cn("text-sm font-medium tabular-nums mt-0.5", !candidate.pincode && "text-muted-foreground italic")}>
                     {candidate.pincode || "Not provided"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary grid place-items-center">
+                  <Calendar className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground leading-none">Registered On</p>
+                  <p className={cn("text-sm font-medium tabular-nums mt-0.5", !candidate.created_at && "text-muted-foreground italic")}>
+                    {candidate.created_at ? formatDate((candidate.created_at as any)?.toDate?.()) : "Unknown"}
                   </p>
                 </div>
               </div>
