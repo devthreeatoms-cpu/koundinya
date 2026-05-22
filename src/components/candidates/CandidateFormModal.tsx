@@ -73,6 +73,7 @@ const INDIAN_STATES = [
 const schema = z.object({
   name: z.string().trim().min(2, "Name is required").max(100),
   phone: z.string().trim().min(6, "Phone is required").max(20),
+  email: z.string().trim().min(1, "Email is required").email("Enter a valid email"),
   state: z.string().trim().min(1, "State is required").max(100),
   district: z.string().trim().min(1, "District is required").max(100),
   area_name: z.string().trim().min(1, "Area is required").max(100),
@@ -252,6 +253,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
     defaultValues: {
       name: "",
       phone: "",
+      email: "",
       state: "",
       district: "",
       area_name: "",
@@ -295,6 +297,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
       reset({
         name: candidate?.name ?? "",
         phone: candidate?.phone ?? "",
+        email: candidate?.email ?? "",
         state: candidate?.state ?? "",
         district: candidate?.district ?? "",
         area_name: candidate?.area_name ?? "",
@@ -409,6 +412,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
 
       const finalPayload: Record<string, any> = {
         ...restValues,
+        email: values.email?.trim() || null,
         aadhar_number: values.aadhar_number || null,
         pan_number: values.pan_number || null,
         aadhar_verified: !!values.aadhar_number && isAadharValid,
@@ -510,6 +514,19 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
                   {...register("phone")}
                 />
                 <FieldError message={errors.phone?.message} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Email ID <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="e.g. ravi.kumar@email.com"
+                  className={cn("mt-1.5", errors.email && "border-destructive focus-visible:ring-destructive/20")}
+                  {...register("email")}
+                />
+                <FieldError message={errors.email?.message} />
               </div>
               <div>
                 <Label htmlFor="age" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

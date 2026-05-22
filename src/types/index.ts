@@ -22,6 +22,7 @@ export interface Candidate {
   kisfs_id?: string | null;
   name: string;
   phone: string;
+  email?: string | null;
   location?: string;
   state?: string;
   district?: string;
