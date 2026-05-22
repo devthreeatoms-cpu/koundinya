@@ -105,7 +105,7 @@ export async function assignCandidates(
     // Send email notification to the candidate
     if (candData?.email) {
       try {
-        await fetch("/api/send-email", {
+        const response = await fetch("/api/send-email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -116,8 +116,19 @@ export async function assignCandidates(
                    <p>Please log in or contact your administrator for more details.</p>`,
           }),
         });
+        
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          console.error("API Error Response:", errData);
+          if (response.status === 404) {
+            window.alert("Email failed to send locally. Make sure you run 'npx vercel dev' instead of 'npm run dev' to test emails.");
+          } else {
+            window.alert(`Email API failed with status ${response.status}`);
+          }
+        }
       } catch (err) {
         console.error("Failed to send assignment email to candidate:", err);
+        window.alert("Network error: Failed to send assignment email.");
       }
     }
   }

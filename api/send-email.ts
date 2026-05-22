@@ -24,7 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const subject = body.subject?.trim();
   const html = body.html?.trim();
   const text = body.text?.trim();
-  const from = (body.from ?? process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev").trim();
+  const from = (body.from ?? process.env.RESEND_FROM_EMAIL ?? "noreply@workspace.koundinyaintegratedservices.com").trim();
 
   if (!to || !subject || (!html && !text)) {
     return res.status(400).json({
