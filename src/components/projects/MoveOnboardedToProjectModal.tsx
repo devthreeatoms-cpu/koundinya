@@ -10,6 +10,7 @@ import type { Candidate, OnboardingCandidate } from "@/types";
 import { getNextKisfsSuffix, moveOnboardedToProject, useTakenKisfsSet } from "@/hooks/useOnboardingCandidates";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
+import { cn } from "@/lib/utils";
 
 interface Props {
   open: boolean;
@@ -53,7 +54,16 @@ export default function MoveOnboardedToProjectModal({
     const nextSuffix: Record<string, string> = {};
     let next = Number(getNextKisfsSuffix(candidates));
     const localUsed = new Set<number>();
-    readyItems.forEach((o) => {
+
+    // Sort oldest first so that when new candidates are added to the list,
+    // they get the higher IDs and don't steal the lower IDs from older candidates.
+    const sortedReadyItems = [...readyItems].sort((a, b) => {
+      const timeA = (a.created_at as any)?.toMillis?.() ?? 0;
+      const timeB = (b.created_at as any)?.toMillis?.() ?? 0;
+      return timeA - timeB;
+    });
+
+    sortedReadyItems.forEach((o) => {
       const c = candidateMap.get(o.candidate_id);
       if (!c) return;
       if (c.kisfs_id && /^KISFS\d{3}$/.test(c.kisfs_id)) {
@@ -130,7 +140,7 @@ export default function MoveOnboardedToProjectModal({
         <DialogHeader className="p-4 sm:p-6 border-b border-border">
           <DialogTitle>Add Candidates to Project</DialogTitle>
           <DialogDescription>
-            Only onboarding entries with status "Ready for Project" can be moved. Fully KYC verified candidates only.
+            Only onboarding entries with status "Ready for Project" can be moved. Candidates must be fully KYC verified with bank details.
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="flex-1 px-6">
@@ -141,24 +151,41 @@ export default function MoveOnboardedToProjectModal({
               {readyItems.map((o) => {
                 const c = candidateMap.get(o.candidate_id);
                 if (!c) return null;
-                const checked = selected.has(o.id);
+                
+                const hasAadhar = !!c.aadhar_number;
+                const hasPan = !!c.pan_number;
+                const aadharVerified = c.aadhar_verified !== false;
+                const panVerified = c.pan_verified !== false;
+                const hasBankDetails = !!c.bank_account_number && !!c.bank_ifsc;
+                const fullyKyc = hasAadhar && hasPan && aadharVerified && panVerified && hasBankDetails;
+                
+                const checked = fullyKyc && selected.has(o.id);
+
                 return (
                   <li key={o.id} className="border border-border/60 rounded-lg p-3">
                     <div className="flex items-center gap-3">
-                      <Checkbox checked={checked} onCheckedChange={() => toggle(o.id)} />
+                      <Checkbox 
+                        checked={checked} 
+                        onCheckedChange={() => toggle(o.id)} 
+                        disabled={!fullyKyc} 
+                      />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold truncate">{c.name}</p>
                         <p className="text-xs text-muted-foreground">{c.phone}</p>
                       </div>
+                      {!fullyKyc && (
+                        <Badge variant="destructive" className="text-[10px]">Incomplete KYC/Bank</Badge>
+                      )}
                       <Badge variant="outline">Ready for Project</Badge>
                     </div>
-                    <div className="mt-2 flex items-center gap-2">
+                    <div className={cn("mt-2 flex items-center gap-2", !fullyKyc && "opacity-50 pointer-events-none")}>
                       <span className="text-xs text-muted-foreground">KISFS</span>
                       <Input
                         value={suffixMap[c.id] ?? ""}
                         onChange={(e) => setSuffix(c.id, e.target.value)}
                         className="w-28 h-8 text-xs"
                         placeholder="170"
+                        disabled={!fullyKyc}
                       />
                       <span className="text-xs text-muted-foreground">Final: KISFS{(suffixMap[c.id] ?? "").padStart(3, "0")}</span>
                     </div>

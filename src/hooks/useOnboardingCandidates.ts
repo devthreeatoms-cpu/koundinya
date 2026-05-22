@@ -139,7 +139,8 @@ function isFullyKyc(candidate: Candidate) {
   const hasPan = !!candidate.pan_number;
   const aadharVerified = candidate.aadhar_verified !== false;
   const panVerified = candidate.pan_verified !== false;
-  return hasAadhar && hasPan && aadharVerified && panVerified;
+  const hasBankDetails = !!candidate.bank_account_number && !!candidate.bank_ifsc;
+  return hasAadhar && hasPan && aadharVerified && panVerified && hasBankDetails;
 }
 
 async function notifyProjectAssignment(candidate: Candidate, projectName: string) {
@@ -191,7 +192,7 @@ export async function moveOnboardedToProject(params: {
     const candidate = { id: candidateSnap.id, ...(candidateSnap.data() as any) } as Candidate;
 
     if (!isFullyKyc(candidate)) {
-      throw new Error(`Candidate ${candidate.name} is not fully KYC verified.`);
+      throw new Error(`Candidate ${candidate.name} does not have fully verified KYC or is missing bank details.`);
     }
 
     const kisfsId = kisfsByCandidateId[candidate.id];
