@@ -71,6 +71,11 @@ export async function assignCandidates(
   // can never drift.
   _ctx?: { agency_id?: string | null }
 ) {
+  // Fetch project details to include the project name in the email
+  const projSnap = await getDoc(doc(db, "projects", projectId));
+  const projData = projSnap.exists() ? (projSnap.data() as any) : null;
+  const projectName = projData?.name || "a project";
+
   for (const cid of candidateIds) {
     // check no active assignment
     const existing = await getDocs(
@@ -85,9 +90,8 @@ export async function assignCandidates(
     // Derive agency_id from the candidate so assignment.agency_id always
     // matches candidate.agency_id (admin pool => null, agency => agency id).
     const candSnap = await getDoc(doc(db, "candidates", cid));
-    const candAgencyId = candSnap.exists()
-      ? ((candSnap.data() as any).agency_id ?? null)
-      : null;
+    const candData = candSnap.exists() ? (candSnap.data() as any) : null;
+    const candAgencyId = candData?.agency_id ?? null;
 
     await addDoc(collection(db, COL), {
       candidate_id: cid,
@@ -97,6 +101,25 @@ export async function assignCandidates(
       removed_at: null,
       agency_id: candAgencyId,
     });
+
+    // Send email notification to the candidate
+    if (candData?.email) {
+      try {
+        await fetch("/api/send-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: candData.email,
+            subject: "Project Assignment Notification",
+            html: `<p>Hello ${candData.name || "Candidate"},</p>
+                   <p>You have been assigned to the project: <strong>${projectName}</strong>.</p>
+                   <p>Please log in or contact your administrator for more details.</p>`,
+          }),
+        });
+      } catch (err) {
+        console.error("Failed to send assignment email to candidate:", err);
+      }
+    }
   }
 }
 

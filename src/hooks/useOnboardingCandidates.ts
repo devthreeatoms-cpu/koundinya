@@ -12,6 +12,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { sendAppEmail } from "@/lib/resend-client";
 import type { Candidate, OnboardingCandidate } from "@/types";
 import { assignCandidates } from "@/hooks/useAssignments";
 import { updateCandidate } from "@/hooks/useCandidates";
@@ -141,6 +142,29 @@ function isFullyKyc(candidate: Candidate) {
   return hasAadhar && hasPan && aadharVerified && panVerified;
 }
 
+async function notifyProjectAssignment(candidate: Candidate, projectName: string) {
+  const email = candidate.email?.trim();
+  if (!email) return;
+
+  const safeName = candidate.name?.trim() || "Candidate";
+  const safeProject = projectName.trim() || "your project";
+  const subject = `You have been assigned to ${safeProject}`;
+  const text = [
+    `Hello ${safeName},`,
+    "",
+    `You have been assigned to the project "${safeProject}".`,
+    "",
+    "If you have any doubts, please contact the team.",
+  ].join("\n");
+  const html = `
+    <p>Hello ${safeName},</p>
+    <p>You have been assigned to the project "<strong>${safeProject}</strong>".</p>
+    <p>If you have any doubts, please contact the team.</p>
+  `;
+
+  await sendAppEmail({ to: email, subject, text, html });
+}
+
 export async function moveOnboardedToProject(params: {
   projectId: string;
   onboardingIds: string[];
@@ -149,6 +173,10 @@ export async function moveOnboardedToProject(params: {
 }) {
   const { projectId, onboardingIds, kisfsByCandidateId, userId } = params;
   if (onboardingIds.length === 0) return;
+  const projectSnap = await getDoc(doc(db, "projects", projectId));
+  const projectName = projectSnap.exists()
+    ? ((projectSnap.data() as any).name ?? "your project")
+    : "your project";
 
   for (const onboardingId of onboardingIds) {
     const onboardingSnap = await getDoc(doc(db, COL, onboardingId));
@@ -176,6 +204,38 @@ export async function moveOnboardedToProject(params: {
       status: "MovedToProject",
       assignment_id: null,
       moved_to_project_at: serverTimestamp(),
+      updated_at: serverTimestamp(),
+      updated_by: userId ?? null,
+    });
+
+    try {
+      await notifyProjectAssignment(candidate, projectName);
+    } catch (err) {
+      console.warn("Project assignment email failed:", err);
+    }
+  }
+}
+
+export async function resetOnboardingAfterProjectRemoval(params: {
+  projectId: string;
+  candidateId: string;
+  userId?: string | null;
+}) {
+  const { projectId, candidateId, userId } = params;
+  const snap = await getDocs(
+    query(
+      collection(db, COL),
+      where("project_id", "==", projectId),
+      where("candidate_id", "==", candidateId)
+    )
+  );
+  if (snap.empty) return;
+
+  for (const d of snap.docs) {
+    await updateDoc(doc(db, COL, d.id), {
+      status: "Onboarding",
+      moved_to_project_at: null,
+      assignment_id: null,
       updated_at: serverTimestamp(),
       updated_by: userId ?? null,
     });

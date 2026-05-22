@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, MapPin, Calendar, Briefcase, Edit, Plus, UserMinus, Users, Eye, Loader2, Search, Save } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
@@ -19,7 +19,7 @@ import {
 import { useProjectById } from "@/hooks/useProjects";
 import { useAllCandidates } from "@/hooks/useCandidates";
 import { useAssignments, removeAssignment, updateAssignmentProjectStatus } from "@/hooks/useAssignments";
-import { useOnboardingCandidates, updateOnboardingEntry } from "@/hooks/useOnboardingCandidates";
+import { useOnboardingCandidates, updateOnboardingEntry, resetOnboardingAfterProjectRemoval } from "@/hooks/useOnboardingCandidates";
 import { useAgencies } from "@/hooks/useAgencies";
 import { useAuth } from "@/context/AuthContext";
 import ProjectFormModal from "@/components/projects/ProjectFormModal";
@@ -85,10 +85,32 @@ export default function ProjectDetail() {
 
   const active = assignments.filter((a) => a.status === "Active");
   const past = assignments.filter((a) => a.status !== "Active");
+  const activeCandidateIds = useMemo(
+    () => new Set(active.map((a) => a.candidate_id)),
+    [active]
+  );
   const onboardedCandidateIds = useMemo(
     () => new Set(onboardingItems.map((o) => o.candidate_id)),
     [onboardingItems]
   );
+
+  useEffect(() => {
+    if (!id) return;
+    const stale = onboardingItems.filter(
+      (o) => o.status === "MovedToProject" && !activeCandidateIds.has(o.candidate_id)
+    );
+    if (stale.length === 0) return;
+
+    void Promise.all(
+      stale.map((o) =>
+        resetOnboardingAfterProjectRemoval({
+          projectId: id,
+          candidateId: o.candidate_id,
+          userId: user?.uid ?? null,
+        })
+      )
+    );
+  }, [id, onboardingItems, activeCandidateIds, user?.uid]);
 
   const [search, setSearch] = useState("");
 
@@ -120,9 +142,16 @@ export default function ProjectDetail() {
     });
   }, [past, candidateMap, search]);
 
-  async function handleRemove(assignmentId: string) {
+  async function handleRemove(assignmentId: string, candidateId: string) {
     try {
       await removeAssignment(assignmentId, "Completed");
+      if (id) {
+        await resetOnboardingAfterProjectRemoval({
+          projectId: id,
+          candidateId,
+          userId: user?.uid ?? null,
+        });
+      }
       toast({ title: "Candidate removed from project" });
     } catch (err: any) {
       toast({ title: "Error", description: err?.message, variant: "destructive" });
@@ -474,7 +503,7 @@ export default function ProjectDetail() {
                             </Link>
                           </Button>
                         )}
-                        <Button variant="ghost" size="sm" onClick={() => handleRemove(a.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-9">
+                        <Button variant="ghost" size="sm" onClick={() => handleRemove(a.id, a.candidate_id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-9">
                           <UserMinus className="h-4 w-4" /> Remove
                         </Button>
                       </div>
@@ -559,7 +588,7 @@ export default function ProjectDetail() {
                                 </Link>
                               </Button>
                             )}
-                            <Button variant="ghost" size="sm" onClick={() => handleRemove(a.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                            <Button variant="ghost" size="sm" onClick={() => handleRemove(a.id, a.candidate_id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
                               <UserMinus className="h-4 w-4" /> Remove
                             </Button>
                           </div>
