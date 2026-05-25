@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, MapPin, Calendar, Briefcase, Edit, Plus, UserMinus, Users, Eye, Loader2, Search, Save } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, MapPin, Calendar, Briefcase, Edit, Plus, UserMinus, Users, Eye, Loader2, Search, Save, Trash2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { useProjectById } from "@/hooks/useProjects";
+import { deleteProject } from "@/hooks/useProjects";
 import { useAllCandidates } from "@/hooks/useCandidates";
 import { useAssignments, removeAssignment, updateAssignmentProjectStatus } from "@/hooks/useAssignments";
 import { useOnboardingCandidates, updateOnboardingEntry, resetOnboardingAfterProjectRemoval } from "@/hooks/useOnboardingCandidates";
@@ -61,7 +62,8 @@ function OwnerBadge({
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const { project, loading: pLoading } = useProjectById(id);
   // Project detail is already scoped by project_id, and the project doc itself
   // is access-checked above. Always bypass the owner filter here so EVERY
@@ -77,6 +79,8 @@ export default function ProjectDetail() {
   const [onboardOpen, setOnboardOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [statusDraft, setStatusDraft] = useState<Record<string, string>>({});
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Use the full candidate list (incl. soft-deleted) so historical
   // assignments still show the candidate's name with a "(Deleted)" tag.
@@ -223,6 +227,31 @@ export default function ProjectDetail() {
         <ArrowLeft className="h-3.5 w-3.5" /> Back to projects
       </Link>
 
+  if (pLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="space-y-4">
+        <Link to="/projects" className="text-sm text-muted-foreground inline-flex items-center gap-1 hover:text-foreground transition-colors">
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to projects
+        </Link>
+        <Card className="p-12 text-center"><p className="text-sm text-muted-foreground">Project not found.</p></Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Link to="/projects" className="text-sm text-muted-foreground inline-flex items-center gap-1 hover:text-foreground transition-colors w-fit">
+        <ArrowLeft className="h-3.5 w-3.5" /> Back to projects
+      </Link>
+
       <PageHeader
         title={project.name}
         description={project.client_name || "Internal project"}
@@ -237,6 +266,15 @@ export default function ProjectDetail() {
             <Button onClick={() => setMoveOpen(true)} variant="outline">
               <Plus className="h-4 w-4" /> Add to Project
             </Button>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => setDeleteConfirm(true)}
+              >
+                <Trash2 className="h-4 w-4" /> Delete
+              </Button>
+            )}
           </>
         }
       />
@@ -705,6 +743,55 @@ export default function ProjectDetail() {
         candidates={allCandidates}
         onboardingItems={onboardingItems}
       />
+
+      {/* Delete confirmation dialog */}
+      {deleteConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+          onClick={(e) => { if (e.target === e.currentTarget && !deleting) setDeleteConfirm(false); }}
+        >
+          <Card className="w-full max-w-sm p-6 space-y-4 animate-fade-in-up">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-destructive/10 text-destructive grid place-items-center">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Delete project</h3>
+                <p className="text-xs text-muted-foreground">This action cannot be undone.</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to permanently delete <strong className="text-foreground">{project.name}</strong>?
+              All assignments and onboarding records for this project will become orphaned.
+            </p>
+            <div className="flex items-center gap-2 justify-end">
+              <Button variant="outline" onClick={() => setDeleteConfirm(false)} disabled={deleting}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={deleting}
+                onClick={async () => {
+                  setDeleting(true);
+                  try {
+                    await deleteProject(project.id);
+                    toast({ title: "Project deleted" });
+                    navigate("/projects", { replace: true });
+                  } catch (err: any) {
+                    toast({ title: "Error", description: err?.message ?? "Failed to delete project", variant: "destructive" });
+                    setDeleting(false);
+                    setDeleteConfirm(false);
+                  }
+                }}
+              >
+                {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
+                Delete permanently
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  collection, onSnapshot, addDoc, updateDoc, doc, serverTimestamp, Timestamp,
+  collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, Timestamp,
   query, where, QueryConstraint,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -111,4 +111,8 @@ export async function updateProject(
   if (data.start_date instanceof Date) payload.start_date = Timestamp.fromDate(data.start_date);
 
   await updateDoc(doc(db, COL, id), payload);
+}
+
+export async function deleteProject(id: string) {
+  await deleteDoc(doc(db, COL, id));
 }
