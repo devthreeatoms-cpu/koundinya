@@ -84,7 +84,7 @@ service cloud.firestore {
     // ── project_statuses ───────────────────────────────────────────────────
     match /project_statuses/{statusId} {
       allow read:  if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isAdmin() || isInternal();
     }
 
     // ── candidates ─────────────────────────────────────────────────────────

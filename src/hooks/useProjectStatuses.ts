@@ -15,7 +15,7 @@ export interface ProjectStatusItem {
 }
 
 export function useProjectStatuses() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isInternal } = useAuth();
   const [statuses, setStatuses] = useState<ProjectStatusItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,7 +35,7 @@ export function useProjectStatuses() {
   }, []);
 
   async function addStatus(name: string) {
-    if (!isAdmin) throw new Error("Only admins can add statuses");
+    if (!isAdmin && !isInternal) throw new Error("Only admins and internal team can add statuses");
     const trimmed = name.trim();
     if (!trimmed) throw new Error("Status name is required");
     if (statuses.some((s) => s.name.toLowerCase() === trimmed.toLowerCase())) {
@@ -52,5 +52,5 @@ export function useProjectStatuses() {
     await deleteDoc(doc(db, COL, id));
   }
 
-  return { statuses, loading, addStatus, removeStatus, isAdmin };
+  return { statuses, loading, addStatus, removeStatus, isAdmin, isInternal };
 }

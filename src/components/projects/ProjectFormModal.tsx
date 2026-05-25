@@ -274,7 +274,7 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
                 </div>
 
                 {/* Add new status */}
-                {isAdmin && (
+                {(isAdmin || isInternal) && (
                   <div className="flex items-center gap-2">
                     <Input
                       placeholder="Add new status…"
