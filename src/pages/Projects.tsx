@@ -23,10 +23,10 @@ import { formatDate } from "@/lib/utils-format";
 import { cn } from "@/lib/utils";
 
 export default function ProjectsPage() {
-  const { isAdmin } = useAuth();
-  // Admins should see ALL projects (admin-owned + every agency's projects) so
-  // the totals match the dashboard. Agency users keep their scoped view.
-  const { projects, loading } = useProjects({ bypassOwnerFilter: isAdmin });
+  const { isAdmin, isInternal } = useAuth();
+  // Admins and internal team should see ALL projects so
+  // the totals match the dashboard. Supply partners keep their scoped view.
+  const { projects, loading } = useProjects({ bypassOwnerFilter: isAdmin || isInternal });
   // Same for assignments — bypass ownership so per-project counts are accurate
   // across admin and agency-owned projects.
   const { assignments } = useAssignments({ bypassOwnerFilter: true });

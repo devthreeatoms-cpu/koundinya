@@ -20,13 +20,16 @@ export function useAssignments(filter?: {
    */
   bypassOwnerFilter?: boolean;
 }) {
-  const { isAdmin, agencyId, loading: authLoading } = useAuth();
+  const { isAdmin, isInternal, agencyId, loading: authLoading } = useAuth();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Internal team members have the same assignment visibility as admins.
+  const hasFullAccess = isAdmin || isInternal;
+
   useEffect(() => {
     if (authLoading) { setLoading(true); return; }
-    if (!isAdmin && !agencyId) {
+    if (!hasFullAccess && !agencyId) {
       setAssignments([]);
       setLoading(false);
       return;
@@ -35,10 +38,9 @@ export function useAssignments(filter?: {
     const constraints: QueryConstraint[] = [];
     if (filter?.project_id) constraints.push(where("project_id", "==", filter.project_id));
     if (filter?.candidate_id) constraints.push(where("candidate_id", "==", filter.candidate_id));
-    if (!filter?.bypassOwnerFilter) {
-      // Strict separation: admin sees ONLY admin-owned (agency_id == null) assignments.
-      if (isAdmin) constraints.push(where("agency_id", "==", null));
-      else constraints.push(where("agency_id", "==", agencyId));
+    if (!filter?.bypassOwnerFilter && !hasFullAccess) {
+      // Supply partners see only their own assignments.
+      constraints.push(where("agency_id", "==", agencyId));
     }
     const q = query(base, ...constraints);
 
@@ -58,7 +60,7 @@ export function useAssignments(filter?: {
     );
     return () => unsub();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter?.project_id, filter?.candidate_id, filter?.bypassOwnerFilter, isAdmin, agencyId, authLoading]);
+  }, [filter?.project_id, filter?.candidate_id, filter?.bypassOwnerFilter, hasFullAccess, agencyId, authLoading]);
 
   return { assignments, loading };
 }

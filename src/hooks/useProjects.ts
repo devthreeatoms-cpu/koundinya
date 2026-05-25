@@ -10,28 +10,27 @@ import { useAuth } from "@/context/AuthContext";
 const COL = "projects";
 
 export function useProjects(opts?: { bypassOwnerFilter?: boolean }) {
-  const { isAdmin, agencyId, loading: authLoading } = useAuth();
+  const { isAdmin, isInternal, agencyId, loading: authLoading } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const bypass = !!opts?.bypassOwnerFilter;
 
+  // Internal team members should see ALL projects (same as admin) so they
+  // can view, create, and assign candidates to any project.
+  const hasFullAccess = isAdmin || isInternal;
+
   useEffect(() => {
     if (authLoading) return;
-    if (!bypass && !isAdmin && !agencyId) {
+    if (!bypass && !hasFullAccess && !agencyId) {
       setProjects([]);
       setLoading(false);
       return;
     }
-    // Strict separation: admin sees ONLY admin-owned data (agency_id == null).
-    // bypass=true is used only on detail screens that already access-check a
-    // specific agency-owned record.
-    const constraints: QueryConstraint[] = bypass
+    // Admin and internal team see all projects; supply partners only see
+    // projects tagged with their own agency_id.
+    const constraints: QueryConstraint[] = bypass || hasFullAccess
       ? []
-      : [
-          isAdmin
-            ? where("agency_id", "==", null)
-            : where("agency_id", "==", agencyId),
-        ];
+      : [where("agency_id", "==", agencyId)];
     const q = constraints.length
       ? query(collection(db, COL), ...constraints)
       : query(collection(db, COL));
@@ -50,7 +49,7 @@ export function useProjects(opts?: { bypassOwnerFilter?: boolean }) {
       () => setLoading(false)
     );
     return () => unsub();
-  }, [isAdmin, agencyId, authLoading, bypass]);
+  }, [hasFullAccess, agencyId, authLoading, bypass]);
 
   return { projects, loading };
 }

@@ -46,7 +46,7 @@ export default function Dashboard() {
   const cLoading = isAdmin ? combinedCLoading : ownCLoading;
 
   const { candidates: allCandidates } = useAllCandidates({ bypassOwnerFilter: isAdmin });
-  const { projects, loading: pLoading } = useProjects({ bypassOwnerFilter: isAdmin });
+  const { projects, loading: pLoading } = useProjects({ bypassOwnerFilter: isAdmin || isInternal });
   // No bypassOwnerFilter — each user sees only their own assignments.
   const { assignments, loading: aLoading } = useAssignments();
   const { agencies, loading: agLoading } = useAgencies({ includeDeleted: true, isInternal: false });
@@ -499,7 +499,7 @@ export default function Dashboard() {
           )}
         </Card>
 
-        {isAdmin && (
+        {(isAdmin || isInternal) && (
         <Card className="glass-card p-4 sm:p-6 hover-lift animate-fade-in-up">
           <div className="mb-4">
             <h3 className="font-semibold tracking-tight">Projects</h3>
@@ -662,7 +662,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {isAdmin && (
+      {(isAdmin || isInternal) && (
       <Card className="glass-card p-4 sm:p-6 hover-lift animate-fade-in-up">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold tracking-tight">Recent projects</h3>
