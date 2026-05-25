@@ -227,31 +227,6 @@ export default function ProjectDetail() {
         <ArrowLeft className="h-3.5 w-3.5" /> Back to projects
       </Link>
 
-  if (pLoading) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!project) {
-    return (
-      <div className="space-y-4">
-        <Link to="/projects" className="text-sm text-muted-foreground inline-flex items-center gap-1 hover:text-foreground transition-colors">
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to projects
-        </Link>
-        <Card className="p-12 text-center"><p className="text-sm text-muted-foreground">Project not found.</p></Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <Link to="/projects" className="text-sm text-muted-foreground inline-flex items-center gap-1 hover:text-foreground transition-colors w-fit">
-        <ArrowLeft className="h-3.5 w-3.5" /> Back to projects
-      </Link>
-
       <PageHeader
         title={project.name}
         description={project.client_name || "Internal project"}
