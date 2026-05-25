@@ -41,6 +41,11 @@ service cloud.firestore {
       );
     }
 
+    function isInternal() {
+      let ag = agencyData();
+      return isSignedIn() && ag != null && ag.get('is_internal', false) == true;
+    }
+
     function projectAgencyId(projectId) {
       return projectId != null && exists(/databases/$(database)/documents/projects/$(projectId))
         ? get(/databases/$(database)/documents/projects/$(projectId)).data.agency_id
@@ -104,15 +109,17 @@ service cloud.firestore {
     }
 
     // ── projects ───────────────────────────────────────────────────────────
+    // Internal team members have the same project privileges as admins:
+    // they can create and update projects with agency_id == null.
     match /projects/{projectId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && (
-        isAdmin()
+        (isAdmin() || isInternal())
           ? request.resource.data.agency_id == null
           : request.resource.data.agency_id == userAgencyId()
       );
       allow update: if isSignedIn() && (
-        isAdmin()
+        (isAdmin() || isInternal())
           ? resource.data.agency_id == null
           : resource.data.agency_id == userAgencyId()
       );

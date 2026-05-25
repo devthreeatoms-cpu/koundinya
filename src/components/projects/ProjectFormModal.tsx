@@ -58,7 +58,7 @@ function FieldError({ message }: { message?: string }) {
 
 export default function ProjectFormModal({ open, onOpenChange, project }: Props) {
   const { toast } = useToast();
-  const { agencyId, isAdmin } = useAuth();
+  const { agencyId, isAdmin, isInternal } = useAuth();
   const { clients } = useClients();
   const { statuses, addStatus, removeStatus } = useProjectStatuses();
   const isEdit = !!project;
@@ -137,7 +137,7 @@ export default function ProjectFormModal({ open, onOpenChange, project }: Props)
         await updateProject(project.id, payload);
         toast({ title: "Project updated" });
       } else {
-        await createProject(payload, { agency_id: agencyId });
+        await createProject(payload, { agency_id: isAdmin || isInternal ? null : agencyId });
         toast({ title: "Project created" });
       }
       onOpenChange(false);
