@@ -114,6 +114,23 @@ export default function ProjectDetail() {
     [onboardingItems]
   );
 
+  // Onboarding-status filter options: the project's defined statuses plus any
+  // value actually present on the records (e.g. "Ready for Project", "New").
+  const onboardingStatusOptions = useMemo(() => {
+    const set = new Set<string>();
+    (project?.onboarding_statuses ?? []).forEach((s) => s && set.add(s));
+    onboardingItems.forEach((o) => { if (o.onboarding_status?.trim()) set.add(o.onboarding_status.trim()); });
+    return Array.from(set);
+  }, [project?.onboarding_statuses, onboardingItems]);
+
+  const filteredOnboarding = useMemo(() => {
+    if (onboardingStatusFilter === "all") return onboardingItems;
+    if (onboardingStatusFilter === "__none__") {
+      return onboardingItems.filter((o) => !(o.onboarding_status ?? "").trim());
+    }
+    return onboardingItems.filter((o) => (o.onboarding_status ?? "").trim() === onboardingStatusFilter);
+  }, [onboardingItems, onboardingStatusFilter]);
+
   useEffect(() => {
     if (!id) return;
     const stale = onboardingItems.filter(
@@ -295,16 +312,34 @@ export default function ProjectDetail() {
       />
 
       <Card className="glass-card p-4 sm:p-6 hover-lift">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
           <h3 className="font-semibold inline-flex items-center gap-2">
             <div className="h-7 w-7 rounded-lg bg-secondary-soft text-secondary grid place-items-center">
               <Users className="h-3.5 w-3.5" />
             </div>
             Onboarding Candidates
           </h3>
-          <Badge variant="secondary" className="bg-secondary-soft text-secondary border-0 font-semibold">
-            {onboardingItems.length}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {onboardingItems.length > 0 && (
+              <Select value={onboardingStatusFilter} onValueChange={setOnboardingStatusFilter}>
+                <SelectTrigger className="h-9 text-xs w-48">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  {onboardingStatusOptions.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                  <SelectItem value="__none__">— Not set —</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+            <Badge variant="secondary" className="bg-secondary-soft text-secondary border-0 font-semibold">
+              {onboardingStatusFilter === "all"
+                ? onboardingItems.length
+                : `${filteredOnboarding.length}/${onboardingItems.length}`}
+            </Badge>
+          </div>
         </div>
         {onboardingItems.length === 0 ? (
           <div className="space-y-2">
@@ -315,6 +350,10 @@ export default function ProjectDetail() {
             ) : (
               <p className="text-sm text-muted-foreground">No onboarding candidates yet. Use "Onboard Candidate" to start phase 1.</p>
             )}
+          </div>
+        ) : filteredOnboarding.length === 0 ? (
+          <div className="py-10 text-center text-sm text-muted-foreground">
+            No onboarding candidates with this status.
           </div>
         ) : (
           <div className="rounded-lg border border-border overflow-hidden">
@@ -330,7 +369,7 @@ export default function ProjectDetail() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {onboardingItems.map((o, idx) => {
+                {filteredOnboarding.map((o, idx) => {
                   const c = candidateMap.get(o.candidate_id);
                   return (
                     <TableRow key={o.id} className={cn("border-b border-border/60", idx % 2 === 1 && "bg-muted/20")}>
