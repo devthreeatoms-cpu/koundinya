@@ -73,7 +73,7 @@ const INDIAN_STATES = [
 const schema = z.object({
   name: z.string().trim().min(2, "Name is required").max(100),
   phone: z.string().trim().min(6, "Phone is required").max(20),
-  email: z.string().trim().min(1, "Email is required").email("Enter a valid email"),
+  email: z.string().trim().email("Enter a valid email").optional().or(z.literal("")),
   state: z.string().trim().min(1, "State is required").max(100),
   district: z.string().trim().min(1, "District is required").max(100),
   area_name: z.string().trim().min(1, "Area is required").max(100),
@@ -124,8 +124,10 @@ const schema = z.object({
   qualification: z.string().trim().min(1, "Qualification is required").max(100),
   pincode: z
     .string()
-    .min(1, "Pincode is required")
-    .refine((val) => /^\d{6}$/.test(val), { message: "Enter valid 6-digit pincode" }),
+    .trim()
+    .refine((val) => !val || /^\d{6}$/.test(val), { message: "Enter valid 6-digit pincode" })
+    .optional()
+    .or(z.literal("")),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -395,9 +397,21 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
         source_member_name = values.source === "Internal Team"
           ? (internalPartners.find(p => p.id === source_member_id)?.name ?? null)
           : (agencies.find(a => a.id === source_member_id)?.name ?? null);
-      } else if (!isAdmin && agencyId) {
-        source_member_id = agencyId;
-        source_member_name = agencies.find(a => a.id === agencyId)?.name ?? null;
+      } else if (!isAdmin) {
+        if (isEdit && candidate) {
+          // Editing someone else's candidate (e.g. an internal manager) must
+          // NOT reassign the "added by" attribution to the editor — preserve
+          // whoever originally sourced the candidate.
+          source_member_id = candidate.source_member_id ?? null;
+          source_member_name = candidate.source_member_name ?? null;
+        } else if (agencyId) {
+          // New candidate created by this member → they are the source.
+          source_member_id = agencyId;
+          source_member_name =
+            agencies.find(a => a.id === agencyId)?.name ??
+            internalPartners.find(p => p.id === agencyId)?.name ??
+            null;
+        }
       }
 
       const { kisfs_suffix, ...restValues } = values;
@@ -517,7 +531,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
               </div>
               <div className="sm:col-span-2">
                 <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Email ID <span className="text-destructive">*</span>
+                  Email ID <span className="text-muted-foreground/60 normal-case font-normal">(optional)</span>
                 </Label>
                 <Input
                   id="email"
@@ -855,7 +869,7 @@ export default function CandidateFormModal({ open, onOpenChange, candidate }: Pr
             {/* Pincode */}
             <div className="mt-4">
               <Label htmlFor="pincode" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Pincode <span className="text-destructive">*</span>
+                Pincode <span className="text-muted-foreground/60 normal-case font-normal">(optional)</span>
               </Label>
               <Input
                 id="pincode"

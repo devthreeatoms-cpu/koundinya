@@ -39,21 +39,24 @@ import { Building2 } from "lucide-react";
 
 export default function Dashboard() {
   const { isAdmin, isInternal } = useAuth();
+  // Admins and internal team members get the same org-wide view; supply
+  // partners stay scoped to their own pool.
+  const hasFullAccess = isAdmin || isInternal;
 
-  // Agency/internal-team users see strictly their own candidates; admins see all.
+  // Supply-partner users see strictly their own candidates; full-access users see all.
   const { candidates: ownCandidates, loading: ownCLoading } = useCandidates();
   const { candidates: combinedCandidates, loading: combinedCLoading } = useCombinedCandidatePool();
-  const cLoading = isAdmin ? combinedCLoading : ownCLoading;
+  const cLoading = hasFullAccess ? combinedCLoading : ownCLoading;
 
-  const { candidates: allCandidates } = useAllCandidates({ bypassOwnerFilter: isAdmin });
-  const { projects, loading: pLoading } = useProjects({ bypassOwnerFilter: isAdmin || isInternal });
+  const { candidates: allCandidates } = useAllCandidates({ bypassOwnerFilter: hasFullAccess });
+  const { projects, loading: pLoading } = useProjects({ bypassOwnerFilter: hasFullAccess });
   // No bypassOwnerFilter — each user sees only their own assignments.
   const { assignments, loading: aLoading } = useAssignments();
   const { agencies, loading: agLoading } = useAgencies({ includeDeleted: true, isInternal: false });
   const { agencies: internalPartners, loading: ipLoading } = useAgencies({ includeDeleted: true, isInternal: true });
 
   // Agency users don't wait on the agencies query for their loading state.
-  const loading = cLoading || pLoading || aLoading || (isAdmin && agLoading);
+  const loading = cLoading || pLoading || aLoading || (hasFullAccess && agLoading);
 
   const activeAgencyIds = useMemo(
     () => {
@@ -64,12 +67,12 @@ export default function Dashboard() {
     [agencies, internalPartners]
   );
   const candidates = useMemo(() => {
-    if (!isAdmin) return ownCandidates; // already scoped to this user's agency
-    // Admin: filter out candidates from deactivated supply partners.
+    if (!hasFullAccess) return ownCandidates; // already scoped to this user's agency
+    // Full access: filter out candidates from deactivated supply partners.
     const dropDeactivated = (c: { agency_id?: string | null }) =>
       c.agency_id == null || activeAgencyIds.has(c.agency_id);
     return combinedCandidates.filter(dropDeactivated);
-  }, [isAdmin, ownCandidates, combinedCandidates, activeAgencyIds]);
+  }, [hasFullAccess, ownCandidates, combinedCandidates, activeAgencyIds]);
 
   // Only count active assignments whose candidate is currently visible.
   // Stale assignments (deleted candidates, deactivated agencies) would

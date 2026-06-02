@@ -20,12 +20,15 @@ function sortByCreated(list: Candidate[]) {
 
 /**
  * Returns candidates the current user is allowed to see.
- * - Admin: all non-deleted admin-owned candidates (agency_id == null).
- * - Agency: only candidates whose agency_id == current user's agency_id.
- * - Anyone with no profile/agency_id and not admin: nothing.
+ * - Admin / internal team: all non-deleted admin-owned candidates (agency_id == null).
+ *   (This hook backs the "Admin Candidates" pool; internal staff get the same
+ *   org-wide access as admins — see `hasFullAccess` below.)
+ * - Supply partner: only candidates whose agency_id == current user's agency_id.
+ * - Anyone with no profile/agency_id and no full access: nothing.
  */
 export function useCandidates() {
-  const { isAdmin, agencyId, loading: authLoading } = useAuth();
+  const { isAdmin, isInternal, agencyId, loading: authLoading } = useAuth();
+  const hasFullAccess = isAdmin || isInternal;
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,14 +37,14 @@ export function useCandidates() {
     // consumers never see a flash of empty/stale data.
     if (authLoading) { setLoading(true); return; }
 
-    if (!isAdmin && !agencyId) {
+    if (!hasFullAccess && !agencyId) {
       setCandidates([]);
       setLoading(false);
       return;
     }
 
     const constraints: QueryConstraint[] = [where("is_deleted", "==", false)];
-    if (isAdmin) constraints.push(where("agency_id", "==", null));
+    if (hasFullAccess) constraints.push(where("agency_id", "==", null));
     else constraints.push(where("agency_id", "==", agencyId));
     const q = query(collection(db, COL), ...constraints);
 
@@ -57,7 +60,7 @@ export function useCandidates() {
       () => setLoading(false)
     );
     return () => unsub();
-  }, [isAdmin, agencyId, authLoading]);
+  }, [hasFullAccess, agencyId, authLoading]);
 
   return { candidates, loading };
 }
@@ -105,20 +108,21 @@ export function useAllCandidates(opts?: { bypassOwnerFilter?: boolean }) {
 
 /**
  * Combined candidate pool visible to the current user:
- * - Admin: all non-deleted candidates (admin-owned + every agency).
- * - Agency: own agency candidates + admin pool (agency_id == null).
+ * - Admin / internal team: all non-deleted candidates (admin-owned + every agency).
+ * - Supply partner: own agency candidates + admin pool (agency_id == null).
  *
  * Each candidate keeps its real `agency_id`, so callers can label origin.
  */
 export function useCombinedCandidatePool() {
-  const { isAdmin, agencyId, loading: authLoading } = useAuth();
+  const { isAdmin, isInternal, agencyId, loading: authLoading } = useAuth();
+  const hasFullAccess = isAdmin || isInternal;
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (authLoading) { setLoading(true); return; }
 
-    if (!isAdmin && !agencyId) {
+    if (!hasFullAccess && !agencyId) {
       setCandidates([]);
       setLoading(false);
       return;
@@ -130,7 +134,7 @@ export function useCombinedCandidatePool() {
       q,
       (snap) => {
         let list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Candidate[];
-        if (!isAdmin) {
+        if (!hasFullAccess) {
           list = list.filter((c) => c.agency_id == null || c.agency_id === agencyId);
         }
         setCandidates(sortByCreated(list));
@@ -139,24 +143,26 @@ export function useCombinedCandidatePool() {
       () => setLoading(false)
     );
     return () => unsub();
-  }, [isAdmin, agencyId, authLoading]);
+  }, [hasFullAccess, agencyId, authLoading]);
 
   return { candidates, loading };
 }
 
 /**
- * Admin-only: returns all non-deleted candidates that BELONG to an agency
- * (agency_id != null). Used for the "Agency Candidates" tab and dashboard totals.
+ * Admin / internal team: returns all non-deleted candidates that BELONG to an
+ * agency (agency_id != null). Used for the "Supply Partner Candidates" tab and
+ * dashboard totals.
  */
 export function useAgencyOwnedCandidates() {
-  const { isAdmin, loading: authLoading } = useAuth();
+  const { isAdmin, isInternal, loading: authLoading } = useAuth();
+  const hasFullAccess = isAdmin || isInternal;
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (authLoading) { setLoading(true); return; }
 
-    if (!isAdmin) {
+    if (!hasFullAccess) {
       setCandidates([]);
       setLoading(false);
       return;
@@ -177,7 +183,7 @@ export function useAgencyOwnedCandidates() {
       () => setLoading(false)
     );
     return () => unsub();
-  }, [isAdmin, authLoading]);
+  }, [hasFullAccess, authLoading]);
 
   return { candidates, loading };
 }

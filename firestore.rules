@@ -46,6 +46,13 @@ service cloud.firestore {
       return isSignedIn() && ag != null && ag.get('is_internal', false) == true;
     }
 
+    // Admins and internal team members are trusted staff with org-wide access
+    // to operational data (candidates, onboarding, assignments, projects).
+    // Mirrors the app's `hasFullAccess = isAdmin || isInternal` model.
+    function isAdminOrInternal() {
+      return isAdmin() || isInternal();
+    }
+
     function projectAgencyId(projectId) {
       return projectId != null && exists(/databases/$(database)/documents/projects/$(projectId))
         ? get(/databases/$(database)/documents/projects/$(projectId)).data.agency_id
@@ -103,7 +110,9 @@ service cloud.firestore {
       allow update: if isSignedIn() && (
         isAdmin()
           ? resource.data.agency_id == null
-          : resource.data.agency_id == userAgencyId() && canEditCandidates()
+          : isInternal()
+            ? true
+            : resource.data.agency_id == userAgencyId() && canEditCandidates()
       );
       allow delete: if isAdmin();
     }
@@ -134,10 +143,10 @@ service cloud.firestore {
     match /assignments/{assignmentId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && (
-        isAdmin() || request.resource.data.agency_id == userAgencyId()
+        isAdminOrInternal() || request.resource.data.agency_id == userAgencyId()
       );
       allow update: if isSignedIn() && (
-        isAdmin() || resource.data.agency_id == userAgencyId()
+        isAdminOrInternal() || resource.data.agency_id == userAgencyId()
       );
       allow delete: if isAdmin();
     }
@@ -148,16 +157,18 @@ service cloud.firestore {
     match /onboarding_candidates/{onboardingId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && (
-        isAdmin() ||
+        isAdminOrInternal() ||
         request.resource.data.agency_id == userAgencyId() ||
         projectAgencyId(request.resource.data.project_id) == userAgencyId()
       );
       allow update: if isSignedIn() && (
-        isAdmin() ||
+        isAdminOrInternal() ||
         resource.data.agency_id == userAgencyId() ||
         projectAgencyId(resource.data.project_id) == userAgencyId()
       );
-      allow delete: if isAdmin();
+      // Removing a candidate from a project's onboarding deletes the junction
+      // record. Allowed for admins and internal team members.
+      allow delete: if isAdminOrInternal();
     }
 
     // ── internal_partners (legacy collection) ─────────────────────────────

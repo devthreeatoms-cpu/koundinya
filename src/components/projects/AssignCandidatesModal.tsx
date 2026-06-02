@@ -146,9 +146,27 @@ export default function AssignCandidatesModal({ open, onOpenChange, projectId, p
     for (const cId of selected) {
       const c = candidates.find(cand => cand.id === cId);
       if (!c) continue;
+
+      // Email is required to assign to a project (assignment notification is
+      // emailed to the candidate).
+      if (!c.email?.trim()) {
+        toast({
+          title: "Email required",
+          description: `Candidate ${c.name} has no email. Add an email before assigning to a project.`,
+          variant: "destructive",
+          action: (
+            <ToastAction altText="Remove candidate" onClick={() => toggle(c.id)}>
+              Remove
+            </ToastAction>
+          )
+        });
+        setSubmitting(false);
+        return;
+      }
+
       const hasAadhar = !!c.aadhar_number;
       const hasPan = !!c.pan_number;
-      
+
       if (!hasAadhar && !hasPan) {
         toast({ 
           title: "KYC Blocked", 

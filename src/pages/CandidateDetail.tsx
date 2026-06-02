@@ -34,6 +34,7 @@ import {
 import { useCandidateById, blocklistCandidate, unblocklistCandidate } from "@/hooks/useCandidates";
 import { useProjects } from "@/hooks/useProjects";
 import { useAssignments } from "@/hooks/useAssignments";
+import { useOnboardingByCandidate } from "@/hooks/useOnboardingCandidates";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import CandidateFormModal from "@/components/candidates/CandidateFormModal";
@@ -88,6 +89,7 @@ export default function CandidateDetail() {
   const bypass = isAdmin && !!candidate?.agency_id;
   const { projects } = useProjects({ bypassOwnerFilter: bypass });
   const { assignments } = useAssignments({ candidate_id: id, bypassOwnerFilter: bypass });
+  const { items: onboardingRecords } = useOnboardingByCandidate(id);
   const [editOpen, setEditOpen] = useState(false);
   const [blocklistOpen, setBlocklistOpen] = useState(false);
   const [blocklistLoading, setBlocklistLoading] = useState(false);
@@ -421,6 +423,128 @@ export default function CandidateDetail() {
             </Card>
         </div>
       </div>
+
+      <Card className="glass-card p-4 sm:p-6 hover-lift">
+        <h3 className="font-semibold inline-flex items-center gap-2 mb-4">
+          <div className="h-7 w-7 rounded-lg bg-secondary-soft text-secondary grid place-items-center">
+            <UserCog className="h-3.5 w-3.5" />
+          </div>
+          Onboarding history
+        </h3>
+        {onboardingRecords.length === 0 ? (
+          <div className="flex flex-col items-center py-12 text-center">
+            <div className="h-12 w-12 rounded-full bg-muted grid place-items-center mb-3">
+              <Calendar className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground">Not onboarded to any project yet.</p>
+          </div>
+        ) : (
+          <>
+            {/* Mobile: stacked cards */}
+            <ul className="md:hidden space-y-3">
+              {onboardingRecords.map((o) => {
+                const p = projectMap.get(o.project_id);
+                const moved = o.status === "MovedToProject";
+                return (
+                  <li key={o.id} className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        {p ? (
+                          <Link to={`/projects/${p.id}`} className="text-sm font-semibold hover:text-primary break-words">
+                            {p.name}
+                          </Link>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">Unknown</span>
+                        )}
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "shrink-0",
+                          moved
+                            ? "border-primary/40 text-primary bg-primary-soft"
+                            : "border-secondary/40 text-secondary bg-secondary-soft"
+                        )}
+                      >
+                        {moved ? "Moved to project" : "Onboarding"}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground pt-2 border-t border-border/50">
+                      <div>
+                        <p className="uppercase tracking-wider text-[10px]">Stage</p>
+                        <p className="text-foreground font-medium">{o.onboarding_status || "—"}</p>
+                      </div>
+                      <div>
+                        <p className="uppercase tracking-wider text-[10px]">Onboarded</p>
+                        <p className="text-foreground font-medium">{formatDate((o.created_at as any)?.toDate?.())}</p>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* Desktop: table */}
+            <div className="hidden md:block rounded-lg border border-border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="font-semibold text-foreground">Project</TableHead>
+                    <TableHead className="font-semibold text-foreground">Stage</TableHead>
+                    <TableHead className="font-semibold text-foreground">State</TableHead>
+                    <TableHead className="font-semibold text-foreground">Onboarded</TableHead>
+                    <TableHead className="font-semibold text-foreground">Moved to project</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {onboardingRecords.map((o, idx) => {
+                    const p = projectMap.get(o.project_id);
+                    const moved = o.status === "MovedToProject";
+                    return (
+                      <TableRow
+                        key={o.id}
+                        className={cn("border-b border-border/60", idx % 2 === 1 && "bg-muted/20")}
+                      >
+                        <TableCell>
+                          {p ? (
+                            <Link
+                              to={`/projects/${p.id}`}
+                              className="text-sm font-medium hover:text-primary transition-colors"
+                            >
+                              {p.name}
+                            </Link>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">Unknown</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">{o.onboarding_status || "—"}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={
+                              moved
+                                ? "border-primary/40 text-primary bg-primary-soft"
+                                : "border-secondary/40 text-secondary bg-secondary-soft"
+                            }
+                          >
+                            {moved ? "Moved to project" : "Onboarding"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {formatDate((o.created_at as any)?.toDate?.())}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {formatDate((o.moved_to_project_at as any)?.toDate?.())}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
+      </Card>
 
       <Card className="glass-card p-4 sm:p-6 hover-lift">
         <h3 className="font-semibold inline-flex items-center gap-2 mb-4">

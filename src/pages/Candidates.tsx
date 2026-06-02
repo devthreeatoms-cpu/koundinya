@@ -118,7 +118,11 @@ const statusDot: Record<CandidateStatus, string> = {
 };
 
 export default function CandidatesPage() {
-  const { isAdmin, agencyId, canEditCandidates } = useAuth();
+  const { isAdmin, isInternal, agencyId, canEditCandidates } = useAuth();
+  // Internal team members get the same org-wide candidate view as admins
+  // (full pool, all tabs, edit rights), with the OriginBadge showing who
+  // added each candidate. Supply partners stay scoped to their own pool.
+  const hasFullAccess = isAdmin || isInternal;
   const { candidates: adminCandidates, loading: adminLoading } = useCandidates();
   const { candidates: agencyCandidates, loading: agencyLoading } = useAgencyOwnedCandidates();
   // Combined pool: admin pool + every agency's candidates (used by the "All
@@ -160,18 +164,18 @@ export default function CandidatesPage() {
   const candidates = useMemo(() => {
     const dropDeactivated = (c: Candidate) =>
       c.agency_id == null || activeAgencyIds.has(c.agency_id);
-    if (!isAdmin) {
-      // Agency users see ONLY candidates their own agency created.
-      return adminCandidates; // useCandidates already scopes to agency_id for non-admins
+    if (!hasFullAccess) {
+      // Supply-partner users see ONLY candidates their own agency created.
+      return adminCandidates; // useCandidates already scopes to agency_id for non-full-access users
     }
     if (tab === "all") return combinedPool.filter(dropDeactivated);
     if (tab === "admin") return adminCandidates;
     const base = agencyCandidates.filter(dropDeactivated);
     if (agencyFilter === "all") return base;
     return base.filter((c) => c.agency_id === agencyFilter);
-  }, [isAdmin, tab, agencyFilter, adminCandidates, agencyCandidates, combinedPool, activeAgencyIds]);
+  }, [hasFullAccess, tab, agencyFilter, adminCandidates, agencyCandidates, combinedPool, activeAgencyIds]);
 
-  const loading = isAdmin
+  const loading = hasFullAccess
     ? tab === "all"
       ? combinedLoading
       : tab === "admin"
@@ -349,7 +353,7 @@ export default function CandidatesPage() {
     setPage(1);
   }
 
-  const showAddButton = !isAdmin || tab === "admin" || tab === "all";
+  const showAddButton = !hasFullAccess || tab === "admin" || tab === "all";
   const agencyMap = useMemo(
     () => new Map(allAgencies.map((a) => [a.id, a])),
     [allAgencies]
@@ -371,7 +375,7 @@ export default function CandidatesPage() {
         }
       />
 
-      {isAdmin && (
+      {hasFullAccess && (
         <Tabs value={tab} onValueChange={(v) => setTab(v as "all" | "admin" | "agency" | "internal")}>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <TabsList className="grid grid-cols-4 w-full sm:w-auto sm:inline-flex h-auto gap-1 p-1">
@@ -431,12 +435,14 @@ export default function CandidatesPage() {
                   onChange={(e) => setIpSearch(e.target.value)}
                 />
               </div>
-              <Link
-                to="/internal-partners"
-                className="text-xs text-primary inline-flex items-center gap-1 hover:gap-1.5 transition-all shrink-0"
-              >
-                Manage members <ArrowRight className="h-3 w-3" />
-              </Link>
+              {isAdmin && (
+                <Link
+                  to="/internal-partners"
+                  className="text-xs text-primary inline-flex items-center gap-1 hover:gap-1.5 transition-all shrink-0"
+                >
+                  Manage members <ArrowRight className="h-3 w-3" />
+                </Link>
+              )}
             </div>
           </div>
 
@@ -936,7 +942,7 @@ export default function CandidatesPage() {
                             <DropdownMenuItem onClick={() => navigate(`/candidates/${c.id}`)}>
                               <Eye className="h-4 w-4 mr-2" /> View
                             </DropdownMenuItem>
-                            {(isAdmin || (c.agency_id === agencyId && canEditCandidates)) && (
+                            {(hasFullAccess || (c.agency_id === agencyId && canEditCandidates)) && (
                               <>
                                 <DropdownMenuItem onClick={() => openEdit(c)}>
                                   <Edit className="h-4 w-4 mr-2" /> Edit
@@ -1169,7 +1175,7 @@ export default function CandidatesPage() {
                               <DropdownMenuItem onClick={() => navigate(`/candidates/${c.id}`)}>
                                 <Eye className="h-4 w-4 mr-2" /> View
                               </DropdownMenuItem>
-                              {(isAdmin || (c.agency_id === agencyId && canEditCandidates)) && (
+                              {(hasFullAccess || (c.agency_id === agencyId && canEditCandidates)) && (
                                 <>
                                   <DropdownMenuItem onClick={() => openEdit(c)}>
                                     <Edit className="h-4 w-4 mr-2" /> Edit

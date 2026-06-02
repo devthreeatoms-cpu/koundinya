@@ -20,9 +20,20 @@ import { useProjectById } from "@/hooks/useProjects";
 import { deleteProject } from "@/hooks/useProjects";
 import { useAllCandidates } from "@/hooks/useCandidates";
 import { useAssignments, removeAssignment, updateAssignmentProjectStatus } from "@/hooks/useAssignments";
-import { useOnboardingCandidates, updateOnboardingEntry, resetOnboardingAfterProjectRemoval } from "@/hooks/useOnboardingCandidates";
+import { useOnboardingCandidates, updateOnboardingEntry, resetOnboardingAfterProjectRemoval, deleteOnboardingEntry } from "@/hooks/useOnboardingCandidates";
 import { useAgencies } from "@/hooks/useAgencies";
 import { useAuth } from "@/context/AuthContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import type { OnboardingCandidate } from "@/types";
 import ProjectFormModal from "@/components/projects/ProjectFormModal";
 import OnboardCandidatesModal from "@/components/projects/OnboardCandidatesModal";
 import MoveOnboardedToProjectModal from "@/components/projects/MoveOnboardedToProjectModal";
@@ -62,7 +73,9 @@ function OwnerBadge({
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isInternal } = useAuth();
+  // Admins and internal team members can remove candidates from a project.
+  const canManageProject = isAdmin || isInternal;
   const navigate = useNavigate();
   const { project, loading: pLoading } = useProjectById(id);
   // Project detail is already scoped by project_id, and the project doc itself
@@ -81,6 +94,9 @@ export default function ProjectDetail() {
   const [statusDraft, setStatusDraft] = useState<Record<string, string>>({});
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [onboardingToRemove, setOnboardingToRemove] = useState<OnboardingCandidate | null>(null);
+  const [removingOnboarding, setRemovingOnboarding] = useState(false);
+  const [onboardingStatusFilter, setOnboardingStatusFilter] = useState<string>("all");
 
   // Use the full candidate list (incl. soft-deleted) so historical
   // assignments still show the candidate's name with a "(Deleted)" tag.
@@ -159,6 +175,30 @@ export default function ProjectDetail() {
       toast({ title: "Candidate removed from project" });
     } catch (err: any) {
       toast({ title: "Error", description: err?.message, variant: "destructive" });
+    }
+  }
+
+  async function handleRemoveOnboarding() {
+    if (!onboardingToRemove || !id) return;
+    setRemovingOnboarding(true);
+    try {
+      // If the candidate was already moved to the project, also end their
+      // active assignment so they're fully removed from the project.
+      if (onboardingToRemove.status === "MovedToProject") {
+        const activeAssignment = assignments.find(
+          (a) => a.candidate_id === onboardingToRemove.candidate_id && a.status === "Active"
+        );
+        if (activeAssignment) {
+          await removeAssignment(activeAssignment.id, "Dropped");
+        }
+      }
+      await deleteOnboardingEntry(onboardingToRemove.id);
+      toast({ title: "Candidate removed from project" });
+      setOnboardingToRemove(null);
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message, variant: "destructive" });
+    } finally {
+      setRemovingOnboarding(false);
     }
   }
 
@@ -286,7 +326,7 @@ export default function ProjectDetail() {
                   <TableHead className="font-semibold text-foreground">Onboarding Status</TableHead>
                   <TableHead className="font-semibold text-foreground">State</TableHead>
                   <TableHead className="font-semibold text-foreground text-center">Ready</TableHead>
-                  <TableHead className="font-semibold text-foreground text-right">Save</TableHead>
+                  <TableHead className="font-semibold text-foreground text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -347,14 +387,28 @@ export default function ProjectDetail() {
                         </Button>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-primary hover:text-primary hover:bg-primary-soft"
-                          onClick={() => handleSaveOnboarding(o.id, o.onboarding_status, o.notes)}
-                        >
-                          <Save className="h-4 w-4" />
-                        </Button>
+                        <div className="inline-flex items-center gap-1 justify-end">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-primary hover:text-primary hover:bg-primary-soft"
+                            title="Save onboarding status"
+                            onClick={() => handleSaveOnboarding(o.id, o.onboarding_status, o.notes)}
+                          >
+                            <Save className="h-4 w-4" />
+                          </Button>
+                          {canManageProject && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              title="Remove from project"
+                              onClick={() => setOnboardingToRemove(o)}
+                            >
+                              <UserMinus className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -718,6 +772,39 @@ export default function ProjectDetail() {
         candidates={allCandidates}
         onboardingItems={onboardingItems}
       />
+
+      {/* Remove-from-project confirmation */}
+      <AlertDialog open={!!onboardingToRemove} onOpenChange={(o) => { if (!o) setOnboardingToRemove(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove candidate from project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {onboardingToRemove && (
+                <>
+                  <span className="font-medium text-foreground">
+                    {candidateMap.get(onboardingToRemove.candidate_id)?.name ?? "This candidate"}
+                  </span>{" "}
+                  will be removed from <span className="font-medium text-foreground">{project.name}</span>'s
+                  onboarding
+                  {onboardingToRemove.status === "MovedToProject" && " and their active assignment will be ended"}.
+                  They are not deleted and can be onboarded again later.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removingOnboarding}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleRemoveOnboarding(); }}
+              disabled={removingOnboarding}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {removingOnboarding && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete confirmation dialog */}
       {deleteConfirm && (

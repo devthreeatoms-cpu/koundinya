@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -51,6 +52,38 @@ export function useOnboardingCandidates(projectId?: string) {
   }, [projectId]);
 
   return { items, loading, error };
+}
+
+/**
+ * Live onboarding records for a single candidate (across every project they
+ * have been onboarded to). Used by the candidate detail history.
+ */
+export function useOnboardingByCandidate(candidateId?: string) {
+  const [items, setItems] = useState<OnboardingCandidate[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!candidateId) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+    const q = query(collection(db, COL), where("candidate_id", "==", candidateId));
+    setLoading(true);
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as OnboardingCandidate[];
+        list.sort((a, b) => ((b.created_at as any)?.toMillis?.() ?? 0) - ((a.created_at as any)?.toMillis?.() ?? 0));
+        setItems(list);
+        setLoading(false);
+      },
+      () => setLoading(false)
+    );
+    return () => unsub();
+  }, [candidateId]);
+
+  return { items, loading };
 }
 
 export function useAllOnboardingCandidates() {
@@ -134,6 +167,14 @@ export async function updateOnboardingEntry(
   });
 }
 
+/**
+ * Removes a candidate from a project's onboarding by deleting the junction
+ * record. (Admins / internal team only — enforced by security rules.)
+ */
+export async function deleteOnboardingEntry(id: string) {
+  await deleteDoc(doc(db, COL, id));
+}
+
 function isFullyKyc(candidate: Candidate) {
   const hasAadhar = !!candidate.aadhar_number;
   const hasPan = !!candidate.pan_number;
@@ -190,6 +231,10 @@ export async function moveOnboardedToProject(params: {
     const candidateSnap = await getDoc(doc(db, "candidates", onboarding.candidate_id));
     if (!candidateSnap.exists()) throw new Error("Candidate not found.");
     const candidate = { id: candidateSnap.id, ...(candidateSnap.data() as any) } as Candidate;
+
+    if (!candidate.email?.trim()) {
+      throw new Error(`Candidate ${candidate.name} has no email. Add an email before assigning to a project.`);
+    }
 
     if (!isFullyKyc(candidate)) {
       throw new Error(`Candidate ${candidate.name} does not have fully verified KYC or is missing bank details.`);
