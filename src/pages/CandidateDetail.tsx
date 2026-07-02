@@ -83,7 +83,7 @@ const statusDot: Record<CandidateStatus, string> = {
 
 export default function CandidateDetail() {
   const { id } = useParams<{ id: string }>();
-  const { isAdmin, agencyId, canEditCandidates } = useAuth();
+  const { isAdmin, isInternal, agencyId, canEditCandidates } = useAuth();
   const { toast } = useToast();
   const { candidate, loading: cLoading } = useCandidateById(id);
   const bypass = isAdmin && !!candidate?.agency_id;
@@ -154,7 +154,7 @@ export default function CandidateDetail() {
         title={candidate.name}
         description={`Source: ${candidate.source}`}
         actions={
-          (isAdmin || (candidate?.agency_id === agencyId && canEditCandidates)) ? (
+          (isAdmin || isInternal || (candidate?.agency_id === agencyId && canEditCandidates)) ? (
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"

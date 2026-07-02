@@ -92,11 +92,13 @@ export default function ProjectDetail() {
   const [onboardOpen, setOnboardOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [statusDraft, setStatusDraft] = useState<Record<string, string>>({});
+  const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [onboardingToRemove, setOnboardingToRemove] = useState<OnboardingCandidate | null>(null);
   const [removingOnboarding, setRemovingOnboarding] = useState(false);
   const [onboardingStatusFilter, setOnboardingStatusFilter] = useState<string>("all");
+  const [onboardingSearch, setOnboardingSearch] = useState("");
 
   // Use the full candidate list (incl. soft-deleted) so historical
   // assignments still show the candidate's name with a "(Deleted)" tag.
@@ -124,12 +126,22 @@ export default function ProjectDetail() {
   }, [project?.onboarding_statuses, onboardingItems]);
 
   const filteredOnboarding = useMemo(() => {
-    if (onboardingStatusFilter === "all") return onboardingItems;
-    if (onboardingStatusFilter === "__none__") {
-      return onboardingItems.filter((o) => !(o.onboarding_status ?? "").trim());
-    }
-    return onboardingItems.filter((o) => (o.onboarding_status ?? "").trim() === onboardingStatusFilter);
-  }, [onboardingItems, onboardingStatusFilter]);
+    const term = onboardingSearch.trim().toLowerCase();
+    return onboardingItems.filter((o) => {
+      if (onboardingStatusFilter === "__none__") {
+        if ((o.onboarding_status ?? "").trim()) return false;
+      } else if (onboardingStatusFilter !== "all") {
+        if ((o.onboarding_status ?? "").trim() !== onboardingStatusFilter) return false;
+      }
+      if (term) {
+        const c = candidateMap.get(o.candidate_id);
+        const loc = c ? [c.area_name, c.district, c.state, c.location].filter(Boolean).join(" ") : "";
+        const hay = `${c?.name ?? ""} ${c?.phone ?? ""} ${loc}`.toLowerCase();
+        if (!hay.includes(term)) return false;
+      }
+      return true;
+    });
+  }, [onboardingItems, onboardingStatusFilter, onboardingSearch, candidateMap]);
 
   useEffect(() => {
     if (!id) return;
@@ -229,7 +241,7 @@ export default function ProjectDetail() {
 
   async function handleSaveOnboarding(id: string, currentStatus: string, currentNotes?: string | null) {
     const nextStatus = (statusDraft[id] ?? currentStatus ?? "").trim();
-    const nextNotes = (currentNotes ?? "").trim();
+    const nextNotes = (notesDraft[id] ?? currentNotes ?? "").trim();
     try {
       await updateOnboardingEntry(
         id,
@@ -319,7 +331,18 @@ export default function ProjectDetail() {
             </div>
             Onboarding Candidates
           </h3>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {onboardingItems.length > 0 && (
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
+                <Input
+                  placeholder="Search name, phone, location…"
+                  className="pl-9 h-9 text-xs w-full sm:w-64"
+                  value={onboardingSearch}
+                  onChange={(e) => setOnboardingSearch(e.target.value)}
+                />
+              </div>
+            )}
             {onboardingItems.length > 0 && (
               <Select value={onboardingStatusFilter} onValueChange={setOnboardingStatusFilter}>
                 <SelectTrigger className="h-9 text-xs w-48">
@@ -353,17 +376,18 @@ export default function ProjectDetail() {
           </div>
         ) : filteredOnboarding.length === 0 ? (
           <div className="py-10 text-center text-sm text-muted-foreground">
-            No onboarding candidates with this status.
+            No onboarding candidates match your filters.
           </div>
         ) : (
-          <div className="rounded-lg border border-border overflow-hidden">
+          <div className="rounded-lg border border-border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead className="font-semibold text-foreground">Candidate</TableHead>
+                  <TableHead className="font-semibold text-foreground">Location</TableHead>
                   <TableHead className="font-semibold text-foreground">Phone</TableHead>
                   <TableHead className="font-semibold text-foreground">Onboarding Status</TableHead>
-                  <TableHead className="font-semibold text-foreground">State</TableHead>
+                  <TableHead className="font-semibold text-foreground">Notes</TableHead>
                   <TableHead className="font-semibold text-foreground text-center">Ready</TableHead>
                   <TableHead className="font-semibold text-foreground text-right">Actions</TableHead>
                 </TableRow>
@@ -371,9 +395,39 @@ export default function ProjectDetail() {
               <TableBody>
                 {filteredOnboarding.map((o, idx) => {
                   const c = candidateMap.get(o.candidate_id);
+                  const loc = c
+                    ? (c.area_name ? [c.area_name, c.district, c.state].filter(Boolean).join(", ") : (c.location || "—"))
+                    : "—";
+                  const moved = o.status === "MovedToProject";
                   return (
                     <TableRow key={o.id} className={cn("border-b border-border/60", idx % 2 === 1 && "bg-muted/20")}>
-                      <TableCell className="text-sm font-medium">{c?.name ?? "Unknown candidate"}</TableCell>
+                      <TableCell className="text-sm font-medium">
+                        <div className="flex flex-col gap-1">
+                          {c ? (
+                            <Link to={`/candidates/${c.id}`} className="font-medium hover:text-primary transition-colors w-fit">
+                              {c.name}
+                            </Link>
+                          ) : (
+                            <span>Unknown candidate</span>
+                          )}
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "w-fit text-[10px]",
+                              moved
+                                ? "border-green-500/30 text-green-600 bg-green-500/10"
+                                : "border-yellow-500/30 text-yellow-600 bg-yellow-500/10"
+                            )}
+                          >
+                            {moved ? "Moved to Project" : "Onboarding"}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="h-3 w-3 shrink-0" /> {loc}
+                        </span>
+                      </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{c?.phone ?? "—"}</TableCell>
                       <TableCell>
                         {hasOnboardingStatuses ? (
@@ -401,13 +455,18 @@ export default function ProjectDetail() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={cn(
-                          o.status === "MovedToProject"
-                            ? "border-green-500/30 text-green-600 bg-green-500/10"
-                            : "border-yellow-500/30 text-yellow-600 bg-yellow-500/10"
-                        )}>
-                          {o.status === "MovedToProject" ? "Moved to Project" : "Onboarding"}
-                        </Badge>
+                        {canManageProject ? (
+                          <Input
+                            value={notesDraft[o.id] ?? o.notes ?? ""}
+                            onChange={(e) => setNotesDraft((p) => ({ ...p, [o.id]: e.target.value }))}
+                            placeholder="Add notes…"
+                            className="h-8 text-xs w-44"
+                          />
+                        ) : (
+                          <span className="text-xs text-muted-foreground whitespace-pre-wrap">
+                            {o.notes?.trim() || "—"}
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell className="text-center">
                         <Button
@@ -582,6 +641,14 @@ export default function ProjectDetail() {
                         <p className={cn("text-xs tabular-nums mt-0.5", isDeleted ? "text-muted-foreground" : "text-muted-foreground")}>
                           {c?.phone ?? "—"}
                         </p>
+                        {c && (
+                          <p className="text-xs text-muted-foreground inline-flex items-center gap-1 mt-0.5">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            <span className="break-words">
+                              {c.area_name ? [c.area_name, c.district, c.state].filter(Boolean).join(", ") : (c.location || "—")}
+                            </span>
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50 flex-wrap">
@@ -623,12 +690,13 @@ export default function ProjectDetail() {
             </ul>
 
             {/* Desktop: table */}
-            <div className="hidden md:block rounded-lg border border-border overflow-hidden">
+            <div className="hidden md:block rounded-lg border border-border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40">
                     <TableHead className="font-semibold text-foreground">Candidate</TableHead>
                     <TableHead className="font-semibold text-foreground">Phone</TableHead>
+                    <TableHead className="font-semibold text-foreground">Location</TableHead>
                     <TableHead className="font-semibold text-foreground">Assigned</TableHead>
                     <TableHead className="font-semibold text-foreground text-right">Actions</TableHead>
                   </TableRow>
@@ -668,6 +736,12 @@ export default function ProjectDetail() {
                           ) : <span className="text-sm text-muted-foreground italic">Unknown candidate</span>}
                         </TableCell>
                         <TableCell className={cn("text-sm tabular-nums", isDeleted && "text-muted-foreground")}>{c?.phone ?? "—"}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          <span className="inline-flex items-center gap-1">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            {c ? (c.area_name ? [c.area_name, c.district, c.state].filter(Boolean).join(", ") : (c.location || "—")) : "—"}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-sm">{formatDate((a.assigned_at as any)?.toDate?.())}</TableCell>
                         <TableCell className="text-right">
                           <div className="inline-flex items-center gap-2 justify-end">

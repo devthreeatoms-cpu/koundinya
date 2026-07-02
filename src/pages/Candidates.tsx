@@ -207,6 +207,7 @@ export default function CandidatesPage() {
   const [districtFilter, setDistrictFilter] = useState<string>("all");
   const [pincodeFilter, setPincodeFilter] = useState<string>("all");
   const [qualFilter, setQualFilter] = useState<string>("all");
+  const [createdFilter, setCreatedFilter] = useState<string>("all");
   const [blocklistFilter, setBlocklistFilter] = useState(false);
   const [page, setPage] = useState(1);
 
@@ -284,6 +285,17 @@ export default function CandidatesPage() {
       if (pincodeFilter !== "all" && c.pincode !== pincodeFilter) return false;
       if (qualFilter !== "all" && c.qualification !== qualFilter) return false;
 
+      if (createdFilter !== "all") {
+        const created = (c.created_at as any)?.toDate?.() as Date | undefined;
+        if (!created) return false;
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        if (createdFilter === "today" && created < startOfToday) return false;
+        if (createdFilter === "7d" && created < new Date(now.getTime() - 7 * 24 * 3600 * 1000)) return false;
+        if (createdFilter === "30d" && created < new Date(now.getTime() - 30 * 24 * 3600 * 1000)) return false;
+        if (createdFilter === "month" && created < new Date(now.getFullYear(), now.getMonth(), 1)) return false;
+      }
+
       const hasAadhar = !!c.aadhar_number;
       const hasPan = !!c.pan_number;
       if (kycFilter === "fully_verified" && (!hasAadhar || !hasPan)) return false;
@@ -298,7 +310,7 @@ export default function CandidatesPage() {
       }
       return true;
     });
-  }, [candidates, search, statusFilter, sourceFilter, bikeFilter, genderFilter, stateFilter, districtFilter, pincodeFilter, qualFilter, kycFilter, availFilter, blocklistFilter, activeAssignedIds]);
+  }, [candidates, search, statusFilter, sourceFilter, bikeFilter, genderFilter, stateFilter, districtFilter, pincodeFilter, qualFilter, createdFilter, kycFilter, availFilter, blocklistFilter, activeAssignedIds]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount);
@@ -336,6 +348,7 @@ export default function CandidatesPage() {
     (districtFilter !== "all" ? 1 : 0) +
     (pincodeFilter !== "all" ? 1 : 0) +
     (qualFilter !== "all" ? 1 : 0) +
+    (createdFilter !== "all" ? 1 : 0) +
     (blocklistFilter ? 1 : 0);
 
   function clearFilters() {
@@ -349,9 +362,17 @@ export default function CandidatesPage() {
     setDistrictFilter("all");
     setPincodeFilter("all");
     setQualFilter("all");
+    setCreatedFilter("all");
     setBlocklistFilter(false);
     setPage(1);
   }
+
+  const CREATED_LABELS: Record<string, string> = {
+    today: "Added today",
+    "7d": "Last 7 days",
+    "30d": "Last 30 days",
+    month: "This month",
+  };
 
   const showAddButton = !hasFullAccess || tab === "admin" || tab === "all";
   const agencyMap = useMemo(
@@ -746,6 +767,24 @@ export default function CandidatesPage() {
                   </SelectContent>
                 </Select>
               )}
+              <Select
+                value={createdFilter}
+                onValueChange={(v) => {
+                  setCreatedFilter(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue placeholder="Date added" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any date added</SelectItem>
+                  <SelectItem value="today">Added today</SelectItem>
+                  <SelectItem value="7d">Last 7 days</SelectItem>
+                  <SelectItem value="30d">Last 30 days</SelectItem>
+                  <SelectItem value="month">This month</SelectItem>
+                </SelectContent>
+              </Select>
               <button
                 onClick={() => { setBlocklistFilter((v) => !v); setPage(1); }}
                 className={cn(
@@ -853,6 +892,14 @@ export default function CandidatesPage() {
                   className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-accent/15 text-accent hover:bg-accent/25 transition-colors"
                 >
                   Qual: {qualFilter} <X className="h-3 w-3" />
+                </button>
+              )}
+              {createdFilter !== "all" && (
+                <button
+                  onClick={() => { setCreatedFilter("all"); setPage(1); }}
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                >
+                  {CREATED_LABELS[createdFilter] ?? createdFilter} <X className="h-3 w-3" />
                 </button>
               )}
               {blocklistFilter && (
