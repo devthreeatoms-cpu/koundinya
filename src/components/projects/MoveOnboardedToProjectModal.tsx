@@ -66,12 +66,12 @@ export default function MoveOnboardedToProjectModal({
     sortedReadyItems.forEach((o) => {
       const c = candidateMap.get(o.candidate_id);
       if (!c) return;
-      if (c.kisfs_id && /^KISFS\d{3}$/.test(c.kisfs_id)) {
+      if (c.kisfs_id && /^KISFS\d{3,4}$/.test(c.kisfs_id)) {
         nextSuffix[c.id] = c.kisfs_id.slice(5);
         return;
       }
       while (takenKisfs.has(`KISFS${String(next).padStart(3, "0")}`) || localUsed.has(next)) next++;
-      if (next > 999) next = 170;
+      if (next > 9999) next = 170;
       nextSuffix[c.id] = String(next).padStart(3, "0");
       localUsed.add(next);
       next++;
@@ -89,7 +89,7 @@ export default function MoveOnboardedToProjectModal({
   }
 
   function setSuffix(candidateId: string, suffix: string) {
-    const normalized = suffix.replace(/[^\d]/g, "").slice(0, 3);
+    const normalized = suffix.replace(/[^\d]/g, "").slice(0, 4);
     setSuffixMap((prev) => ({ ...prev, [candidateId]: normalized }));
   }
 
@@ -104,8 +104,8 @@ export default function MoveOnboardedToProjectModal({
       if (!c) continue;
       const raw = suffixMap[c.id] ?? "";
       const parsed = Number(raw);
-      if (!Number.isFinite(parsed) || parsed < 170 || parsed > 999) {
-        toast({ title: "Invalid KISFS", description: `${c.name}: suffix must be between 170 and 999.`, variant: "destructive" });
+      if (!Number.isFinite(parsed) || parsed < 170 || parsed > 9999) {
+        toast({ title: "Invalid KISFS", description: `${c.name}: suffix must be between 170 and 9999.`, variant: "destructive" });
         return;
       }
       const kisfs = `KISFS${String(parsed).padStart(3, "0")}`;

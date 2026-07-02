@@ -291,10 +291,10 @@ export async function resetOnboardingAfterProjectRemoval(params: {
 export function getNextKisfsSuffix(candidates: Candidate[]) {
   const used = new Set<number>();
   for (const c of candidates) {
-    const m = (c.kisfs_id ?? "").match(/^KISFS(\d{3})$/);
+    const m = (c.kisfs_id ?? "").match(/^KISFS(\d{3,4})$/);
     if (m) used.add(Number(m[1]));
   }
-  for (let n = 170; n <= 999; n++) {
+  for (let n = 170; n <= 9999; n++) {
     if (!used.has(n)) return String(n);
   }
   return "170";

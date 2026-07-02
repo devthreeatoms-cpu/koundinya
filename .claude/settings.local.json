@@ -42,7 +42,9 @@
       "mcp__firebase__firebase_validate_security_rules",
       "mcp__firebase__firebase_deploy",
       "mcp__firebase__firebase_deploy_status",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "mcp__firebase__firebase_get_security_rules",
+      "mcp__firebase__firebase_get_environment"
     ]
   },
   "enableAllProjectMcpServers": true,
